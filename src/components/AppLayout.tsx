@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { Bell } from "lucide-react";
 import ACCounter from "./ACCounter";
 import LiveIndicator from "./LiveIndicator";
 import BottomNav from "./BottomNav";
@@ -8,6 +9,7 @@ import SocialTab from "./tabs/SocialTab";
 import CreateTab from "./tabs/CreateTab";
 import LiveTab from "./tabs/LiveTab";
 import ProfileTab from "./tabs/ProfileTab";
+import NotificationSheet from "./stream/NotificationSheet";
 
 type TabType = "stream" | "social" | "create" | "live" | "profile";
 
@@ -15,16 +17,17 @@ const AppLayout = () => {
   const [activeTab, setActiveTab] = useState<TabType>("stream");
   const [acBalance, setAcBalance] = useState(0);
   const [multiplier, setMultiplier] = useState(1);
-  const [hasActiveLiveSessions, setHasActiveLiveSessions] = useState(true); // Demo
+  const [hasActiveLiveSessions, setHasActiveLiveSessions] = useState(true);
   const [isUserLive, setIsUserLive] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [videosWatched, setVideosWatched] = useState(0);
 
-  // Handle AC earning with multiplier
   const handleACEarned = useCallback((amount: number) => {
     const earnedAmount = Math.round(amount * multiplier);
     setAcBalance((prev) => prev + earnedAmount);
   }, [multiplier]);
 
-  // Check for streak multiplier (demo: increase multiplier over time)
+  // Streak multiplier
   useEffect(() => {
     const checkStreak = setInterval(() => {
       if (activeTab === "stream") {
@@ -46,7 +49,7 @@ const AppLayout = () => {
       case "live":
         return <LiveTab />;
       case "profile":
-        return <ProfileTab acBalance={acBalance} />;
+        return <ProfileTab acBalance={acBalance} isGuest={true} />;
       default:
         return <StreamTab onACEarned={handleACEarned} />;
     }
@@ -58,11 +61,11 @@ const AppLayout = () => {
 
   return (
     <div className="min-h-screen bg-background overflow-hidden">
-      {/* Top-Left Header - AC Counter + Live Button (SIGNATURE ELEMENT) */}
+      {/* Top Header */}
       <header className="fixed top-0 left-0 right-0 z-40 safe-area-top">
         <div className="flex items-center justify-between px-4 py-3">
           {/* Left: AC Counter + Live */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <ACCounter 
               balance={acBalance} 
               multiplier={multiplier > 1 ? Math.round(multiplier * 10) / 10 : undefined} 
@@ -74,14 +77,18 @@ const AppLayout = () => {
             />
           </div>
 
-          {/* Right: App Name (subtle) */}
-          <motion.div 
-            className="text-sm font-semibold text-foreground/60"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-          >
-            Attention
-          </motion.div>
+          {/* Right: Notification Icon */}
+          <div className="flex items-center gap-2">
+            <motion.button
+              className="relative p-2"
+              whileTap={{ scale: 0.9 }}
+              onClick={() => setShowNotifications(true)}
+            >
+              <Bell className="w-5 h-5 text-foreground/70" />
+              {/* Notification dot */}
+              <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-primary" />
+            </motion.button>
+          </div>
         </div>
       </header>
 
@@ -100,8 +107,14 @@ const AppLayout = () => {
         </AnimatePresence>
       </main>
 
-      {/* Bottom Navigation */}
+      {/* Bottom Navigation - No Live tab */}
       <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
+
+      {/* Notification Sheet */}
+      <NotificationSheet 
+        isOpen={showNotifications} 
+        onClose={() => setShowNotifications(false)} 
+      />
     </div>
   );
 };

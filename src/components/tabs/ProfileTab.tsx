@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Settings, Share2, Edit3 } from "lucide-react";
+import { Settings, Share2, Edit3, LogIn, UserPlus } from "lucide-react";
 import AnimatedAvatar from "../profile/AnimatedAvatar";
 import WalletPanel from "../profile/WalletPanel";
 import ActivitySnapshot from "../profile/ActivitySnapshot";
@@ -8,17 +8,21 @@ import WatchHistoryHub from "../profile/WatchHistoryHub";
 import PerformanceDashboard from "../profile/PerformanceDashboard";
 import MediaGrid from "../profile/MediaGrid";
 import ThemeSettings from "../profile/ThemeSettings";
+import InterestSurvey from "../auth/InterestSurvey";
 import { cn } from "@/lib/utils";
 
 interface ProfileTabProps {
   acBalance: number;
+  isGuest?: boolean;
 }
 
 type ProfileSection = "overview" | "history" | "analytics" | "content" | "settings";
 
-const ProfileTab = ({ acBalance }: ProfileTabProps) => {
+const ProfileTab = ({ acBalance, isGuest = true }: ProfileTabProps) => {
   const [activeSection, setActiveSection] = useState<ProfileSection>("overview");
   const [isLive, setIsLive] = useState(false);
+  const [showSurvey, setShowSurvey] = useState(false);
+  const [showAuthPrompt, setShowAuthPrompt] = useState(false);
 
   const sections: { id: ProfileSection; label: string }[] = [
     { id: "overview", label: "Overview" },
@@ -29,6 +33,16 @@ const ProfileTab = ({ acBalance }: ProfileTabProps) => {
   ];
 
   const monthlyEarned = Math.floor(acBalance * 0.8);
+  const dailyEarned = Math.floor(acBalance * 0.05);
+
+  const handleAuthClick = () => {
+    setShowAuthPrompt(true);
+  };
+
+  const handleSurveyComplete = (interests: string[]) => {
+    console.log("Selected interests:", interests);
+    // Would save to backend
+  };
 
   return (
     <motion.div
@@ -37,7 +51,7 @@ const ProfileTab = ({ acBalance }: ProfileTabProps) => {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
     >
-      {/* Profile Header - Compact */}
+      {/* Profile Header */}
       <div className="relative px-4 pt-2 pb-4">
         {/* Actions */}
         <div className="flex items-center justify-between mb-4">
@@ -55,13 +69,15 @@ const ProfileTab = ({ acBalance }: ProfileTabProps) => {
           </motion.button>
         </div>
 
-        {/* Avatar & Info - Horizontal layout */}
+        {/* Avatar & Info */}
         <div className="flex items-center gap-4">
           <AnimatedAvatar size="lg" isOnline={true} isLive={isLive} />
 
           <div className="flex-1">
             <div className="flex items-center gap-2">
-              <h2 className="text-lg font-bold text-foreground">Guest User</h2>
+              <h2 className="text-lg font-bold text-foreground">
+                {isGuest ? "Guest User" : "Your Name"}
+              </h2>
               <motion.button
                 className="p-1 rounded-full hover:bg-muted/50"
                 whileTap={{ scale: 0.9 }}
@@ -69,49 +85,69 @@ const ProfileTab = ({ acBalance }: ProfileTabProps) => {
                 <Edit3 className="w-3.5 h-3.5 text-muted-foreground" />
               </motion.button>
             </div>
-            <p className="text-sm text-muted-foreground">@guest_user</p>
-            
-            {/* Quick Stats Inline */}
-            <div className="flex items-center gap-4 mt-2">
-              <div className="text-center">
-                <p className="text-sm font-bold text-foreground">0</p>
-                <p className="text-[10px] text-muted-foreground">Followers</p>
-              </div>
-              <div className="text-center">
-                <p className="text-sm font-bold text-foreground">0</p>
-                <p className="text-[10px] text-muted-foreground">Following</p>
-              </div>
-              <div className="text-center">
-                <p className="text-sm font-bold text-foreground">0</p>
-                <p className="text-[10px] text-muted-foreground">Posts</p>
-              </div>
-            </div>
+            <p className="text-sm text-muted-foreground">
+              {isGuest ? "@guest_user" : "@your_username"}
+            </p>
           </div>
         </div>
 
-        {/* Go Live Button */}
-        <motion.button
-          className={cn(
-            "mt-4 w-full py-2 rounded-xl font-medium text-sm transition-colors",
-            isLive 
-              ? "bg-destructive text-destructive-foreground" 
-              : "bg-muted/30 text-foreground border border-border/50"
-          )}
-          whileTap={{ scale: 0.98 }}
-          onClick={() => setIsLive(!isLive)}
-        >
-          {isLive ? "End Live" : "Go Live"}
-        </motion.button>
+        {/* Guest Auth Prompt */}
+        {isGuest && (
+          <motion.div
+            className="mt-4 p-4 rounded-xl bg-primary/10 border border-primary/20"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <p className="text-sm text-foreground mb-3">
+              Sign in to save your AC and unlock all features
+            </p>
+            <div className="flex gap-2">
+              <motion.button
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-primary text-primary-foreground font-medium text-sm"
+                whileTap={{ scale: 0.98 }}
+                onClick={handleAuthClick}
+              >
+                <LogIn className="w-4 h-4" />
+                Sign In
+              </motion.button>
+              <motion.button
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-muted/50 text-foreground font-medium text-sm"
+                whileTap={{ scale: 0.98 }}
+                onClick={() => setShowSurvey(true)}
+              >
+                <UserPlus className="w-4 h-4" />
+                Create Account
+              </motion.button>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Go Live Button - Only for authenticated users */}
+        {!isGuest && (
+          <motion.button
+            className={cn(
+              "mt-4 w-full py-2 rounded-xl font-medium text-sm transition-colors",
+              isLive 
+                ? "bg-destructive text-destructive-foreground" 
+                : "bg-muted/30 text-foreground border border-border/50"
+            )}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => setIsLive(!isLive)}
+          >
+            {isLive ? "End Live" : "Go Live"}
+          </motion.button>
+        )}
       </div>
 
       {/* Wallet Panel - TOP (Most Important) */}
       <WalletPanel 
         balance={acBalance} 
         monthlyEarned={monthlyEarned}
+        dailyEarned={dailyEarned}
         multiplier={1.5}
       />
 
-      {/* Section Tabs - Scrollable */}
+      {/* Section Tabs */}
       <div className="px-4 mt-4 mb-2">
         <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
           {sections.map((section) => (
@@ -189,6 +225,13 @@ const ProfileTab = ({ acBalance }: ProfileTabProps) => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Interest Survey Modal */}
+      <InterestSurvey
+        isOpen={showSurvey}
+        onClose={() => setShowSurvey(false)}
+        onComplete={handleSurveyComplete}
+      />
     </motion.div>
   );
 };

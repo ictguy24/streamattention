@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Play, Users, PlusCircle, Radio, User } from "lucide-react";
+import { Play, Users, PlusCircle, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type TabType = "stream" | "social" | "create" | "live" | "profile";
@@ -13,19 +13,21 @@ const tabs = [
   { id: "stream" as const, icon: Play, label: "Stream" },
   { id: "social" as const, icon: Users, label: "Social" },
   { id: "create" as const, icon: PlusCircle, label: "Create", isCenter: true },
-  { id: "live" as const, icon: Radio, label: "Live" },
   { id: "profile" as const, icon: User, label: "Profile" },
 ];
 
 const BottomNav = ({ activeTab, onTabChange }: BottomNavProps) => {
+  // Map 'live' tab to stream for backward compatibility
+  const displayTab = activeTab === "live" ? "stream" : activeTab;
+
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 safe-area-bottom">
       {/* Background with blur */}
-      <div className="absolute inset-0 bg-background/80 backdrop-blur-xl border-t border-border" />
+      <div className="absolute inset-0 bg-background/80 backdrop-blur-xl border-t border-border/50" />
       
       <div className="relative flex items-center justify-around px-2 py-2">
         {tabs.map((tab) => {
-          const isActive = activeTab === tab.id;
+          const isActive = displayTab === tab.id;
           const Icon = tab.icon;
 
           return (
@@ -38,11 +40,11 @@ const BottomNav = ({ activeTab, onTabChange }: BottomNavProps) => {
               )}
               whileTap={{ scale: 0.9 }}
             >
-              {/* Active Background Glow */}
+              {/* Active Background */}
               {isActive && (
                 <motion.div
                   layoutId="activeTab"
-                  className="absolute inset-0 bg-primary/20 rounded-2xl"
+                  className="absolute inset-0 bg-primary/10 rounded-2xl"
                   initial={false}
                   transition={{ type: "spring", stiffness: 500, damping: 30 }}
                 />
@@ -54,12 +56,10 @@ const BottomNav = ({ activeTab, onTabChange }: BottomNavProps) => {
                   className={cn(
                     "relative p-3 rounded-full",
                     isActive 
-                      ? "bg-gradient-neon neon-glow" 
+                      ? "bg-primary" 
                       : "bg-muted"
                   )}
-                  whileHover={{ scale: 1.1 }}
-                  animate={isActive ? { scale: [1, 1.05, 1] } : {}}
-                  transition={{ duration: 2, repeat: isActive ? Infinity : 0 }}
+                  whileHover={{ scale: 1.05 }}
                 >
                   <Icon 
                     className={cn(
