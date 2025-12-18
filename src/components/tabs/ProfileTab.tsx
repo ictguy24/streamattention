@@ -6,13 +6,14 @@ import ACStats from "../profile/ACStats";
 import AchievementsSection from "../profile/AchievementsSection";
 import VisitorInsights from "../profile/VisitorInsights";
 import CustomizableWidgets from "../profile/CustomizableWidgets";
+import ThemeSettings from "../profile/ThemeSettings";
 import { cn } from "@/lib/utils";
 
 interface ProfileTabProps {
   acBalance: number;
 }
 
-type ProfileSection = "stats" | "achievements" | "insights" | "widgets";
+type ProfileSection = "stats" | "achievements" | "insights" | "widgets" | "theme";
 
 const ProfileTab = ({ acBalance }: ProfileTabProps) => {
   const [activeSection, setActiveSection] = useState<ProfileSection>("stats");
@@ -22,7 +23,7 @@ const ProfileTab = ({ acBalance }: ProfileTabProps) => {
     { id: "stats", label: "Stats" },
     { id: "achievements", label: "Trophies" },
     { id: "insights", label: "Insights" },
-    { id: "widgets", label: "Customize" },
+    { id: "theme", label: "Theme" },
   ];
 
   return (
@@ -190,6 +191,17 @@ const ProfileTab = ({ acBalance }: ProfileTabProps) => {
               exit={{ opacity: 0, x: 20 }}
             >
               <CustomizableWidgets />
+            </motion.div>
+          )}
+
+          {activeSection === "theme" && (
+            <motion.div
+              key="theme"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+            >
+              <ThemeSettings />
             </motion.div>
           )}
         </AnimatePresence>
