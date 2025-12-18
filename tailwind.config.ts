@@ -66,62 +66,40 @@ export default {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
         },
-        "ac-pulse": {
-          "0%, 100%": { 
-            boxShadow: "0 0 20px hsl(var(--primary) / 0.5)",
-            transform: "scale(1)"
-          },
-          "50%": { 
-            boxShadow: "0 0 40px hsl(var(--primary) / 0.8)",
-            transform: "scale(1.02)"
-          },
+        // Micro animations - subtle and purposeful
+        "micro-pulse": {
+          "0%, 100%": { transform: "scale(1)" },
+          "50%": { transform: "scale(1.03)" },
         },
-        "ac-burst": {
-          "0%": { 
-            transform: "scale(0.8)",
-            opacity: "1"
-          },
-          "100%": { 
-            transform: "scale(2)",
-            opacity: "0"
-          },
-        },
-        "glow-pulse": {
-          "0%, 100%": { opacity: "0.5" },
-          "50%": { opacity: "1" },
+        "micro-bounce": {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-2px)" },
         },
         "float": {
           "0%, 100%": { transform: "translateY(0)" },
-          "50%": { transform: "translateY(-10px)" },
+          "50%": { transform: "translateY(-5px)" },
         },
         "shimmer": {
           "0%": { backgroundPosition: "-200% 0" },
           "100%": { backgroundPosition: "200% 0" },
         },
-        "particle-rise": {
-          "0%": { 
-            transform: "translateY(0) scale(1)",
-            opacity: "1"
-          },
-          "100%": { 
-            transform: "translateY(-50px) scale(0)",
-            opacity: "0"
-          },
-        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
-        "ac-pulse": "ac-pulse 2s ease-in-out infinite",
-        "ac-burst": "ac-burst 0.6s ease-out forwards",
-        "glow-pulse": "glow-pulse 2s ease-in-out infinite",
+        "micro-pulse": "micro-pulse 0.3s ease-out",
+        "micro-bounce": "micro-bounce 0.4s ease-out",
         "float": "float 3s ease-in-out infinite",
         "shimmer": "shimmer 2s linear infinite",
-        "particle-rise": "particle-rise 1s ease-out forwards",
       },
       backgroundImage: {
         "gradient-neon": "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--secondary)), hsl(var(--accent)))",
         "gradient-radial": "radial-gradient(circle, var(--tw-gradient-stops))",
+      },
+      // Soft spring easing via CSS
+      transitionTimingFunction: {
+        "spring": "cubic-bezier(0.34, 1.56, 0.64, 1)",
+        "soft": "cubic-bezier(0.4, 0, 0.2, 1)",
       },
     },
   },

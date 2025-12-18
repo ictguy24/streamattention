@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Settings, Share2, Edit3, ChevronDown } from "lucide-react";
+import { Settings, Share2, Edit3 } from "lucide-react";
 import AnimatedAvatar from "../profile/AnimatedAvatar";
-import ACStats from "../profile/ACStats";
-import AchievementsSection from "../profile/AchievementsSection";
-import VisitorInsights from "../profile/VisitorInsights";
-import CustomizableWidgets from "../profile/CustomizableWidgets";
+import WalletPanel from "../profile/WalletPanel";
+import ActivitySnapshot from "../profile/ActivitySnapshot";
+import WatchHistoryHub from "../profile/WatchHistoryHub";
+import PerformanceDashboard from "../profile/PerformanceDashboard";
+import MediaGrid from "../profile/MediaGrid";
 import ThemeSettings from "../profile/ThemeSettings";
 import { cn } from "@/lib/utils";
 
@@ -13,18 +14,21 @@ interface ProfileTabProps {
   acBalance: number;
 }
 
-type ProfileSection = "stats" | "achievements" | "insights" | "widgets" | "theme";
+type ProfileSection = "overview" | "history" | "analytics" | "content" | "settings";
 
 const ProfileTab = ({ acBalance }: ProfileTabProps) => {
-  const [activeSection, setActiveSection] = useState<ProfileSection>("stats");
+  const [activeSection, setActiveSection] = useState<ProfileSection>("overview");
   const [isLive, setIsLive] = useState(false);
 
   const sections: { id: ProfileSection; label: string }[] = [
-    { id: "stats", label: "Stats" },
-    { id: "achievements", label: "Trophies" },
-    { id: "insights", label: "Insights" },
-    { id: "theme", label: "Theme" },
+    { id: "overview", label: "Overview" },
+    { id: "history", label: "History" },
+    { id: "analytics", label: "Analytics" },
+    { id: "content", label: "Content" },
+    { id: "settings", label: "Settings" },
   ];
+
+  const monthlyEarned = Math.floor(acBalance * 0.8);
 
   return (
     <motion.div
@@ -33,179 +37,158 @@ const ProfileTab = ({ acBalance }: ProfileTabProps) => {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
     >
-      {/* Profile Header */}
-      <div className="relative px-6 pt-4 pb-6">
-        {/* Background Gradient */}
-        <div className="absolute inset-0 bg-gradient-to-b from-primary/10 via-secondary/5 to-transparent pointer-events-none" />
-
+      {/* Profile Header - Compact */}
+      <div className="relative px-4 pt-2 pb-4">
         {/* Actions */}
-        <div className="relative flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-4">
           <motion.button
-            className="p-2 rounded-full glass-card"
+            className="p-2 rounded-full bg-muted/30"
             whileTap={{ scale: 0.9 }}
           >
             <Settings className="w-5 h-5 text-muted-foreground" />
           </motion.button>
           <motion.button
-            className="p-2 rounded-full glass-card"
+            className="p-2 rounded-full bg-muted/30"
             whileTap={{ scale: 0.9 }}
           >
             <Share2 className="w-5 h-5 text-muted-foreground" />
           </motion.button>
         </div>
 
-        {/* Avatar & Info */}
-        <div className="relative flex flex-col items-center">
-          <AnimatedAvatar
-            size="xl"
-            isOnline={true}
-            isLive={isLive}
-          />
+        {/* Avatar & Info - Horizontal layout */}
+        <div className="flex items-center gap-4">
+          <AnimatedAvatar size="lg" isOnline={true} isLive={isLive} />
 
-          <div className="mt-4 text-center">
-            <div className="flex items-center justify-center gap-2">
-              <h2 className="text-xl font-bold text-foreground">Guest User</h2>
+          <div className="flex-1">
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg font-bold text-foreground">Guest User</h2>
               <motion.button
-                className="p-1 rounded-full hover:bg-muted"
+                className="p-1 rounded-full hover:bg-muted/50"
                 whileTap={{ scale: 0.9 }}
               >
-                <Edit3 className="w-4 h-4 text-muted-foreground" />
+                <Edit3 className="w-3.5 h-3.5 text-muted-foreground" />
               </motion.button>
             </div>
-            <p className="text-sm text-muted-foreground mt-1">@guest_user</p>
-            <p className="text-sm text-muted-foreground mt-2 max-w-xs">
-              Create an account to save your progress and customize your profile ✨
-            </p>
-          </div>
-
-          {/* Quick Stats */}
-          <div className="flex items-center gap-6 mt-4">
-            <div className="text-center">
-              <p className="text-lg font-bold text-foreground">0</p>
-              <p className="text-xs text-muted-foreground">Followers</p>
-            </div>
-            <div className="w-px h-8 bg-border" />
-            <div className="text-center">
-              <p className="text-lg font-bold text-foreground">0</p>
-              <p className="text-xs text-muted-foreground">Following</p>
-            </div>
-            <div className="w-px h-8 bg-border" />
-            <div className="text-center">
-              <p className="text-lg font-bold text-foreground">0</p>
-              <p className="text-xs text-muted-foreground">Posts</p>
+            <p className="text-sm text-muted-foreground">@guest_user</p>
+            
+            {/* Quick Stats Inline */}
+            <div className="flex items-center gap-4 mt-2">
+              <div className="text-center">
+                <p className="text-sm font-bold text-foreground">0</p>
+                <p className="text-[10px] text-muted-foreground">Followers</p>
+              </div>
+              <div className="text-center">
+                <p className="text-sm font-bold text-foreground">0</p>
+                <p className="text-[10px] text-muted-foreground">Following</p>
+              </div>
+              <div className="text-center">
+                <p className="text-sm font-bold text-foreground">0</p>
+                <p className="text-[10px] text-muted-foreground">Posts</p>
+              </div>
             </div>
           </div>
-
-          {/* Go Live Button (Demo) */}
-          <motion.button
-            className={cn(
-              "mt-4 px-6 py-2 rounded-full font-medium text-sm transition-colors",
-              isLive 
-                ? "bg-destructive text-destructive-foreground" 
-                : "bg-primary/10 text-primary border border-primary/30"
-            )}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setIsLive(!isLive)}
-          >
-            {isLive ? "End Live" : "Go Live"}
-          </motion.button>
         </div>
+
+        {/* Go Live Button */}
+        <motion.button
+          className={cn(
+            "mt-4 w-full py-2 rounded-xl font-medium text-sm transition-colors",
+            isLive 
+              ? "bg-destructive text-destructive-foreground" 
+              : "bg-muted/30 text-foreground border border-border/50"
+          )}
+          whileTap={{ scale: 0.98 }}
+          onClick={() => setIsLive(!isLive)}
+        >
+          {isLive ? "End Live" : "Go Live"}
+        </motion.button>
       </div>
 
-      {/* Section Tabs */}
-      <div className="px-4 mb-4">
-        <div className="flex items-center p-1 rounded-xl bg-muted/30">
+      {/* Wallet Panel - TOP (Most Important) */}
+      <WalletPanel 
+        balance={acBalance} 
+        monthlyEarned={monthlyEarned}
+        multiplier={1.5}
+      />
+
+      {/* Section Tabs - Scrollable */}
+      <div className="px-4 mt-4 mb-2">
+        <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
           {sections.map((section) => (
             <motion.button
               key={section.id}
               className={cn(
-                "flex-1 py-2 rounded-lg text-sm font-medium transition-colors relative",
+                "px-3 py-1.5 rounded-full text-xs font-medium transition-colors whitespace-nowrap",
                 activeSection === section.id
-                  ? "text-foreground"
-                  : "text-muted-foreground"
+                  ? "bg-foreground text-background"
+                  : "bg-muted/30 text-muted-foreground"
               )}
               onClick={() => setActiveSection(section.id)}
               whileTap={{ scale: 0.95 }}
             >
-              {activeSection === section.id && (
-                <motion.div
-                  layoutId="profileSectionIndicator"
-                  className="absolute inset-0 bg-background rounded-lg shadow-sm"
-                  transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                />
-              )}
-              <span className="relative z-10">{section.label}</span>
+              {section.label}
             </motion.button>
           ))}
         </div>
       </div>
 
       {/* Section Content */}
-      <div className="px-4">
-        <AnimatePresence mode="wait">
-          {activeSection === "stats" && (
-            <motion.div
-              key="stats"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-            >
-              <ACStats
-                balance={acBalance}
-                todayEarned={Math.floor(acBalance * 0.3)}
-                weeklyEarned={Math.floor(acBalance * 0.8)}
-                streak={3}
-                totalEarned={acBalance}
-                rank={1234}
-              />
-            </motion.div>
-          )}
+      <AnimatePresence mode="wait">
+        {activeSection === "overview" && (
+          <motion.div
+            key="overview"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 20 }}
+          >
+            <ActivitySnapshot />
+          </motion.div>
+        )}
 
-          {activeSection === "achievements" && (
-            <motion.div
-              key="achievements"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-            >
-              <AchievementsSection />
-            </motion.div>
-          )}
+        {activeSection === "history" && (
+          <motion.div
+            key="history"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 20 }}
+          >
+            <WatchHistoryHub />
+          </motion.div>
+        )}
 
-          {activeSection === "insights" && (
-            <motion.div
-              key="insights"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-            >
-              <VisitorInsights />
-            </motion.div>
-          )}
+        {activeSection === "analytics" && (
+          <motion.div
+            key="analytics"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 20 }}
+          >
+            <PerformanceDashboard />
+          </motion.div>
+        )}
 
-          {activeSection === "widgets" && (
-            <motion.div
-              key="widgets"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-            >
-              <CustomizableWidgets />
-            </motion.div>
-          )}
+        {activeSection === "content" && (
+          <motion.div
+            key="content"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 20 }}
+          >
+            <MediaGrid />
+          </motion.div>
+        )}
 
-          {activeSection === "theme" && (
-            <motion.div
-              key="theme"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-            >
-              <ThemeSettings />
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
+        {activeSection === "settings" && (
+          <motion.div
+            key="settings"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 20 }}
+          >
+            <ThemeSettings />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 };

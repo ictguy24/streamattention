@@ -4,36 +4,36 @@
 
 @layer base {
   :root {
-    /* AMOLED Dark Theme - Pure black for battery saving */
-    --background: 0 0% 0%;
+    /* Dark base - not pure black for softer feel */
+    --background: 220 15% 5%;
     --foreground: 0 0% 98%;
 
-    --card: 0 0% 4%;
+    --card: 220 15% 8%;
     --card-foreground: 0 0% 98%;
 
-    --popover: 0 0% 4%;
+    --popover: 220 15% 8%;
     --popover-foreground: 0 0% 98%;
 
-    /* Neon Cyan Primary */
+    /* Primary AC color - Cyan */
     --primary: 185 100% 50%;
-    --primary-foreground: 0 0% 0%;
+    --primary-foreground: 220 15% 5%;
 
-    /* Deep Purple Secondary */
+    /* Secondary - for live/special states */
     --secondary: 270 70% 50%;
     --secondary-foreground: 0 0% 98%;
 
-    --muted: 0 0% 10%;
-    --muted-foreground: 0 0% 60%;
+    --muted: 220 15% 15%;
+    --muted-foreground: 220 10% 55%;
 
-    /* Neon Pink Accent */
+    /* Accent - for highlights */
     --accent: 320 100% 60%;
-    --accent-foreground: 0 0% 0%;
+    --accent-foreground: 220 15% 5%;
 
     --destructive: 0 80% 50%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 0 0% 15%;
-    --input: 0 0% 12%;
+    --border: 220 15% 18%;
+    --input: 220 15% 12%;
     --ring: 185 100% 50%;
 
     --radius: 0.75rem;
@@ -45,10 +45,6 @@
     /* Glassmorphism */
     --glass: 0 0% 100% / 0.05;
     --glass-border: 0 0% 100% / 0.1;
-
-    /* Gradients */
-    --gradient-neon: linear-gradient(135deg, hsl(185 100% 50%), hsl(270 70% 50%), hsl(320 100% 60%));
-    --gradient-glow: radial-gradient(circle, hsl(185 100% 50% / 0.3), transparent 70%);
   }
 
   * {
@@ -71,31 +67,26 @@
 }
 
 @layer components {
-  /* Glassmorphism Card */
+  /* Glassmorphism Card - Subtle */
   .glass-card {
-    @apply bg-card/50 backdrop-blur-xl border border-white/10 rounded-xl;
+    @apply bg-card/50 backdrop-blur-xl border border-white/5 rounded-xl;
   }
 
-  /* Neon Glow Effect */
+  /* Neon Glow Effect - Only for value events */
   .neon-glow {
-    box-shadow: 0 0 20px hsl(var(--primary) / 0.5),
-                0 0 40px hsl(var(--primary) / 0.3),
-                0 0 60px hsl(var(--primary) / 0.1);
+    box-shadow: 0 0 15px hsl(var(--primary) / 0.3),
+                0 0 30px hsl(var(--primary) / 0.15);
   }
 
   /* AC Counter Styles */
   .ac-counter {
     @apply relative overflow-hidden;
-    background: linear-gradient(135deg, hsl(var(--primary) / 0.2), hsl(var(--secondary) / 0.2));
+    background: linear-gradient(135deg, hsl(var(--primary) / 0.1), hsl(var(--secondary) / 0.1));
   }
 
-  .ac-pulse {
-    animation: ac-pulse 2s ease-in-out infinite;
-  }
-
-  /* Bottom Nav Active Glow */
-  .nav-active-glow {
-    box-shadow: 0 -10px 30px hsl(var(--primary) / 0.4);
+  /* Bottom Nav - No constant glow */
+  .nav-active {
+    @apply text-primary;
   }
 }
 

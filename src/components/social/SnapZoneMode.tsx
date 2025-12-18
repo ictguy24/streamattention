@@ -39,7 +39,11 @@ const RECENT_SNAPS: RecentSnap[] = [
   { id: "4", username: "fitness_daily", preview: "Morning workout done ✅", timeAgo: "8h ago", views: 567, expiresIn: "16h" },
 ];
 
-const SnapZoneMode = () => {
+interface SnapZoneModeProps {
+  onACEarned?: (amount: number) => void;
+}
+
+const SnapZoneMode = ({ onACEarned }: SnapZoneModeProps) => {
   const [showCamera, setShowCamera] = useState(false);
 
   return (

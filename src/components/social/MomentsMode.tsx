@@ -60,7 +60,11 @@ const DEMO_MOMENTS: Moment[] = [
   },
 ];
 
-const MomentsMode = () => {
+interface MomentsModeProps {
+  onACEarned?: (amount: number) => void;
+}
+
+const MomentsMode = ({ onACEarned }: MomentsModeProps) => {
   const [moments, setMoments] = useState(DEMO_MOMENTS);
 
   const toggleLike = (id: string) => {
