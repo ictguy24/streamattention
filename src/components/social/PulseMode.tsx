@@ -71,7 +71,11 @@ const DEMO_PULSES: Pulse[] = [
   },
 ];
 
-const PulseMode = () => {
+interface PulseModeProps {
+  onACEarned?: (amount: number) => void;
+}
+
+const PulseMode = ({ onACEarned }: PulseModeProps) => {
   const [pulses, setPulses] = useState(DEMO_PULSES);
 
   const toggleLike = (id: string) => {

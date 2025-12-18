@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles } from "lucide-react";
 
@@ -9,63 +9,68 @@ interface ACCounterProps {
 
 const ACCounter = ({ balance, multiplier = 1 }: ACCounterProps) => {
   const [displayBalance, setDisplayBalance] = useState(balance);
-  const [particles, setParticles] = useState<number[]>([]);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [particles, setParticles] = useState<{ id: number; x: number; y: number }[]>([]);
+  const prevBalanceRef = useRef(balance);
 
   useEffect(() => {
-    if (balance !== displayBalance) {
-      setIsAnimating(true);
+    if (balance !== prevBalanceRef.current) {
+      const diff = balance - prevBalanceRef.current;
       
-      // Animate counter
-      const diff = balance - displayBalance;
-      const steps = Math.min(Math.abs(diff), 20);
+      if (diff > 0) {
+        setIsAnimating(true);
+        
+        // Spawn particles for positive change
+        const newParticles = Array.from({ length: Math.min(diff, 5) }, (_, i) => ({
+          id: Date.now() + i,
+          x: (Math.random() - 0.5) * 40,
+          y: -20 - Math.random() * 20,
+        }));
+        setParticles(newParticles);
+        setTimeout(() => setParticles([]), 600);
+      }
+
+      // Smooth counter animation
+      const steps = Math.min(Math.abs(diff), 15);
       const stepValue = diff / steps;
-      let current = displayBalance;
-      
+      let current = prevBalanceRef.current;
+      let step = 0;
+
       const interval = setInterval(() => {
+        step++;
         current += stepValue;
-        if ((diff > 0 && current >= balance) || (diff < 0 && current <= balance)) {
+        if (step >= steps) {
           setDisplayBalance(balance);
           clearInterval(interval);
-          setTimeout(() => setIsAnimating(false), 500);
+          setTimeout(() => setIsAnimating(false), 200);
         } else {
           setDisplayBalance(Math.round(current));
         }
-      }, 50);
+      }, 30);
 
-      // Create particles on increase
-      if (diff > 0) {
-        const newParticles = Array.from({ length: 5 }, (_, i) => Date.now() + i);
-        setParticles(newParticles);
-        setTimeout(() => setParticles([]), 1000);
-      }
-
+      prevBalanceRef.current = balance;
       return () => clearInterval(interval);
     }
   }, [balance]);
 
   return (
     <motion.div
-      className="relative flex items-center gap-2 px-4 py-2 rounded-full glass-card"
-      animate={isAnimating ? { scale: [1, 1.05, 1] } : {}}
-      transition={{ duration: 0.3 }}
+      className="relative flex items-center gap-2 px-3 py-1.5 rounded-full bg-card/60 backdrop-blur-md border border-border/50"
+      animate={isAnimating ? { scale: [1, 1.03, 1] } : {}}
+      transition={{ duration: 0.2 }}
     >
-      {/* Glow Effect */}
-      <div className="absolute inset-0 rounded-full bg-primary/20 blur-xl animate-glow-pulse" />
-      
-      {/* Icon */}
+      {/* Icon with micro-pulse on increment */}
       <motion.div
-        className="relative z-10"
-        animate={isAnimating ? { rotate: [0, 15, -15, 0] } : {}}
-        transition={{ duration: 0.4 }}
+        animate={isAnimating ? { scale: [1, 1.15, 1] } : {}}
+        transition={{ duration: 0.25 }}
       >
-        <Sparkles className="w-5 h-5 text-primary" />
+        <Sparkles className="w-4 h-4 text-primary" />
       </motion.div>
 
-      {/* Balance */}
-      <div className="relative z-10 flex items-baseline gap-1">
+      {/* Balance - smooth tick */}
+      <div className="flex items-baseline gap-1">
         <motion.span
-          className="text-lg font-bold text-foreground tabular-nums"
+          className="text-base font-bold text-foreground tabular-nums"
           key={displayBalance}
         >
           {displayBalance.toLocaleString()}
@@ -76,7 +81,7 @@ const ACCounter = ({ balance, multiplier = 1 }: ACCounterProps) => {
       {/* Multiplier Badge */}
       {multiplier > 1 && (
         <motion.div
-          className="absolute -top-1 -right-1 px-1.5 py-0.5 rounded-full bg-accent text-accent-foreground text-xs font-bold"
+          className="absolute -top-1 -right-1 px-1.5 py-0.5 rounded-full bg-accent text-accent-foreground text-[10px] font-bold"
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ type: "spring", stiffness: 500 }}
@@ -85,12 +90,12 @@ const ACCounter = ({ balance, multiplier = 1 }: ACCounterProps) => {
         </motion.div>
       )}
 
-      {/* Particle Effects */}
+      {/* Particle burst - flies towards wallet area */}
       <AnimatePresence>
-        {particles.map((id) => (
+        {particles.map((particle) => (
           <motion.div
-            key={id}
-            className="absolute w-2 h-2 rounded-full bg-ac-burst"
+            key={particle.id}
+            className="absolute w-1.5 h-1.5 rounded-full bg-primary"
             initial={{ 
               x: 0, 
               y: 0, 
@@ -98,17 +103,14 @@ const ACCounter = ({ balance, multiplier = 1 }: ACCounterProps) => {
               opacity: 1 
             }}
             animate={{ 
-              x: (Math.random() - 0.5) * 60,
-              y: -30 - Math.random() * 20,
+              x: particle.x,
+              y: particle.y,
               scale: 0,
               opacity: 0
             }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.8, ease: "easeOut" }}
-            style={{
-              left: "50%",
-              top: "50%",
-            }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+            style={{ left: "50%", top: "50%" }}
           />
         ))}
       </AnimatePresence>

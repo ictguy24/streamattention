@@ -20,7 +20,11 @@ const DEMO_CHATS: Chat[] = [
   { id: "6", name: "David Kim", lastMessage: "Thanks for the follow!", time: "1d", unread: 0, online: false },
 ];
 
-const ChatsMode = () => {
+interface ChatsModeProps {
+  onACEarned?: (amount: number) => void;
+}
+
+const ChatsMode = ({ onACEarned }: ChatsModeProps) => {
   return (
     <motion.div
       className="flex flex-col h-full"
