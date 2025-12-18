@@ -1,16 +1,16 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles } from "lucide-react";
 
 interface ACCounterProps {
   balance: number;
   multiplier?: number;
+  earnedThisSession?: number;
 }
 
-const ACCounter = ({ balance, multiplier = 1 }: ACCounterProps) => {
+const ACCounter = ({ balance, multiplier = 1, earnedThisSession = 0 }: ACCounterProps) => {
   const [displayBalance, setDisplayBalance] = useState(balance);
   const [isAnimating, setIsAnimating] = useState(false);
-  const [particles, setParticles] = useState<{ id: number; x: number; y: number }[]>([]);
+  const [recentEarned, setRecentEarned] = useState(0);
   const prevBalanceRef = useRef(balance);
 
   useEffect(() => {
@@ -19,15 +19,10 @@ const ACCounter = ({ balance, multiplier = 1 }: ACCounterProps) => {
       
       if (diff > 0) {
         setIsAnimating(true);
+        setRecentEarned(prev => prev + diff);
         
-        // Spawn particles for positive change
-        const newParticles = Array.from({ length: Math.min(diff, 5) }, (_, i) => ({
-          id: Date.now() + i,
-          x: (Math.random() - 0.5) * 40,
-          y: -20 - Math.random() * 20,
-        }));
-        setParticles(newParticles);
-        setTimeout(() => setParticles([]), 600);
+        // Clear recent earned after 3s
+        setTimeout(() => setRecentEarned(0), 3000);
       }
 
       // Smooth counter animation
@@ -55,64 +50,42 @@ const ACCounter = ({ balance, multiplier = 1 }: ACCounterProps) => {
 
   return (
     <motion.div
-      className="relative flex items-center gap-2 px-3 py-1.5 rounded-full bg-card/60 backdrop-blur-md border border-border/50"
-      animate={isAnimating ? { scale: [1, 1.03, 1] } : {}}
+      className="relative flex flex-col"
+      animate={isAnimating ? { scale: [1, 1.02, 1] } : {}}
       transition={{ duration: 0.2 }}
     >
-      {/* Icon with micro-pulse on increment */}
-      <motion.div
-        animate={isAnimating ? { scale: [1, 1.15, 1] } : {}}
-        transition={{ duration: 0.25 }}
-      >
-        <Sparkles className="w-4 h-4 text-primary" />
-      </motion.div>
-
-      {/* Balance - smooth tick */}
+      {/* Main Balance - Text Only */}
       <div className="flex items-baseline gap-1">
         <motion.span
-          className="text-base font-bold text-foreground tabular-nums"
+          className="text-lg font-bold text-foreground tabular-nums"
           key={displayBalance}
+          animate={isAnimating ? { 
+            textShadow: ["0 0 0px hsl(var(--primary))", "0 0 8px hsl(var(--primary))", "0 0 0px hsl(var(--primary))"] 
+          } : {}}
+          transition={{ duration: 0.3 }}
         >
           {displayBalance.toLocaleString()}
         </motion.span>
-        <span className="text-xs text-primary font-medium">AC</span>
+        <span className="text-xs text-primary font-semibold">
+          AC
+          {multiplier > 1 && (
+            <span className="text-accent ml-1">x{multiplier}</span>
+          )}
+        </span>
       </div>
 
-      {/* Multiplier Badge */}
-      {multiplier > 1 && (
-        <motion.div
-          className="absolute -top-1 -right-1 px-1.5 py-0.5 rounded-full bg-accent text-accent-foreground text-[10px] font-bold"
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          transition={{ type: "spring", stiffness: 500 }}
-        >
-          {multiplier}x
-        </motion.div>
-      )}
-
-      {/* Particle burst - flies towards wallet area */}
+      {/* AC Earned Subtitle */}
       <AnimatePresence>
-        {particles.map((particle) => (
-          <motion.div
-            key={particle.id}
-            className="absolute w-1.5 h-1.5 rounded-full bg-primary"
-            initial={{ 
-              x: 0, 
-              y: 0, 
-              scale: 1, 
-              opacity: 1 
-            }}
-            animate={{ 
-              x: particle.x,
-              y: particle.y,
-              scale: 0,
-              opacity: 0
-            }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.5, ease: "easeOut" }}
-            style={{ left: "50%", top: "50%" }}
-          />
-        ))}
+        {recentEarned > 0 && (
+          <motion.span
+            className="text-[10px] text-primary/80"
+            initial={{ opacity: 0, y: -5 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 5 }}
+          >
+            +{recentEarned} earned
+          </motion.span>
+        )}
       </AnimatePresence>
     </motion.div>
   );

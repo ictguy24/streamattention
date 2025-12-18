@@ -1,6 +1,8 @@
-import { motion } from "framer-motion";
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Search, Edit } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import ConversationView from "./ConversationView";
 
 interface Chat {
   id: string;
@@ -25,81 +27,99 @@ interface ChatsModeProps {
 }
 
 const ChatsMode = ({ onACEarned }: ChatsModeProps) => {
+  const [selectedChat, setSelectedChat] = useState<Chat | null>(null);
+
   return (
-    <motion.div
-      className="flex flex-col h-full"
-      initial={{ opacity: 0, x: -20 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: 20 }}
-    >
-      {/* Search Bar */}
-      <div className="px-4 mb-4">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <input
-            type="text"
-            placeholder="Search conversations..."
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-muted/50 border border-border text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-          />
-        </div>
-      </div>
-
-      {/* New Message Button */}
-      <motion.button
-        className="mx-4 mb-4 flex items-center justify-center gap-2 py-3 rounded-xl bg-primary/10 border border-primary/20 text-primary"
-        whileHover={{ scale: 1.02 }}
-        whileTap={{ scale: 0.98 }}
+    <>
+      <motion.div
+        className="flex flex-col h-full"
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ opacity: 1, x: 0 }}
+        exit={{ opacity: 0, x: 20 }}
       >
-        <Edit className="w-4 h-4" />
-        <span className="text-sm font-medium">New Message</span>
-      </motion.button>
+        {/* Search Bar */}
+        <div className="px-4 mb-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="Search conversations..."
+              className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-muted/30 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+            />
+          </div>
+        </div>
 
-      {/* Chat List */}
-      <div className="flex-1 overflow-y-auto px-4 space-y-2">
-        {DEMO_CHATS.map((chat, index) => (
-          <motion.div
-            key={chat.id}
-            className="flex items-center gap-3 p-3 rounded-xl glass-card cursor-pointer hover:bg-muted/30 transition-colors"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.05 }}
-            whileTap={{ scale: 0.98 }}
-          >
-            {/* Avatar */}
-            <div className="relative">
-              <Avatar className="w-12 h-12">
-                <AvatarFallback className="bg-gradient-neon text-primary-foreground font-medium">
-                  {chat.name.split(" ").map(n => n[0]).join("")}
-                </AvatarFallback>
-              </Avatar>
-              {chat.online && (
-                <div className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-green-500 border-2 border-background" />
-              )}
-            </div>
+        {/* New Message Button */}
+        <motion.button
+          className="mx-4 mb-4 flex items-center justify-center gap-2 py-3 rounded-xl bg-primary/10 text-primary"
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+        >
+          <Edit className="w-4 h-4" />
+          <span className="text-sm font-medium">New Message</span>
+        </motion.button>
 
-            {/* Content */}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between mb-0.5">
-                <span className="font-medium text-foreground truncate">{chat.name}</span>
-                <span className="text-xs text-muted-foreground">{chat.time}</span>
+        {/* Chat List - Full Width, No Borders */}
+        <div className="flex-1 overflow-y-auto">
+          {DEMO_CHATS.map((chat, index) => (
+            <motion.div
+              key={chat.id}
+              className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-muted/20 transition-colors"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.05 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => setSelectedChat(chat)}
+            >
+              {/* Avatar */}
+              <div className="relative">
+                <Avatar className="w-12 h-12">
+                  <AvatarFallback className="bg-secondary text-secondary-foreground font-medium">
+                    {chat.name.split(" ").map(n => n[0]).join("")}
+                  </AvatarFallback>
+                </Avatar>
+                {chat.online && (
+                  <div className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-green-500 border-2 border-background" />
+                )}
               </div>
-              <p className="text-sm text-muted-foreground truncate">{chat.lastMessage}</p>
-            </div>
 
-            {/* Unread Badge */}
-            {chat.unread > 0 && (
-              <motion.div
-                className="min-w-[20px] h-5 px-1.5 rounded-full bg-primary flex items-center justify-center"
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-              >
-                <span className="text-xs font-bold text-primary-foreground">{chat.unread}</span>
-              </motion.div>
-            )}
-          </motion.div>
-        ))}
-      </div>
-    </motion.div>
+              {/* Content */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between mb-0.5">
+                  <span className="font-medium text-foreground truncate">{chat.name}</span>
+                  <span className="text-xs text-muted-foreground shrink-0">{chat.time}</span>
+                </div>
+                <p className="text-sm text-muted-foreground truncate">{chat.lastMessage}</p>
+              </div>
+
+              {/* Unread Badge */}
+              {chat.unread > 0 && (
+                <motion.div
+                  className="min-w-[20px] h-5 px-1.5 rounded-full bg-primary flex items-center justify-center shrink-0"
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                >
+                  <span className="text-xs font-bold text-primary-foreground">{chat.unread}</span>
+                </motion.div>
+              )}
+            </motion.div>
+          ))}
+        </div>
+      </motion.div>
+
+      {/* Conversation View */}
+      <AnimatePresence>
+        {selectedChat && (
+          <ConversationView
+            chatId={selectedChat.id}
+            chatName={selectedChat.name}
+            isOnline={selectedChat.online}
+            onBack={() => setSelectedChat(null)}
+            onACEarned={onACEarned}
+          />
+        )}
+      </AnimatePresence>
+    </>
   );
 };
 

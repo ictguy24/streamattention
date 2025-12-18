@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Heart, MessageCircle, Repeat2, Share2, MoreHorizontal, Sparkles } from "lucide-react";
+import { Heart, MessageCircle, Repeat2, Share2, MoreHorizontal, Sparkles, Send } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 
@@ -16,7 +16,6 @@ interface Pulse {
   isLiked: boolean;
   isRepulsed: boolean;
   acEarned?: number;
-  replyTo?: string;
 }
 
 const DEMO_PULSES: Pulse[] = [
@@ -37,7 +36,7 @@ const DEMO_PULSES: Pulse[] = [
     id: "2",
     username: "creator_vibes",
     displayName: "Luna Stars",
-    content: "Just hit 10K AC this week! 🎉\n\nHere's what I learned:\n• Consistency > Virality\n• Engage with your community\n• Quality content compounds\n\nDrop your AC tips below 👇",
+    content: "Just hit 10K AC this week! 🎉\n\nHere's what I learned:\n• Consistency > Virality\n• Engage with your community\n• Quality content compounds",
     likes: 892,
     replies: 156,
     repulses: 445,
@@ -57,18 +56,6 @@ const DEMO_PULSES: Pulse[] = [
     isLiked: false,
     isRepulsed: true,
   },
-  {
-    id: "4",
-    username: "daily_thoughts",
-    displayName: "Ava Martinez",
-    content: "Woke up feeling grateful today ✨\n\nSmall wins count. Celebrate them.",
-    likes: 456,
-    replies: 23,
-    repulses: 78,
-    timeAgo: "8h",
-    isLiked: false,
-    isRepulsed: false,
-  },
 ];
 
 interface PulseModeProps {
@@ -77,8 +64,17 @@ interface PulseModeProps {
 
 const PulseMode = ({ onACEarned }: PulseModeProps) => {
   const [pulses, setPulses] = useState(DEMO_PULSES);
+  const [newPulse, setNewPulse] = useState("");
+  const [replyingTo, setReplyingTo] = useState<string | null>(null);
+  const [showACFly, setShowACFly] = useState<string | null>(null);
 
   const toggleLike = (id: string) => {
+    const pulse = pulses.find(p => p.id === id);
+    if (pulse && !pulse.isLiked) {
+      onACEarned?.(1);
+      setShowACFly(id);
+      setTimeout(() => setShowACFly(null), 800);
+    }
     setPulses(prev =>
       prev.map(p =>
         p.id === id
@@ -89,6 +85,10 @@ const PulseMode = ({ onACEarned }: PulseModeProps) => {
   };
 
   const toggleRepulse = (id: string) => {
+    const pulse = pulses.find(p => p.id === id);
+    if (pulse && !pulse.isRepulsed) {
+      onACEarned?.(2);
+    }
     setPulses(prev =>
       prev.map(p =>
         p.id === id
@@ -96,6 +96,27 @@ const PulseMode = ({ onACEarned }: PulseModeProps) => {
           : p
       )
     );
+  };
+
+  const handlePost = () => {
+    if (!newPulse.trim()) return;
+    
+    const pulse: Pulse = {
+      id: Date.now().toString(),
+      username: "you",
+      displayName: "You",
+      content: newPulse,
+      likes: 0,
+      replies: 0,
+      repulses: 0,
+      timeAgo: "now",
+      isLiked: false,
+      isRepulsed: false,
+    };
+    
+    setPulses(prev => [pulse, ...prev]);
+    setNewPulse("");
+    onACEarned?.(5); // Earn AC for posting
   };
 
   return (
@@ -107,7 +128,7 @@ const PulseMode = ({ onACEarned }: PulseModeProps) => {
     >
       {/* Compose Box */}
       <div className="px-4 mb-4">
-        <div className="glass-card rounded-xl p-4">
+        <div className="rounded-xl p-4 bg-card/30">
           <div className="flex gap-3">
             <Avatar className="w-10 h-10">
               <AvatarFallback className="bg-primary/20 text-primary">U</AvatarFallback>
@@ -115,18 +136,26 @@ const PulseMode = ({ onACEarned }: PulseModeProps) => {
             <div className="flex-1">
               <textarea
                 placeholder="What's on your mind?"
+                value={newPulse}
+                onChange={(e) => setNewPulse(e.target.value)}
                 className="w-full bg-transparent text-foreground placeholder:text-muted-foreground resize-none focus:outline-none text-sm"
                 rows={2}
               />
-              <div className="flex items-center justify-between mt-2 pt-2 border-t border-border">
+              <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/30">
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <Sparkles className="w-4 h-4 text-primary" />
-                  <span>Earn AC from engagement</span>
+                  <span>Posts earn +5 AC</span>
                 </div>
                 <motion.button
-                  className="px-4 py-1.5 rounded-full bg-primary text-primary-foreground text-sm font-medium"
-                  whileHover={{ scale: 1.05 }}
+                  className={cn(
+                    "px-4 py-1.5 rounded-full text-sm font-medium transition-colors",
+                    newPulse.trim() 
+                      ? "bg-primary text-primary-foreground" 
+                      : "bg-muted text-muted-foreground"
+                  )}
                   whileTap={{ scale: 0.95 }}
+                  onClick={handlePost}
+                  disabled={!newPulse.trim()}
                 >
                   Pulse
                 </motion.button>
@@ -141,20 +170,18 @@ const PulseMode = ({ onACEarned }: PulseModeProps) => {
         {pulses.map((pulse, index) => (
           <motion.div
             key={pulse.id}
-            className="px-4 py-4 border-b border-border"
+            className="px-4 py-4 border-b border-border/30"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.05 }}
           >
             <div className="flex gap-3">
-              {/* Avatar */}
               <Avatar className="w-10 h-10 shrink-0">
                 <AvatarFallback className="bg-secondary text-secondary-foreground">
                   {pulse.displayName[0]}
                 </AvatarFallback>
               </Avatar>
 
-              {/* Content */}
               <div className="flex-1 min-w-0">
                 {/* Header */}
                 <div className="flex items-center justify-between mb-1">
@@ -176,20 +203,24 @@ const PulseMode = ({ onACEarned }: PulseModeProps) => {
                 {pulse.acEarned && (
                   <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-primary/10 mb-3">
                     <Sparkles className="w-3 h-3 text-primary" />
-                    <span className="text-xs text-primary font-medium">+{pulse.acEarned} AC earned</span>
+                    <span className="text-xs text-primary font-medium">+{pulse.acEarned} AC</span>
                   </div>
                 )}
 
                 {/* Actions */}
                 <div className="flex items-center justify-between max-w-xs">
-                  <button className="flex items-center gap-1 text-muted-foreground hover:text-primary transition-colors">
+                  <motion.button 
+                    className="flex items-center gap-1 text-muted-foreground hover:text-primary transition-colors"
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => setReplyingTo(pulse.id)}
+                  >
                     <MessageCircle className="w-4 h-4" />
                     <span className="text-xs">{pulse.replies}</span>
-                  </button>
+                  </motion.button>
 
                   <motion.button
                     className={cn(
-                      "flex items-center gap-1 transition-colors",
+                      "flex items-center gap-1 transition-colors relative",
                       pulse.isRepulsed ? "text-green-500" : "text-muted-foreground hover:text-green-500"
                     )}
                     whileTap={{ scale: 0.9 }}
@@ -201,7 +232,7 @@ const PulseMode = ({ onACEarned }: PulseModeProps) => {
 
                   <motion.button
                     className={cn(
-                      "flex items-center gap-1 transition-colors",
+                      "flex items-center gap-1 transition-colors relative",
                       pulse.isLiked ? "text-destructive" : "text-muted-foreground hover:text-destructive"
                     )}
                     whileTap={{ scale: 0.9 }}
@@ -209,12 +240,49 @@ const PulseMode = ({ onACEarned }: PulseModeProps) => {
                   >
                     <Heart className={cn("w-4 h-4", pulse.isLiked && "fill-current")} />
                     <span className="text-xs">{pulse.likes}</span>
+                    
+                    {showACFly === pulse.id && (
+                      <motion.span
+                        className="absolute -top-4 left-0 text-xs text-primary font-medium"
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                      >
+                        +1 AC
+                      </motion.span>
+                    )}
                   </motion.button>
 
                   <button className="flex items-center gap-1 text-muted-foreground hover:text-primary transition-colors">
                     <Share2 className="w-4 h-4" />
                   </button>
                 </div>
+
+                {/* Reply input */}
+                {replyingTo === pulse.id && (
+                  <motion.div 
+                    className="mt-3 flex items-center gap-2"
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                  >
+                    <input
+                      type="text"
+                      placeholder={`Reply to @${pulse.username}...`}
+                      className="flex-1 px-3 py-2 rounded-full bg-muted/30 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                      autoFocus
+                    />
+                    <motion.button
+                      className="p-2 rounded-full bg-primary text-primary-foreground"
+                      whileTap={{ scale: 0.9 }}
+                      onClick={() => {
+                        onACEarned?.(3);
+                        setReplyingTo(null);
+                      }}
+                    >
+                      <Send className="w-4 h-4" />
+                    </motion.button>
+                  </motion.div>
+                )}
               </div>
             </div>
           </motion.div>

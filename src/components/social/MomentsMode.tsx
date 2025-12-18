@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Heart, MessageCircle, Share2, MoreHorizontal, Play, ImageIcon } from "lucide-react";
+import { Heart, MessageCircle, Share2, MoreHorizontal, Play, ImageIcon, Repeat2, Sparkles } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
+import CommentSheet from "./CommentSheet";
 
 interface Moment {
   id: string;
@@ -12,8 +13,10 @@ interface Moment {
   mediaCount?: number;
   likes: number;
   comments: number;
+  reposts: number;
   timeAgo: string;
   isLiked: boolean;
+  isReposted: boolean;
 }
 
 const DEMO_MOMENTS: Moment[] = [
@@ -25,8 +28,10 @@ const DEMO_MOMENTS: Moment[] = [
     mediaCount: 5,
     likes: 2340,
     comments: 89,
+    reposts: 45,
     timeAgo: "2h",
     isLiked: false,
+    isReposted: false,
   },
   {
     id: "2",
@@ -35,8 +40,10 @@ const DEMO_MOMENTS: Moment[] = [
     mediaType: "image",
     likes: 1205,
     comments: 45,
+    reposts: 23,
     timeAgo: "4h",
     isLiked: true,
+    isReposted: false,
   },
   {
     id: "3",
@@ -45,18 +52,10 @@ const DEMO_MOMENTS: Moment[] = [
     mediaType: "video",
     likes: 5670,
     comments: 234,
+    reposts: 156,
     timeAgo: "6h",
     isLiked: false,
-  },
-  {
-    id: "4",
-    username: "art_studio",
-    content: "New digital artwork dropping soon 🎨 Stay tuned!",
-    mediaType: "image",
-    likes: 890,
-    comments: 32,
-    timeAgo: "8h",
-    isLiked: false,
+    isReposted: true,
   },
 ];
 
@@ -66,8 +65,16 @@ interface MomentsModeProps {
 
 const MomentsMode = ({ onACEarned }: MomentsModeProps) => {
   const [moments, setMoments] = useState(DEMO_MOMENTS);
+  const [openCommentId, setOpenCommentId] = useState<string | null>(null);
+  const [showACFly, setShowACFly] = useState<string | null>(null);
 
   const toggleLike = (id: string) => {
+    const moment = moments.find(m => m.id === id);
+    if (moment && !moment.isLiked) {
+      onACEarned?.(1);
+      setShowACFly(id);
+      setTimeout(() => setShowACFly(null), 800);
+    }
     setMoments(prev =>
       prev.map(m =>
         m.id === id
@@ -77,9 +84,27 @@ const MomentsMode = ({ onACEarned }: MomentsModeProps) => {
     );
   };
 
+  const toggleRepost = (id: string) => {
+    const moment = moments.find(m => m.id === id);
+    if (moment && !moment.isReposted) {
+      onACEarned?.(2);
+    }
+    setMoments(prev =>
+      prev.map(m =>
+        m.id === id
+          ? { ...m, isReposted: !m.isReposted, reposts: m.isReposted ? m.reposts - 1 : m.reposts + 1 }
+          : m
+      )
+    );
+  };
+
+  const handleShare = (id: string) => {
+    onACEarned?.(5);
+  };
+
   return (
     <motion.div
-      className="flex flex-col gap-4 px-4"
+      className="flex flex-col gap-3 px-4"
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 20 }}
@@ -87,7 +112,7 @@ const MomentsMode = ({ onACEarned }: MomentsModeProps) => {
       {moments.map((moment, index) => (
         <motion.div
           key={moment.id}
-          className="glass-card rounded-xl overflow-hidden"
+          className="rounded-xl overflow-hidden bg-card/30"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: index * 0.1 }}
@@ -111,7 +136,7 @@ const MomentsMode = ({ onACEarned }: MomentsModeProps) => {
           </div>
 
           {/* Media Placeholder */}
-          <div className="relative aspect-square bg-muted/30 flex items-center justify-center">
+          <div className="relative aspect-square bg-muted/20 flex items-center justify-center">
             <div className="flex flex-col items-center gap-2 text-muted-foreground">
               {moment.mediaType === "video" ? (
                 <Play className="w-12 h-12" />
@@ -127,28 +152,19 @@ const MomentsMode = ({ onACEarned }: MomentsModeProps) => {
               </span>
             </div>
 
-            {/* Carousel Indicator */}
             {moment.mediaType === "carousel" && (
               <div className="absolute top-3 right-3 px-2 py-1 rounded-full bg-background/70 backdrop-blur-sm">
                 <span className="text-xs text-foreground">1/{moment.mediaCount}</span>
-              </div>
-            )}
-
-            {/* Video Play Button */}
-            {moment.mediaType === "video" && (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="p-4 rounded-full bg-background/50 backdrop-blur-sm">
-                  <Play className="w-8 h-8 text-foreground" fill="currentColor" />
-                </div>
               </div>
             )}
           </div>
 
           {/* Actions */}
           <div className="p-3">
-            <div className="flex items-center gap-4 mb-2">
+            <div className="flex items-center gap-4 mb-2 relative">
+              {/* Like */}
               <motion.button
-                className="flex items-center gap-1.5"
+                className="flex items-center gap-1.5 relative"
                 whileTap={{ scale: 0.9 }}
                 onClick={() => toggleLike(moment.id)}
               >
@@ -159,14 +175,48 @@ const MomentsMode = ({ onACEarned }: MomentsModeProps) => {
                   )}
                 />
                 <span className="text-sm text-muted-foreground">{moment.likes.toLocaleString()}</span>
+                
+                {/* AC fly animation */}
+                {showACFly === moment.id && (
+                  <motion.span
+                    className="absolute -top-4 left-0 text-xs text-primary font-medium flex items-center gap-0.5"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                  >
+                    <Sparkles className="w-3 h-3" />
+                    +1 AC
+                  </motion.span>
+                )}
               </motion.button>
 
-              <button className="flex items-center gap-1.5">
+              {/* Comment */}
+              <button 
+                className="flex items-center gap-1.5"
+                onClick={() => setOpenCommentId(moment.id)}
+              >
                 <MessageCircle className="w-6 h-6 text-foreground" />
                 <span className="text-sm text-muted-foreground">{moment.comments}</span>
               </button>
 
-              <button className="flex items-center gap-1.5">
+              {/* Repost */}
+              <motion.button 
+                className="flex items-center gap-1.5"
+                whileTap={{ scale: 0.9 }}
+                onClick={() => toggleRepost(moment.id)}
+              >
+                <Repeat2 className={cn(
+                  "w-6 h-6",
+                  moment.isReposted ? "text-green-500" : "text-foreground"
+                )} />
+                <span className="text-sm text-muted-foreground">{moment.reposts}</span>
+              </motion.button>
+
+              {/* Share */}
+              <button 
+                className="flex items-center gap-1.5"
+                onClick={() => handleShare(moment.id)}
+              >
                 <Share2 className="w-6 h-6 text-foreground" />
               </button>
             </div>
@@ -179,6 +229,14 @@ const MomentsMode = ({ onACEarned }: MomentsModeProps) => {
           </div>
         </motion.div>
       ))}
+
+      {/* Comment Sheet */}
+      <CommentSheet
+        isOpen={!!openCommentId}
+        onClose={() => setOpenCommentId(null)}
+        videoId={openCommentId || ""}
+        onACEarned={onACEarned}
+      />
     </motion.div>
   );
 };

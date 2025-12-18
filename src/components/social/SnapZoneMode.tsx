@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Camera, Plus, Clock, Eye, ChevronLeft, ChevronRight } from "lucide-react";
+import { Camera, Plus, Clock, Eye, ChevronLeft, FlipHorizontal } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
+import CameraFilters, { getFilterStyle } from "./CameraFilters";
 
 interface Story {
   id: string;
@@ -10,7 +11,6 @@ interface Story {
   hasNew: boolean;
   isOwn?: boolean;
   viewCount?: number;
-  expiresIn?: string;
 }
 
 const DEMO_STORIES: Story[] = [
@@ -20,7 +20,6 @@ const DEMO_STORIES: Story[] = [
   { id: "3", username: "mike_j", hasNew: true, viewCount: 123 },
   { id: "4", username: "emma_w", hasNew: false, viewCount: 89 },
   { id: "5", username: "david_k", hasNew: true, viewCount: 345 },
-  { id: "6", username: "luna_s", hasNew: false, viewCount: 456 },
 ];
 
 interface RecentSnap {
@@ -36,7 +35,6 @@ const RECENT_SNAPS: RecentSnap[] = [
   { id: "1", username: "adventure_time", preview: "Beach sunset vibes 🌅", timeAgo: "2h ago", views: 1234, expiresIn: "22h" },
   { id: "2", username: "foodie_life", preview: "Breakfast of champions", timeAgo: "4h ago", views: 890, expiresIn: "20h" },
   { id: "3", username: "city_explorer", preview: "NYC streets at night 🌃", timeAgo: "6h ago", views: 2345, expiresIn: "18h" },
-  { id: "4", username: "fitness_daily", preview: "Morning workout done ✅", timeAgo: "8h ago", views: 567, expiresIn: "16h" },
 ];
 
 interface SnapZoneModeProps {
@@ -45,6 +43,8 @@ interface SnapZoneModeProps {
 
 const SnapZoneMode = ({ onACEarned }: SnapZoneModeProps) => {
   const [showCamera, setShowCamera] = useState(false);
+  const [selectedFilter, setSelectedFilter] = useState("none");
+  const [isFrontCamera, setIsFrontCamera] = useState(true);
 
   return (
     <motion.div
@@ -56,7 +56,7 @@ const SnapZoneMode = ({ onACEarned }: SnapZoneModeProps) => {
       {/* Camera Button */}
       <div className="px-4 mb-4">
         <motion.button
-          className="w-full py-4 rounded-xl bg-gradient-neon flex items-center justify-center gap-3 neon-glow"
+          className="w-full py-4 rounded-xl bg-primary flex items-center justify-center gap-3"
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           onClick={() => setShowCamera(true)}
@@ -86,10 +86,10 @@ const SnapZoneMode = ({ onACEarned }: SnapZoneModeProps) => {
                 className={cn(
                   "relative p-[3px] rounded-full",
                   story.hasNew
-                    ? "bg-gradient-neon"
+                    ? "bg-gradient-to-tr from-primary to-accent"
                     : story.isOwn
                     ? "bg-muted"
-                    : "bg-border"
+                    : "bg-border/50"
                 )}
               >
                 <div className="p-[2px] rounded-full bg-background">
@@ -129,26 +129,24 @@ const SnapZoneMode = ({ onACEarned }: SnapZoneModeProps) => {
           <h3 className="font-semibold text-foreground">Recent Snaps</h3>
           <div className="flex items-center gap-1 text-xs text-muted-foreground">
             <Clock className="w-3 h-3" />
-            <span>Expires in 24h</span>
+            <span>24h expiry</span>
           </div>
         </div>
 
-        <div className="space-y-3">
+        <div className="space-y-2">
           {RECENT_SNAPS.map((snap, index) => (
             <motion.div
               key={snap.id}
-              className="glass-card rounded-xl p-3 flex items-center gap-3"
+              className="rounded-xl p-3 flex items-center gap-3 bg-muted/20 hover:bg-muted/30 transition-colors"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.05 }}
               whileTap={{ scale: 0.98 }}
             >
-              {/* Preview Thumbnail */}
-              <div className="w-16 h-16 rounded-lg bg-muted/50 flex items-center justify-center shrink-0">
-                <Camera className="w-6 h-6 text-muted-foreground" />
+              <div className="w-14 h-14 rounded-lg bg-muted/50 flex items-center justify-center shrink-0">
+                <Camera className="w-5 h-5 text-muted-foreground" />
               </div>
 
-              {/* Info */}
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-foreground text-sm">@{snap.username}</p>
                 <p className="text-sm text-muted-foreground truncate">{snap.preview}</p>
@@ -161,8 +159,7 @@ const SnapZoneMode = ({ onACEarned }: SnapZoneModeProps) => {
                 </div>
               </div>
 
-              {/* Expires Badge */}
-              <div className="px-2 py-1 rounded-full bg-accent/20 shrink-0">
+              <div className="px-2 py-1 rounded-full bg-accent/10 shrink-0">
                 <span className="text-xs text-accent font-medium">{snap.expiresIn}</span>
               </div>
             </motion.div>
@@ -170,7 +167,7 @@ const SnapZoneMode = ({ onACEarned }: SnapZoneModeProps) => {
         </div>
       </div>
 
-      {/* Camera Modal */}
+      {/* Camera Modal with Filters */}
       <AnimatePresence>
         {showCamera && (
           <motion.div
@@ -179,9 +176,12 @@ const SnapZoneMode = ({ onACEarned }: SnapZoneModeProps) => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
-            {/* Camera View Placeholder */}
-            <div className="flex-1 bg-muted/20 flex items-center justify-center relative">
-              <div className="absolute top-4 left-4">
+            {/* Camera View */}
+            <div className={cn(
+              "flex-1 bg-muted/20 flex items-center justify-center relative",
+              getFilterStyle(selectedFilter)
+            )}>
+              <div className="absolute top-4 left-4 z-10">
                 <motion.button
                   className="p-2 rounded-full bg-background/50 backdrop-blur-sm"
                   whileTap={{ scale: 0.9 }}
@@ -191,15 +191,36 @@ const SnapZoneMode = ({ onACEarned }: SnapZoneModeProps) => {
                 </motion.button>
               </div>
 
+              {/* Flip Camera Button */}
+              <div className="absolute top-4 right-4 z-10">
+                <motion.button
+                  className="p-2 rounded-full bg-background/50 backdrop-blur-sm"
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => setIsFrontCamera(!isFrontCamera)}
+                >
+                  <FlipHorizontal className="w-6 h-6 text-foreground" />
+                </motion.button>
+              </div>
+
               <div className="text-center">
                 <Camera className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
                 <p className="text-muted-foreground">Camera preview</p>
-                <p className="text-sm text-muted-foreground">Tap to capture</p>
+                <p className="text-sm text-muted-foreground">
+                  {isFrontCamera ? "Front camera" : "Back camera"}
+                </p>
               </div>
             </div>
 
+            {/* Filters */}
+            <div className="bg-card/90 backdrop-blur-xl border-t border-border/50">
+              <CameraFilters 
+                selectedFilter={selectedFilter}
+                onFilterChange={setSelectedFilter}
+              />
+            </div>
+
             {/* Capture Controls */}
-            <div className="p-6 bg-background/90 backdrop-blur-xl">
+            <div className="p-6 bg-card/90 backdrop-blur-xl safe-area-bottom">
               <div className="flex items-center justify-center gap-8">
                 {/* Gallery */}
                 <button className="p-3 rounded-xl bg-muted/50">
@@ -214,9 +235,9 @@ const SnapZoneMode = ({ onACEarned }: SnapZoneModeProps) => {
                   <div className="w-16 h-16 rounded-full border-4 border-background" />
                 </motion.button>
 
-                {/* Flip Camera */}
+                {/* Record Toggle */}
                 <button className="p-3 rounded-xl bg-muted/50">
-                  <ChevronRight className="w-8 h-8 text-muted-foreground" />
+                  <div className="w-8 h-8 rounded-full bg-destructive/50" />
                 </button>
               </div>
             </div>
