@@ -132,15 +132,8 @@ const ProfileTab = ({ acBalance }: ProfileTabProps) => {
         )}
       </div>
 
-      {/* Wallet Panel */}
-      <WalletPanel 
-        balance={displayBalance} 
-        monthlyEarned={monthlyEarned}
-        dailyEarned={dailyEarned}
-        multiplier={1.5}
-        tier={(profile?.tier as "free" | "pro" | "premium") || "free"}
-        lifetimeEarned={lifetimeEarned}
-      />
+      {/* Wallet Panel - now self-contained with hooks */}
+      <WalletPanel />
 
       {/* Section Tabs */}
       <div className="px-4 mt-4 mb-2">

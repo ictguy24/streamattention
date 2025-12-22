@@ -1,13 +1,16 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, ArrowDownToLine, ArrowUpFromLine, Smartphone, CreditCard, AlertCircle } from "lucide-react";
+import { X, ArrowDownToLine, ArrowUpFromLine, AlertCircle, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 interface DepositWithdrawModalProps {
   isOpen: boolean;
   onClose: () => void;
   mode: "deposit" | "withdraw";
   balance: number;
+  withdrawableBalance?: number;
+  isFrozen?: boolean;
 }
 
 const PAYMENT_METHODS = [
@@ -15,33 +18,112 @@ const PAYMENT_METHODS = [
   { id: "mtn", name: "MTN Mobile Money", icon: "📱", color: "bg-yellow-500/20 text-yellow-400" },
 ];
 
-const DepositWithdrawModal = ({ isOpen, onClose, mode, balance }: DepositWithdrawModalProps) => {
+// UGX conversion rate
+const AC_TO_UGX = 50;
+
+const DepositWithdrawModal = ({ 
+  isOpen, 
+  onClose, 
+  mode, 
+  balance, 
+  withdrawableBalance = 0,
+  isFrozen = false 
+}: DepositWithdrawModalProps) => {
   const [amount, setAmount] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [selectedMethod, setSelectedMethod] = useState<string | null>(null);
   const [step, setStep] = useState(1);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const handleAmountSelect = (value: number) => {
     setAmount(value.toString());
   };
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     if (step === 1 && amount && parseFloat(amount) > 0) {
+      // Check withdrawal limits
+      if (isWithdraw) {
+        const amountNum = parseFloat(amount);
+        const maxWithdrawUGX = withdrawableBalance * AC_TO_UGX;
+        
+        if (amountNum > maxWithdrawUGX) {
+          toast.error(`Maximum withdrawable: ${maxWithdrawUGX.toLocaleString()} UGX`);
+          return;
+        }
+      }
       setStep(2);
     } else if (step === 2 && selectedMethod) {
       setStep(3);
-    } else if (step === 3 && phoneNumber.length >= 10) {
-      // Mock API call
-      onClose();
+    } else if (step === 3 && phoneNumber.length >= 9) {
+      setIsProcessing(true);
+      
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      if (isWithdraw) {
+        toast.success(`Withdrawal request submitted! You'll receive ${parseFloat(amount).toLocaleString()} UGX within 24 hours.`);
+      } else {
+        toast.success(`Deposit initiated! Complete the payment on your phone to add ${parseFloat(amount).toLocaleString()} AC.`);
+      }
+      
+      setIsProcessing(false);
+      handleClose();
+    }
+  };
+
+  const handleClose = () => {
+    onClose();
+    // Reset after animation
+    setTimeout(() => {
       setStep(1);
       setAmount("");
       setPhoneNumber("");
       setSelectedMethod(null);
-    }
+    }, 300);
   };
 
   const isWithdraw = mode === "withdraw";
-  const maxWithdraw = Math.floor(balance * 0.01); // 1 AC = 0.01 units
+  const maxWithdrawUGX = withdrawableBalance * AC_TO_UGX;
+
+  // Block withdrawals if frozen
+  if (isWithdraw && isFrozen && isOpen) {
+    return (
+      <AnimatePresence>
+        <motion.div
+          className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={handleClose}
+        />
+        <motion.div
+          className="fixed inset-x-4 top-1/2 -translate-y-1/2 z-50 bg-card rounded-2xl border border-border/50 max-w-md mx-auto overflow-hidden"
+          initial={{ opacity: 0, scale: 0.95, y: "-45%" }}
+          animate={{ opacity: 1, scale: 1, y: "-50%" }}
+          exit={{ opacity: 0, scale: 0.95, y: "-45%" }}
+        >
+          <div className="p-6 text-center">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-destructive/10 flex items-center justify-center">
+              <Lock className="w-8 h-8 text-destructive" />
+            </div>
+            <h2 className="text-lg font-semibold text-foreground mb-2">
+              Withdrawals Frozen
+            </h2>
+            <p className="text-sm text-muted-foreground mb-4">
+              Your withdrawals are temporarily frozen due to pending subscription fees. 
+              Earn more AC or upgrade to a free tier to unfreeze.
+            </p>
+            <button
+              className="w-full py-3 rounded-xl bg-muted text-foreground font-medium"
+              onClick={handleClose}
+            >
+              Got it
+            </button>
+          </div>
+        </motion.div>
+      </AnimatePresence>
+    );
+  }
 
   return (
     <AnimatePresence>
@@ -53,7 +135,7 @@ const DepositWithdrawModal = ({ isOpen, onClose, mode, balance }: DepositWithdra
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={onClose}
+            onClick={handleClose}
           />
 
           {/* Modal */}
@@ -76,7 +158,7 @@ const DepositWithdrawModal = ({ isOpen, onClose, mode, balance }: DepositWithdra
               <motion.button
                 className="p-2 rounded-full hover:bg-muted/50"
                 whileTap={{ scale: 0.9 }}
-                onClick={onClose}
+                onClick={handleClose}
               >
                 <X className="w-5 h-5 text-muted-foreground" />
               </motion.button>
@@ -93,7 +175,7 @@ const DepositWithdrawModal = ({ isOpen, onClose, mode, balance }: DepositWithdra
                     exit={{ opacity: 0, x: -20 }}
                   >
                     <label className="text-sm text-muted-foreground mb-2 block">
-                      {isWithdraw ? "Amount to withdraw" : "Amount to deposit"}
+                      {isWithdraw ? "Amount to withdraw (UGX)" : "Amount to deposit (AC)"}
                     </label>
                     
                     <div className="relative mb-4">
@@ -124,9 +206,16 @@ const DepositWithdrawModal = ({ isOpen, onClose, mode, balance }: DepositWithdra
                     </div>
 
                     {isWithdraw && (
-                      <p className="text-xs text-muted-foreground text-center">
-                        Available: {maxWithdraw.toLocaleString()} UGX ({balance.toLocaleString()} AC)
-                      </p>
+                      <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground text-center">
+                          Available: {maxWithdrawUGX.toLocaleString()} UGX ({withdrawableBalance.toLocaleString()} AC)
+                        </p>
+                        {withdrawableBalance < balance && (
+                          <p className="text-xs text-amber-400 text-center">
+                            Note: {(balance - withdrawableBalance).toLocaleString()} AC reserved for subscription fees
+                          </p>
+                        )}
+                      </div>
                     )}
                   </motion.div>
                 )}
@@ -213,8 +302,22 @@ const DepositWithdrawModal = ({ isOpen, onClose, mode, balance }: DepositWithdra
                 )}
                 whileTap={{ scale: 0.98 }}
                 onClick={handleContinue}
+                disabled={isProcessing}
               >
-                {step === 3 ? (isWithdraw ? "Withdraw" : "Deposit") : "Continue"}
+                {isProcessing ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <motion.span
+                      className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full"
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                    />
+                    Processing...
+                  </span>
+                ) : step === 3 ? (
+                  isWithdraw ? "Withdraw" : "Deposit"
+                ) : (
+                  "Continue"
+                )}
               </motion.button>
             </div>
           </motion.div>

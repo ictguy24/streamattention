@@ -47,12 +47,213 @@ export type Database = {
         }
         Relationships: []
       }
+      subscription_deductions: {
+        Row: {
+          amount_deducted: number
+          amount_due: number
+          balance_after: number
+          balance_before: number
+          created_at: string | null
+          id: string
+          notes: string | null
+          status: string
+          subscription_id: string
+          tier_name: string
+          user_id: string
+        }
+        Insert: {
+          amount_deducted: number
+          amount_due: number
+          balance_after: number
+          balance_before: number
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          status: string
+          subscription_id: string
+          tier_name: string
+          user_id: string
+        }
+        Update: {
+          amount_deducted?: number
+          amount_due?: number
+          balance_after?: number
+          balance_before?: number
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          status?: string
+          subscription_id?: string
+          tier_name?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_deductions_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subscriptions: {
+        Row: {
+          consecutive_failed_deductions: number | null
+          created_at: string | null
+          id: string
+          last_deduction_amount: number | null
+          last_deduction_at: string | null
+          next_deduction_at: string | null
+          started_at: string | null
+          status: string | null
+          tier_id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          consecutive_failed_deductions?: number | null
+          created_at?: string | null
+          id?: string
+          last_deduction_amount?: number | null
+          last_deduction_at?: string | null
+          next_deduction_at?: string | null
+          started_at?: string | null
+          status?: string | null
+          tier_id: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          consecutive_failed_deductions?: number | null
+          created_at?: string | null
+          id?: string
+          last_deduction_amount?: number | null
+          last_deduction_at?: string | null
+          next_deduction_at?: string | null
+          started_at?: string | null
+          status?: string | null
+          tier_id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_tier_id_fkey"
+            columns: ["tier_id"]
+            isOneToOne: false
+            referencedRelation: "tiers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tiers: {
+        Row: {
+          base_multiplier: number | null
+          created_at: string | null
+          display_name: string
+          features: Json | null
+          id: string
+          min_withdrawal_ac: number | null
+          monthly_fee_ac: number | null
+          name: string
+          withdrawal_fee_percent: number | null
+        }
+        Insert: {
+          base_multiplier?: number | null
+          created_at?: string | null
+          display_name: string
+          features?: Json | null
+          id?: string
+          min_withdrawal_ac?: number | null
+          monthly_fee_ac?: number | null
+          name: string
+          withdrawal_fee_percent?: number | null
+        }
+        Update: {
+          base_multiplier?: number | null
+          created_at?: string | null
+          display_name?: string
+          features?: Json | null
+          id?: string
+          min_withdrawal_ac?: number | null
+          monthly_fee_ac?: number | null
+          name?: string
+          withdrawal_fee_percent?: number | null
+        }
+        Relationships: []
+      }
+      wallets: {
+        Row: {
+          ac_balance: number | null
+          created_at: string | null
+          freeze_reason: string | null
+          id: string
+          last_earning_at: string | null
+          lifetime_earned: number | null
+          lifetime_withdrawn: number | null
+          updated_at: string | null
+          user_id: string
+          withdrawable_balance: number | null
+          withdrawal_frozen: boolean | null
+        }
+        Insert: {
+          ac_balance?: number | null
+          created_at?: string | null
+          freeze_reason?: string | null
+          id?: string
+          last_earning_at?: string | null
+          lifetime_earned?: number | null
+          lifetime_withdrawn?: number | null
+          updated_at?: string | null
+          user_id: string
+          withdrawable_balance?: number | null
+          withdrawal_frozen?: boolean | null
+        }
+        Update: {
+          ac_balance?: number | null
+          created_at?: string | null
+          freeze_reason?: string | null
+          id?: string
+          last_earning_at?: string | null
+          lifetime_earned?: number | null
+          lifetime_withdrawn?: number | null
+          updated_at?: string | null
+          user_id?: string
+          withdrawable_balance?: number | null
+          withdrawal_frozen?: boolean | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      calculate_withdrawable_balance: {
+        Args: { p_user_id: string }
+        Returns: number
+      }
+      change_subscription_tier: {
+        Args: { p_new_tier_name: string; p_user_id: string }
+        Returns: boolean
+      }
+      get_subscriptions_due: {
+        Args: never
+        Returns: {
+          fee_amount: number
+          tier_name: string
+          user_id: string
+        }[]
+      }
+      process_subscription_deduction: {
+        Args: { p_user_id: string }
+        Returns: {
+          deducted: number
+          message: string
+          success: boolean
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
