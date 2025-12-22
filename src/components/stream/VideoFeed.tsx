@@ -58,9 +58,11 @@ const DEMO_VIDEOS = [
 
 interface VideoFeedProps {
   onACEarned: (amount: number) => void;
+  isFullscreen?: boolean;
+  onSwipeRight?: () => void;
 }
 
-const VideoFeed = ({ onACEarned }: VideoFeedProps) => {
+const VideoFeed = ({ onACEarned, isFullscreen = false, onSwipeRight }: VideoFeedProps) => {
   const [activeIndex, setActiveIndex] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
@@ -69,7 +71,6 @@ const VideoFeed = ({ onACEarned }: VideoFeedProps) => {
     const container = containerRef.current;
     if (!container) return;
 
-    // Setup intersection observer to detect which video is in view
     observerRef.current = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
@@ -85,7 +86,6 @@ const VideoFeed = ({ onACEarned }: VideoFeedProps) => {
       }
     );
 
-    // Observe all video containers
     const videoElements = container.querySelectorAll("[data-index]");
     videoElements.forEach((el) => observerRef.current?.observe(el));
 
@@ -97,13 +97,13 @@ const VideoFeed = ({ onACEarned }: VideoFeedProps) => {
   return (
     <div
       ref={containerRef}
-      className="h-[calc(100vh-8rem)] overflow-y-scroll snap-y snap-mandatory no-scrollbar"
+      className="h-[calc(100vh-6rem)] overflow-y-scroll snap-y snap-mandatory no-scrollbar"
     >
       {DEMO_VIDEOS.map((video, index) => (
         <motion.div
           key={video.id}
           data-index={index}
-          className="h-[calc(100vh-8rem)] w-full snap-start"
+          className="h-[calc(100vh-6rem)] w-full snap-start"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: index * 0.1 }}
@@ -112,6 +112,8 @@ const VideoFeed = ({ onACEarned }: VideoFeedProps) => {
             video={video}
             isActive={index === activeIndex}
             onACEarned={onACEarned}
+            isFullscreen={isFullscreen}
+            onSwipeRight={onSwipeRight}
           />
         </motion.div>
       ))}

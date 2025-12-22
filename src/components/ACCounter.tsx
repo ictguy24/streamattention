@@ -49,27 +49,29 @@ const ACCounter = ({ balance, multiplier = 1, earnedThisSession = 0 }: ACCounter
   }, [balance]);
 
   return (
-    <motion.div
+    <div 
       className="relative flex flex-col"
-      animate={isAnimating ? { scale: [1, 1.02, 1] } : {}}
-      transition={{ duration: 0.2 }}
+      style={{ 
+        contain: 'layout style',
+        minWidth: '4.5rem',
+      }}
     >
       {/* Main Balance - Text Only */}
       <div className="flex items-baseline gap-1">
         <motion.span
-          className="text-lg font-bold text-foreground tabular-nums"
-          key={displayBalance}
+          className="text-base font-bold text-foreground tabular-nums"
+          style={{ fontVariantNumeric: 'tabular-nums' }}
           animate={isAnimating ? { 
-            textShadow: ["0 0 0px hsl(var(--primary))", "0 0 8px hsl(var(--primary))", "0 0 0px hsl(var(--primary))"] 
+            color: ['hsl(var(--foreground))', 'hsl(var(--primary))', 'hsl(var(--foreground))']
           } : {}}
           transition={{ duration: 0.3 }}
         >
           {displayBalance.toLocaleString()}
         </motion.span>
-        <span className="text-xs text-primary font-semibold">
+        <span className="text-[10px] text-primary font-semibold">
           AC
           {multiplier > 1 && (
-            <span className="text-accent ml-1">x{multiplier}</span>
+            <span className="text-accent ml-0.5">x{multiplier}</span>
           )}
         </span>
       </div>
@@ -78,16 +80,16 @@ const ACCounter = ({ balance, multiplier = 1, earnedThisSession = 0 }: ACCounter
       <AnimatePresence>
         {recentEarned > 0 && (
           <motion.span
-            className="text-[10px] text-primary/80"
-            initial={{ opacity: 0, y: -5 }}
+            className="text-[9px] text-primary/80 absolute -bottom-3 left-0"
+            initial={{ opacity: 0, y: -3 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 5 }}
+            exit={{ opacity: 0, y: 3 }}
           >
-            +{recentEarned} earned
+            +{recentEarned}
           </motion.span>
         )}
       </AnimatePresence>
-    </motion.div>
+    </div>
   );
 };
 
