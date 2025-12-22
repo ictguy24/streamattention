@@ -1,38 +1,46 @@
-import { useState } from "react";
-import { TrendingUp, Flame, Trophy, ArrowDownToLine, ArrowUpFromLine, Crown } from "lucide-react";
+import { useState, useEffect } from "react";
+import { ArrowDownToLine, ArrowUpFromLine, Crown, Lock, AlertTriangle } from "lucide-react";
 import DepositWithdrawModal from "./DepositWithdrawModal";
 import { cn } from "@/lib/utils";
-
-interface WalletPanelProps {
-  balance: number;
-  monthlyEarned: number;
-  dailyEarned?: number;
-  multiplier?: number;
-  tier?: "free" | "pro" | "premium";
-  lifetimeEarned?: number;
-}
+import { useWallet } from "@/hooks/useWallet";
+import { useSubscription } from "@/hooks/useSubscription";
 
 // UGX conversion rate (example: 1 AC = 50 UGX)
 const AC_TO_UGX = 50;
 
-const WalletPanel = ({ 
-  balance, 
-  monthlyEarned, 
-  dailyEarned = 0, 
-  multiplier = 1,
-  tier = "free",
-  lifetimeEarned = 0
-}: WalletPanelProps) => {
+const WalletPanel = () => {
+  const { wallet, isLoading: walletLoading, getWithdrawableBalance } = useWallet();
+  const { subscription, isLoading: subLoading } = useSubscription();
   const [showModal, setShowModal] = useState(false);
   const [modalMode, setModalMode] = useState<"deposit" | "withdraw">("deposit");
+  const [withdrawableBalance, setWithdrawableBalance] = useState(0);
 
+  const balance = wallet?.ac_balance || 0;
+  const lifetimeEarned = wallet?.lifetime_earned || 0;
+  const tier = subscription?.tier?.name || "free";
+  const tierDisplayName = subscription?.tier?.display_name || "Free";
+  const multiplier = subscription?.tier?.base_multiplier || 1;
+  const monthlyFee = subscription?.tier?.monthly_fee_ac || 0;
+  const nextDeduction = subscription?.next_deduction_at;
+  const isFrozen = wallet?.withdrawal_frozen || false;
+  const freezeReason = wallet?.freeze_reason;
+
+  // Calculate progress to next milestone
   const milestones = [100, 500, 1000, 5000, 10000];
   const nextMilestone = milestones.find(m => m > balance) || balance + 1000;
   const prevMilestone = milestones.filter(m => m <= balance).pop() || 0;
   const progress = ((balance - prevMilestone) / (nextMilestone - prevMilestone)) * 100;
 
   const ugxEquivalent = balance * AC_TO_UGX;
-  const calculatedLifetime = lifetimeEarned || Math.floor(balance * 2.5);
+
+  // Fetch withdrawable balance
+  useEffect(() => {
+    const fetchWithdrawable = async () => {
+      const amount = await getWithdrawableBalance();
+      setWithdrawableBalance(amount);
+    };
+    fetchWithdrawable();
+  }, [getWithdrawableBalance, balance]);
 
   const openDeposit = () => {
     setModalMode("deposit");
@@ -40,6 +48,7 @@ const WalletPanel = ({
   };
 
   const openWithdraw = () => {
+    if (isFrozen) return;
     setModalMode("withdraw");
     setShowModal(true);
   };
@@ -47,7 +56,8 @@ const WalletPanel = ({
   const getTierColor = () => {
     switch (tier) {
       case "premium": return "text-amber-400";
-      case "pro": return "text-blue-400";
+      case "both": return "text-purple-400";
+      case "user": return "text-blue-400";
       default: return "text-muted-foreground";
     }
   };
@@ -55,24 +65,66 @@ const WalletPanel = ({
   const getTierBg = () => {
     switch (tier) {
       case "premium": return "bg-amber-400/10";
-      case "pro": return "bg-blue-400/10";
+      case "both": return "bg-purple-400/10";
+      case "user": return "bg-blue-400/10";
       default: return "bg-muted/20";
     }
   };
 
+  const formatNextDeduction = () => {
+    if (!nextDeduction) return null;
+    const date = new Date(nextDeduction);
+    const daysUntil = Math.ceil((date.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+    if (daysUntil <= 0) return "Due now";
+    if (daysUntil === 1) return "Tomorrow";
+    return `${daysUntil} days`;
+  };
+
+  if (walletLoading || subLoading) {
+    return (
+      <div className="mx-4 p-4 rounded-2xl bg-card/60 backdrop-blur-md border border-border/30 animate-pulse">
+        <div className="h-8 bg-muted/30 rounded mb-3" />
+        <div className="h-12 bg-muted/30 rounded mb-4" />
+        <div className="h-2 bg-muted/30 rounded mb-4" />
+        <div className="grid grid-cols-4 gap-2">
+          {[1, 2, 3, 4].map(i => (
+            <div key={i} className="h-12 bg-muted/30 rounded" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
       <div className="mx-4 p-4 rounded-2xl bg-card/60 backdrop-blur-md border border-border/30">
-        {/* Tier Badge */}
+        {/* Tier Badge & Subscription Status */}
         <div className="flex items-center justify-between mb-3">
           <div className={cn("flex items-center gap-1.5 px-2 py-1 rounded-full", getTierBg())}>
             <Crown className={cn("w-3.5 h-3.5", getTierColor())} strokeWidth={1.5} />
-            <span className={cn("text-xs font-medium capitalize", getTierColor())}>{tier}</span>
+            <span className={cn("text-xs font-medium", getTierColor())}>{tierDisplayName}</span>
           </div>
-          {multiplier > 1 && (
-            <span className="text-sm font-bold text-accent">x{multiplier} bonus</span>
-          )}
+          <div className="flex items-center gap-2">
+            {multiplier > 1 && (
+              <span className="text-sm font-bold text-accent">x{multiplier} bonus</span>
+            )}
+            {monthlyFee > 0 && nextDeduction && (
+              <span className="text-xs text-muted-foreground">
+                Next fee: {formatNextDeduction()}
+              </span>
+            )}
+          </div>
         </div>
+
+        {/* Frozen Warning */}
+        {isFrozen && (
+          <div className="mb-3 p-2 rounded-lg bg-destructive/10 border border-destructive/20 flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-destructive shrink-0" />
+            <p className="text-xs text-destructive">
+              {freezeReason || "Withdrawals temporarily frozen"}
+            </p>
+          </div>
+        )}
 
         {/* Main Balance */}
         <div className="flex items-start justify-between mb-2">
@@ -96,19 +148,36 @@ const WalletPanel = ({
               Deposit
             </button>
             <button
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-orange-500/10 text-orange-400 text-sm font-medium active:scale-95 transition-transform"
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all",
+                isFrozen 
+                  ? "bg-muted/30 text-muted-foreground cursor-not-allowed" 
+                  : "bg-orange-500/10 text-orange-400 active:scale-95"
+              )}
               onClick={openWithdraw}
+              disabled={isFrozen}
             >
-              <ArrowUpFromLine className="w-4 h-4" />
+              {isFrozen ? (
+                <Lock className="w-4 h-4" />
+              ) : (
+                <ArrowUpFromLine className="w-4 h-4" />
+              )}
               Withdraw
             </button>
           </div>
         </div>
 
-        {/* UGX Equivalent */}
-        <p className="text-sm text-muted-foreground mb-4">
-          = {ugxEquivalent.toLocaleString()} UGX
-        </p>
+        {/* UGX Equivalent & Withdrawable */}
+        <div className="flex items-center justify-between mb-4">
+          <p className="text-sm text-muted-foreground">
+            = {ugxEquivalent.toLocaleString()} UGX
+          </p>
+          {!isFrozen && withdrawableBalance < balance && (
+            <p className="text-xs text-muted-foreground">
+              Withdrawable: {withdrawableBalance.toLocaleString()} AC
+            </p>
+          )}
+        </div>
 
         {/* Progress to Next Milestone */}
         <div className="mb-4">
@@ -119,37 +188,39 @@ const WalletPanel = ({
           <div className="h-2 rounded-full bg-muted/30 overflow-hidden">
             <div
               className="h-full rounded-full bg-foreground/50 transition-all duration-500"
-              style={{ width: `${progress}%` }}
+              style={{ width: `${Math.min(100, progress)}%` }}
             />
           </div>
         </div>
 
-        {/* Stats Grid - No decorative icons, just data */}
+        {/* Stats Grid */}
         <div className="grid grid-cols-4 gap-2">
           <div className="p-2 rounded-xl bg-muted/20 text-center">
             <p className="text-sm font-bold text-foreground tabular-nums">
-              {dailyEarned || Math.floor(monthlyEarned / 30)}
+              {Math.floor(lifetimeEarned / 30)}
             </p>
-            <p className="text-[9px] text-muted-foreground">Today</p>
+            <p className="text-[9px] text-muted-foreground">Avg/Day</p>
           </div>
           
           <div className="p-2 rounded-xl bg-muted/20 text-center">
             <p className="text-sm font-bold text-foreground tabular-nums">
-              {monthlyEarned.toLocaleString()}
+              {monthlyFee.toLocaleString()}
             </p>
-            <p className="text-[9px] text-muted-foreground">Month</p>
+            <p className="text-[9px] text-muted-foreground">Fee/Mo</p>
           </div>
           
           <div className="p-2 rounded-xl bg-muted/20 text-center">
             <p className="text-sm font-bold text-foreground tabular-nums">
-              {calculatedLifetime.toLocaleString()}
+              {lifetimeEarned.toLocaleString()}
             </p>
             <p className="text-[9px] text-muted-foreground">Lifetime</p>
           </div>
           
           <div className="p-2 rounded-xl bg-muted/20 text-center">
-            <p className="text-sm font-bold text-foreground tabular-nums">#1.2K</p>
-            <p className="text-[9px] text-muted-foreground">Rank</p>
+            <p className="text-sm font-bold text-foreground tabular-nums">
+              {(wallet?.lifetime_withdrawn || 0).toLocaleString()}
+            </p>
+            <p className="text-[9px] text-muted-foreground">Withdrawn</p>
           </div>
         </div>
       </div>
@@ -160,6 +231,8 @@ const WalletPanel = ({
         onClose={() => setShowModal(false)}
         mode={modalMode}
         balance={balance}
+        withdrawableBalance={withdrawableBalance}
+        isFrozen={isFrozen}
       />
     </>
   );
