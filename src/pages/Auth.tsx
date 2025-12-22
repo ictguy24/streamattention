@@ -5,18 +5,27 @@ import { ArrowLeft, Mail, Lock, Eye, EyeOff, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { useAuth } from "@/hooks/useAuth";
+import { z } from "zod";
 
 type AuthMode = "login" | "register" | "forgot";
+
+// Validation schemas
+const emailSchema = z.string().trim().email("Invalid email address").max(255);
+const passwordSchema = z.string().min(6, "Password must be at least 6 characters").max(72);
+const usernameSchema = z.string().trim().min(2, "Username must be at least 2 characters").max(30);
 
 const Auth = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { user, signIn, signUp, resetPassword, isLoading: authLoading } = useAuth();
+
   const [mode, setMode] = useState<AuthMode>(
     searchParams.get("mode") === "register" ? "register" : "login"
   );
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  
+
   // Form state
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -26,26 +35,68 @@ const Auth = () => {
   // Registration steps
   const [registerStep, setRegisterStep] = useState(1);
 
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (user && !authLoading) {
+      navigate("/");
+    }
+  }, [user, authLoading, navigate]);
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate
+    const emailResult = emailSchema.safeParse(email);
+    if (!emailResult.success) {
+      toast.error(emailResult.error.errors[0].message);
+      return;
+    }
+
+    const passwordResult = passwordSchema.safeParse(password);
+    if (!passwordResult.success) {
+      toast.error(passwordResult.error.errors[0].message);
+      return;
+    }
+
     setIsLoading(true);
-    
-    // Simulate login - replace with Supabase auth
-    setTimeout(() => {
-      setIsLoading(false);
-      toast.success("Login successful!");
-      navigate("/");
-    }, 1500);
+
+    const { error } = await signIn(email, password);
+
+    setIsLoading(false);
+
+    if (error) {
+      if (error.message.includes("Invalid login credentials")) {
+        toast.error("Invalid email or password");
+      } else if (error.message.includes("Email not confirmed")) {
+        toast.error("Please confirm your email before signing in");
+      } else {
+        toast.error(error.message);
+      }
+      return;
+    }
+
+    toast.success("Welcome back!");
+    navigate("/");
   };
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (registerStep === 1) {
-      if (!email || !password) {
-        toast.error("Please fill in all fields");
+      // Validate email
+      const emailResult = emailSchema.safeParse(email);
+      if (!emailResult.success) {
+        toast.error(emailResult.error.errors[0].message);
         return;
       }
+
+      // Validate password
+      const passwordResult = passwordSchema.safeParse(password);
+      if (!passwordResult.success) {
+        toast.error(passwordResult.error.errors[0].message);
+        return;
+      }
+
       if (password !== confirmPassword) {
         toast.error("Passwords don't match");
         return;
@@ -55,37 +106,70 @@ const Auth = () => {
     }
 
     if (registerStep === 2) {
-      if (!username) {
-        toast.error("Please enter a username");
+      // Validate username
+      const usernameResult = usernameSchema.safeParse(username);
+      if (!usernameResult.success) {
+        toast.error(usernameResult.error.errors[0].message);
         return;
       }
+
       setIsLoading(true);
-      
-      // Simulate registration - replace with Supabase auth
-      setTimeout(() => {
-        setIsLoading(false);
-        toast.success("Account created successfully!");
-        navigate("/");
-      }, 1500);
+
+      const { error } = await signUp(email, password, username);
+
+      setIsLoading(false);
+
+      if (error) {
+        if (error.message.includes("already registered")) {
+          toast.error("This email is already registered. Please sign in instead.");
+        } else {
+          toast.error(error.message);
+        }
+        return;
+      }
+
+      toast.success("Account created successfully!");
+      navigate("/");
     }
   };
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const emailResult = emailSchema.safeParse(email);
+    if (!emailResult.success) {
+      toast.error(emailResult.error.errors[0].message);
+      return;
+    }
+
     setIsLoading(true);
-    
-    setTimeout(() => {
-      setIsLoading(false);
-      toast.success("Password reset email sent!");
-      setMode("login");
-    }, 1500);
+
+    const { error } = await resetPassword(email);
+
+    setIsLoading(false);
+
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+
+    toast.success("Password reset email sent!");
+    setMode("login");
   };
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="animate-pulse text-muted-foreground">Loading...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
       <header className="flex items-center gap-3 p-4">
-        <button 
+        <button
           onClick={() => navigate("/")}
           className="p-2 rounded-full hover:bg-muted/30 transition-colors"
         >
@@ -113,25 +197,6 @@ const Auth = () => {
                 <p className="text-sm text-muted-foreground">Sign in to continue earning AC</p>
               </div>
 
-              {/* App Sign In Button */}
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full py-5 border-primary/30 hover:bg-primary/10"
-                onClick={() => toast.info("OAuth coming soon!")}
-              >
-                <span className="text-primary font-semibold">Sign in with StreamApp</span>
-              </Button>
-
-              <div className="relative my-6">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-border" />
-                </div>
-                <div className="relative flex justify-center text-xs">
-                  <span className="bg-background px-3 text-muted-foreground">or continue with email</span>
-                </div>
-              </div>
-
               <div className="space-y-3">
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -141,6 +206,7 @@ const Auth = () => {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="pl-10 py-5 bg-muted/20 border-border/50"
+                    autoComplete="email"
                   />
                 </div>
 
@@ -152,6 +218,7 @@ const Auth = () => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="pl-10 pr-10 py-5 bg-muted/20 border-border/50"
+                    autoComplete="current-password"
                   />
                   <button
                     type="button"
@@ -236,6 +303,7 @@ const Auth = () => {
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         className="pl-10 py-5 bg-muted/20 border-border/50"
+                        autoComplete="email"
                       />
                     </div>
 
@@ -247,6 +315,7 @@ const Auth = () => {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         className="pl-10 pr-10 py-5 bg-muted/20 border-border/50"
+                        autoComplete="new-password"
                       />
                       <button
                         type="button"
@@ -269,6 +338,7 @@ const Auth = () => {
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
                         className="pl-10 py-5 bg-muted/20 border-border/50"
+                        autoComplete="new-password"
                       />
                     </div>
                   </motion.div>
@@ -290,6 +360,7 @@ const Auth = () => {
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
                         className="pl-10 py-5 bg-muted/20 border-border/50"
+                        autoComplete="username"
                       />
                     </div>
                     <p className="text-xs text-muted-foreground">
@@ -357,6 +428,7 @@ const Auth = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="pl-10 py-5 bg-muted/20 border-border/50"
+                  autoComplete="email"
                 />
               </div>
 

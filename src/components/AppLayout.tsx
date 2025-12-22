@@ -75,7 +75,7 @@ const AppLayout = () => {
       case "live":
         return <LiveTab />;
       case "profile":
-        return <ProfileTab acBalance={acBalance} isGuest={true} />;
+        return <ProfileTab acBalance={acBalance} />;
       default:
         return <StreamTab onACEarned={handleACEarned} isFullscreen={isFullscreen} onSwipeRight={handleSwipeRight} />;
     }

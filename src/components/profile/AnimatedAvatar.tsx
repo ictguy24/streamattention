@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 
 interface AnimatedAvatarProps {
   imageUrl?: string;
+  avatarUrl?: string;
   name?: string;
   isOnline?: boolean;
   isLive?: boolean;
@@ -11,12 +12,15 @@ interface AnimatedAvatarProps {
 }
 
 const AnimatedAvatar = ({ 
-  imageUrl, 
+  imageUrl,
+  avatarUrl,
   name = "User", 
   isOnline = true, 
   isLive = false,
   size = "lg" 
 }: AnimatedAvatarProps) => {
+  // Use avatarUrl as fallback for imageUrl
+  const displayImage = imageUrl || avatarUrl;
   const sizeClasses = {
     sm: "w-12 h-12",
     md: "w-16 h-16",
@@ -72,9 +76,9 @@ const AnimatedAvatar = ({
           "rounded-full bg-background flex items-center justify-center overflow-hidden",
           sizeClasses[size]
         )}>
-          {imageUrl ? (
+          {displayImage ? (
             <img 
-              src={imageUrl} 
+              src={displayImage} 
               alt={name} 
               className="w-full h-full object-cover"
             />

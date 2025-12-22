@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Edit3, LogIn, UserPlus, Users } from "lucide-react";
+import { Edit3, LogIn, UserPlus, Users, LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import AnimatedAvatar from "../profile/AnimatedAvatar";
 import WalletPanel from "../profile/WalletPanel";
@@ -10,18 +10,22 @@ import MediaGrid from "../profile/MediaGrid";
 import SettingsPanel from "../profile/SettingsPanel";
 import SocialControl from "../profile/SocialControl";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
 
 interface ProfileTabProps {
   acBalance: number;
-  isGuest?: boolean;
 }
 
 type ProfileSection = "overview" | "history" | "analytics" | "content" | "social" | "settings";
 
-const ProfileTab = ({ acBalance, isGuest = true }: ProfileTabProps) => {
+const ProfileTab = ({ acBalance }: ProfileTabProps) => {
   const navigate = useNavigate();
+  const { user, profile, signOut } = useAuth();
   const [activeSection, setActiveSection] = useState<ProfileSection>("overview");
   const [isLive, setIsLive] = useState(false);
+
+  const isGuest = !user;
 
   const sections: { id: ProfileSection; label: string; icon?: typeof Users }[] = [
     { id: "overview", label: "Overview" },
@@ -32,31 +36,59 @@ const ProfileTab = ({ acBalance, isGuest = true }: ProfileTabProps) => {
     { id: "settings", label: "Settings" },
   ];
 
-  const monthlyEarned = Math.floor(acBalance * 0.8);
-  const dailyEarned = Math.floor(acBalance * 0.05);
-  const lifetimeEarned = Math.floor(acBalance * 2.5);
+  // Use profile AC balance if available, otherwise use prop
+  const displayBalance = profile?.ac_balance ?? acBalance;
+  const monthlyEarned = Math.floor(displayBalance * 0.8);
+  const dailyEarned = Math.floor(displayBalance * 0.05);
+  const lifetimeEarned = Math.floor(displayBalance * 2.5);
+
+  const handleSignOut = async () => {
+    await signOut();
+    toast.success("Signed out successfully");
+  };
+
+  const displayName = profile?.display_name || profile?.username || user?.email?.split("@")[0] || "Your Name";
+  const displayUsername = profile?.username || user?.email?.split("@")[0] || "your_username";
 
   return (
     <div className="flex flex-col pb-8">
-      {/* Profile Header - Removed Share & Settings icons */}
+      {/* Profile Header */}
       <div className="relative px-4 pt-2 pb-4">
         {/* Avatar & Info */}
         <div className="flex items-center gap-4">
-          <AnimatedAvatar size="lg" isOnline={true} isLive={isLive} />
+          <AnimatedAvatar 
+            size="lg" 
+            isOnline={true} 
+            isLive={isLive}
+            avatarUrl={profile?.avatar_url}
+          />
 
           <div className="flex-1">
             <div className="flex items-center gap-2">
               <h2 className="text-base font-bold text-foreground">
-                {isGuest ? "Guest User" : "Your Name"}
+                {isGuest ? "Guest User" : displayName}
               </h2>
-              <button className="p-1 rounded-full hover:bg-muted/50 active:scale-95 transition-transform">
-                <Edit3 className="w-3 h-3 text-muted-foreground" />
-              </button>
+              {!isGuest && (
+                <button className="p-1 rounded-full hover:bg-muted/50 active:scale-95 transition-transform">
+                  <Edit3 className="w-3 h-3 text-muted-foreground" />
+                </button>
+              )}
             </div>
             <p className="text-xs text-muted-foreground">
-              {isGuest ? "@guest_user" : "@your_username"}
+              {isGuest ? "@guest_user" : `@${displayUsername}`}
             </p>
           </div>
+
+          {/* Sign Out Button */}
+          {!isGuest && (
+            <button
+              onClick={handleSignOut}
+              className="p-2 rounded-full hover:bg-muted/50 active:scale-95 transition-transform"
+              title="Sign Out"
+            >
+              <LogOut className="w-4 h-4 text-muted-foreground" />
+            </button>
+          )}
         </div>
 
         {/* Guest Auth Prompt */}
@@ -102,11 +134,11 @@ const ProfileTab = ({ acBalance, isGuest = true }: ProfileTabProps) => {
 
       {/* Wallet Panel */}
       <WalletPanel 
-        balance={acBalance} 
+        balance={displayBalance} 
         monthlyEarned={monthlyEarned}
         dailyEarned={dailyEarned}
         multiplier={1.5}
-        tier="free"
+        tier={(profile?.tier as "free" | "pro" | "premium") || "free"}
         lifetimeEarned={lifetimeEarned}
       />
 
