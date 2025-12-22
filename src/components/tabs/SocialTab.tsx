@@ -1,99 +1,92 @@
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { ChatsIcon, MomentsIcon, PulseIcon, SnapIcon } from "../social/SocialIcons";
-import ChatsMode from "../social/ChatsMode";
-import MomentsMode from "../social/MomentsMode";
-import PulseMode from "../social/PulseMode";
-import SnapZoneMode from "../social/SnapZoneMode";
+import { ConversationsIcon, ThreadsIcon, PostsIcon, MemoriesIcon } from "../social/SocialIcons";
+import ConversationsMode from "../social/ConversationsMode";
+import ThreadsMode from "../social/ThreadsMode";
+import PostsMode from "../social/PostsMode";
+import MemoriesMode from "../social/MemoriesMode";
 
-type SocialMode = "chats" | "moments" | "pulse" | "snap";
+type SocialMode = "conversations" | "threads" | "posts" | "memories";
 
 interface SocialTabProps {
   onACEarned?: (amount: number) => void;
 }
 
 const modes = [
-  { id: "chats" as const, Icon: ChatsIcon, label: "Chats" },
-  { id: "moments" as const, Icon: MomentsIcon, label: "Moments" },
-  { id: "pulse" as const, Icon: PulseIcon, label: "Pulse" },
-  { id: "snap" as const, Icon: SnapIcon, label: "Snap" },
+  { id: "conversations" as const, Icon: ConversationsIcon, label: "Conversations" },
+  { id: "threads" as const, Icon: ThreadsIcon, label: "Threads" },
+  { id: "posts" as const, Icon: PostsIcon, label: "Posts" },
+  { id: "memories" as const, Icon: MemoriesIcon, label: "Memories" },
 ];
 
 const SocialTab = ({ onACEarned }: SocialTabProps) => {
-  const [activeMode, setActiveMode] = useState<SocialMode>("chats");
+  const [activeMode, setActiveMode] = useState<SocialMode>("conversations");
 
   const renderMode = () => {
     switch (activeMode) {
-      case "chats":
-        return <ChatsMode onACEarned={onACEarned} />;
-      case "moments":
-        return <MomentsMode onACEarned={onACEarned} />;
-      case "pulse":
-        return <PulseMode onACEarned={onACEarned} />;
-      case "snap":
-        return <SnapZoneMode onACEarned={onACEarned} />;
+      case "conversations":
+        return <ConversationsMode onACEarned={onACEarned} />;
+      case "threads":
+        return <ThreadsMode onACEarned={onACEarned} />;
+      case "posts":
+        return <PostsMode onACEarned={onACEarned} />;
+      case "memories":
+        return <MemoriesMode onACEarned={onACEarned} />;
       default:
-        return <ChatsMode onACEarned={onACEarned} />;
+        return <ConversationsMode onACEarned={onACEarned} />;
     }
   };
 
+  const activeIndex = modes.findIndex(m => m.id === activeMode);
+
   return (
-    <motion.div
-      className="flex flex-col min-h-[calc(100vh-8rem)]"
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-    >
-      {/* Mode Switcher Header - Custom meaningful icons */}
+    <div className="flex flex-col min-h-[calc(100vh-8rem)]">
+      {/* Mode Switcher - Grounded, no spring animations */}
       <div className="px-4 mb-4">
-        <div className="flex items-center justify-between p-1 rounded-xl bg-muted/30">
+        <div className="relative flex items-center justify-between">
           {modes.map((mode) => (
-            <motion.button
+            <button
               key={mode.id}
               className={cn(
-                "relative flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg transition-colors",
+                "relative flex-1 flex items-center justify-center gap-2 py-3 transition-colors duration-150",
                 activeMode === mode.id
                   ? "text-foreground"
                   : "text-muted-foreground"
               )}
               onClick={() => setActiveMode(mode.id)}
-              whileTap={{ scale: 0.95 }}
             >
-              {activeMode === mode.id && (
-                <motion.div
-                  layoutId="socialModeIndicator"
-                  className="absolute inset-0 bg-background rounded-lg shadow-sm"
-                  transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                />
-              )}
               <mode.Icon 
-                className="relative z-10" 
+                className="w-5 h-5" 
                 isActive={activeMode === mode.id} 
               />
-              <span className="relative z-10 text-sm font-medium hidden sm:inline">
+              <span className="text-sm font-medium hidden sm:inline">
                 {mode.label}
               </span>
-            </motion.button>
+            </button>
           ))}
+          
+          {/* Underline indicator - simple slide, no spring */}
+          <div 
+            className="absolute bottom-0 h-0.5 bg-foreground transition-all duration-200 ease-out"
+            style={{
+              width: `${100 / modes.length}%`,
+              left: `${(activeIndex * 100) / modes.length}%`
+            }}
+          />
         </div>
       </div>
 
-      {/* Mode Content */}
+      {/* Mode Content - Simple opacity transition */}
       <div className="flex-1 overflow-y-auto pb-4">
-        <AnimatePresence mode="wait">
-          <motion.div 
-            key={activeMode}
-            initial={{ opacity: 0, x: -10 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 10 }}
-            transition={{ duration: 0.15 }}
-          >
-            {renderMode()}
-          </motion.div>
-        </AnimatePresence>
+        <div 
+          key={activeMode}
+          className="animate-fade-in"
+          style={{ animationDuration: '150ms' }}
+        >
+          {renderMode()}
+        </div>
       </div>
-    </motion.div>
+    </div>
   );
 };
 

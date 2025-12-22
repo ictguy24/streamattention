@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, Send, Mic, Camera, Image, MoreVertical, Phone, Video } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
@@ -23,7 +22,7 @@ const DEMO_MESSAGES: Message[] = [
   { id: "1", text: "Hey! Did you see the new video I posted?", isSent: false, timestamp: "10:30 AM" },
   { id: "2", text: "Yes! It was amazing 🔥", isSent: true, timestamp: "10:32 AM" },
   { id: "3", text: "Thanks! I spent hours editing it", isSent: false, timestamp: "10:33 AM" },
-  { id: "4", text: "The transitions were so smooth", isSent: true, timestamp: "10:35 AM" },
+  { id: "4", text: "The transitions were so smooth. Really loved the color grading too. What software did you use?", isSent: true, timestamp: "10:35 AM" },
   { id: "5", text: "Want to collab on something?", isSent: false, timestamp: "10:36 AM" },
 ];
 
@@ -50,29 +49,22 @@ const ConversationView = ({ chatId, chatName, isOnline, onBack, onACEarned }: Co
     
     setMessages(prev => [...prev, message]);
     setNewMessage("");
-    onACEarned?.(1); // Earn AC for sending message
+    onACEarned?.(1);
   };
 
   return (
-    <motion.div
-      className="fixed inset-0 z-50 bg-background flex flex-col"
-      initial={{ x: "100%" }}
-      animate={{ x: 0 }}
-      exit={{ x: "100%" }}
-      transition={{ type: "spring", damping: 30, stiffness: 300 }}
-    >
-      {/* Header */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-border/50 bg-card/50 backdrop-blur-xl safe-area-top">
-        <motion.button
-          className="p-2 -ml-2 rounded-full hover:bg-muted/50"
-          whileTap={{ scale: 0.9 }}
+    <div className="fixed inset-0 z-50 bg-background flex flex-col animate-slide-in-right">
+      {/* Header - Clean, flat */}
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-border/20 safe-area-top">
+        <button
+          className="p-2 -ml-2 rounded-lg hover:bg-muted/20 active:scale-95 transition-transform"
           onClick={onBack}
         >
-          <ChevronLeft className="w-6 h-6 text-foreground" />
-        </motion.button>
+          <ChevronLeft className="w-6 h-6 text-foreground" strokeWidth={1.5} />
+        </button>
 
         <Avatar className="w-10 h-10">
-          <AvatarFallback className="bg-secondary text-secondary-foreground">
+          <AvatarFallback className="bg-muted/30 text-foreground">
             {chatName.split(" ").map(n => n[0]).join("")}
           </AvatarFallback>
         </Avatar>
@@ -85,80 +77,53 @@ const ConversationView = ({ chatId, chatName, isOnline, onBack, onACEarned }: Co
         </div>
 
         <div className="flex items-center gap-1">
-          <motion.button 
-            className="p-2 rounded-full hover:bg-muted/50"
-            whileTap={{ scale: 0.9 }}
-          >
-            <Phone className="w-5 h-5 text-muted-foreground" />
-          </motion.button>
-          <motion.button 
-            className="p-2 rounded-full hover:bg-muted/50"
-            whileTap={{ scale: 0.9 }}
-          >
-            <Video className="w-5 h-5 text-muted-foreground" />
-          </motion.button>
-          <motion.button 
-            className="p-2 rounded-full hover:bg-muted/50"
-            whileTap={{ scale: 0.9 }}
-          >
-            <MoreVertical className="w-5 h-5 text-muted-foreground" />
-          </motion.button>
+          <button className="p-2 rounded-lg hover:bg-muted/20 active:scale-95 transition-transform">
+            <Phone className="w-5 h-5 text-muted-foreground" strokeWidth={1.5} />
+          </button>
+          <button className="p-2 rounded-lg hover:bg-muted/20 active:scale-95 transition-transform">
+            <Video className="w-5 h-5 text-muted-foreground" strokeWidth={1.5} />
+          </button>
+          <button className="p-2 rounded-lg hover:bg-muted/20 active:scale-95 transition-transform">
+            <MoreVertical className="w-5 h-5 text-muted-foreground" strokeWidth={1.5} />
+          </button>
         </div>
       </div>
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
-        {messages.map((message, index) => (
-          <motion.div
+      {/* Messages - Panel-based, no bubbles */}
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-1">
+        {messages.map((message) => (
+          <div
             key={message.id}
             className={cn(
-              "flex",
-              message.isSent ? "justify-end" : "justify-start"
+              "py-3 px-4 transition-opacity",
+              message.isSent 
+                ? "ml-8 bg-muted/15 rounded-lg" 
+                : "mr-8"
             )}
-            initial={{ opacity: 0, y: 20, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{ delay: index * 0.03 }}
           >
-            <div
-              className={cn(
-                "max-w-[75%] px-4 py-2.5 rounded-2xl",
-                message.isSent
-                  ? "bg-primary text-primary-foreground rounded-br-md"
-                  : "bg-muted rounded-bl-md"
-              )}
-            >
-              <p className="text-sm">{message.text}</p>
-              <p className={cn(
-                "text-[10px] mt-1",
-                message.isSent ? "text-primary-foreground/70" : "text-muted-foreground"
-              )}>
-                {message.timestamp}
-              </p>
-            </div>
-          </motion.div>
+            <p className="text-sm leading-relaxed text-foreground">{message.text}</p>
+            <p className="text-[10px] mt-1.5 text-muted-foreground">
+              {message.timestamp}
+              {message.isSent && <span className="ml-2">✓✓</span>}
+            </p>
+          </div>
         ))}
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input Bar */}
-      <div className="px-4 py-3 border-t border-border/50 bg-card/50 backdrop-blur-xl safe-area-bottom">
+      {/* Input Bar - Clean, flat */}
+      <div className="px-4 py-3 border-t border-border/20 safe-area-bottom">
         <div className="flex items-center gap-2">
           {/* Media Buttons */}
-          <motion.button
-            className="p-2 rounded-full hover:bg-muted/50"
-            whileTap={{ scale: 0.9 }}
-          >
-            <Camera className="w-5 h-5 text-muted-foreground" />
-          </motion.button>
-          <motion.button
-            className="p-2 rounded-full hover:bg-muted/50"
-            whileTap={{ scale: 0.9 }}
-          >
-            <Image className="w-5 h-5 text-muted-foreground" />
-          </motion.button>
+          <button className="p-2 rounded-lg hover:bg-muted/20 active:scale-95 transition-transform">
+            <Camera className="w-5 h-5 text-muted-foreground" strokeWidth={1.5} />
+          </button>
+          <button className="p-2 rounded-lg hover:bg-muted/20 active:scale-95 transition-transform">
+            <Image className="w-5 h-5 text-muted-foreground" strokeWidth={1.5} />
+          </button>
 
           {/* Input */}
-          <div className="flex-1 flex items-center gap-2 px-4 py-2 rounded-full bg-muted/50 border border-border/50">
+          <div className="flex-1 flex items-center gap-2 px-4 py-2 rounded-lg bg-muted/15">
             <input
               ref={inputRef}
               type="text"
@@ -172,30 +137,33 @@ const ConversationView = ({ chatId, chatName, isOnline, onBack, onACEarned }: Co
 
           {/* Record / Send */}
           {newMessage.trim() ? (
-            <motion.button
-              className="p-2.5 rounded-full bg-primary text-primary-foreground"
-              whileTap={{ scale: 0.9 }}
+            <button
+              className="p-2.5 rounded-lg bg-foreground/10 text-foreground active:scale-95 transition-transform"
               onClick={handleSend}
             >
-              <Send className="w-5 h-5" />
-            </motion.button>
+              <Send className="w-5 h-5" strokeWidth={1.5} />
+            </button>
           ) : (
-            <motion.button
+            <button
               className={cn(
-                "p-2.5 rounded-full",
-                isRecording ? "bg-destructive text-destructive-foreground" : "bg-muted/50"
+                "p-2.5 rounded-lg active:scale-95 transition-transform",
+                isRecording ? "bg-destructive/20 text-destructive" : "bg-muted/15 text-muted-foreground"
               )}
-              whileTap={{ scale: 0.9 }}
               onPointerDown={() => setIsRecording(true)}
               onPointerUp={() => setIsRecording(false)}
               onPointerLeave={() => setIsRecording(false)}
             >
-              <Mic className={cn("w-5 h-5", isRecording ? "text-destructive-foreground" : "text-muted-foreground")} />
-            </motion.button>
+              <Mic className="w-5 h-5" strokeWidth={1.5} />
+            </button>
           )}
         </div>
+        
+        {/* Voice/Media info */}
+        <p className="text-[10px] text-muted-foreground mt-2 text-center">
+          Voice up to 3 hours • Media up to 5GB
+        </p>
       </div>
-    </motion.div>
+    </div>
   );
 };
 
