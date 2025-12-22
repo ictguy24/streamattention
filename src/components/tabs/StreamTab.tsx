@@ -3,14 +3,14 @@ import { motion } from "framer-motion";
 import VideoFeed from "../stream/VideoFeed";
 import FeedToggle from "../stream/FeedToggle";
 
-type FeedType = "foryou" | "following";
+type FeedType = "companions" | "stream";
 
 interface StreamTabProps {
   onACEarned: (amount: number) => void;
 }
 
 const StreamTab = ({ onACEarned }: StreamTabProps) => {
-  const [activeTab, setActiveTab] = useState<FeedType>("foryou");
+  const [activeTab, setActiveTab] = useState<FeedType>("stream");
 
   return (
     <motion.div
