@@ -7,9 +7,11 @@ type FeedType = "companions" | "stream";
 
 interface StreamTabProps {
   onACEarned: (amount: number) => void;
+  isFullscreen?: boolean;
+  onSwipeRight?: () => void;
 }
 
-const StreamTab = ({ onACEarned }: StreamTabProps) => {
+const StreamTab = ({ onACEarned, isFullscreen = false, onSwipeRight }: StreamTabProps) => {
   const [activeTab, setActiveTab] = useState<FeedType>("stream");
 
   return (
@@ -19,13 +21,15 @@ const StreamTab = ({ onACEarned }: StreamTabProps) => {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
     >
-      {/* Feed Toggle Header */}
-      <div className="absolute top-0 left-0 right-0 z-20 pt-2 pb-4 bg-gradient-to-b from-background via-background/80 to-transparent">
-        <FeedToggle activeTab={activeTab} onTabChange={setActiveTab} />
-      </div>
+      {/* Feed Toggle Header - Hidden in fullscreen */}
+      {!isFullscreen && (
+        <div className="absolute top-0 left-0 right-0 z-20 pt-1 pb-3 bg-gradient-to-b from-background via-background/80 to-transparent">
+          <FeedToggle activeTab={activeTab} onTabChange={setActiveTab} />
+        </div>
+      )}
 
       {/* Video Feed */}
-      <VideoFeed onACEarned={onACEarned} />
+      <VideoFeed onACEarned={onACEarned} isFullscreen={isFullscreen} onSwipeRight={onSwipeRight} />
     </motion.div>
   );
 };

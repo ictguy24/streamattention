@@ -4,6 +4,7 @@ import { Heart, MessageCircle, Share2, Bookmark, Play, Pause, Volume2, VolumeX, 
 import { cn } from "@/lib/utils";
 import { useACEarning } from "@/hooks/useACEarning";
 import { useWatchProgress } from "@/hooks/useWatchProgress";
+import { useGestures } from "@/hooks/useGestures";
 import CommentSheet from "../social/CommentSheet";
 import FollowButton from "./FollowButton";
 import AudioRow from "./AudioRow";
@@ -24,15 +25,17 @@ interface VideoCardProps {
   };
   isActive: boolean;
   onACEarned: (amount: number) => void;
+  isFullscreen?: boolean;
+  onSwipeRight?: () => void;
 }
 
 const PLAYBACK_SPEEDS = [0.75, 1, 1.25, 1.5];
 
-const VideoCard = ({ video, isActive, onACEarned }: VideoCardProps) => {
+const VideoCard = ({ video, isActive, onACEarned, isFullscreen = false, onSwipeRight }: VideoCardProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const progressRef = useRef<HTMLDivElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(false); // Sound ON by default
+  const [isMuted, setIsMuted] = useState(false);
   const [progress, setProgress] = useState(0);
   const [isLiked, setIsLiked] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
@@ -42,6 +45,7 @@ const VideoCard = ({ video, isActive, onACEarned }: VideoCardProps) => {
   const [showRestartButton, setShowRestartButton] = useState(false);
   const [showACFly, setShowACFly] = useState<{ amount: number; id: number } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [showDoubleTapHeart, setShowDoubleTapHeart] = useState(false);
   const restartTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastSegmentStartRef = useRef<number>(0);
 
@@ -51,7 +55,6 @@ const VideoCard = ({ video, isActive, onACEarned }: VideoCardProps) => {
     startEarning,
     pauseEarning,
     stopEarning,
-    isEarning,
     getSpeedIndicator,
   } = useACEarning({
     onACEarned: (amount) => {
@@ -59,6 +62,22 @@ const VideoCard = ({ video, isActive, onACEarned }: VideoCardProps) => {
       triggerACFly(amount);
     },
     playbackSpeed,
+  });
+
+  // Gesture handlers
+  const handleDoubleTap = useCallback(() => {
+    if (!isLiked) {
+      setIsLiked(true);
+      onACEarned(1);
+      triggerACFly(1);
+    }
+    setShowDoubleTapHeart(true);
+    setTimeout(() => setShowDoubleTapHeart(false), 600);
+  }, [isLiked, onACEarned]);
+
+  const { gestureProps } = useGestures({
+    onDoubleTap: handleDoubleTap,
+    onSwipeRight: onSwipeRight,
   });
 
   const triggerACFly = (amount: number) => {
@@ -123,7 +142,6 @@ const VideoCard = ({ video, isActive, onACEarned }: VideoCardProps) => {
     }
   };
 
-  // Progress bar seeking
   const handleProgressBarClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!videoRef.current || !progressRef.current) return;
     const rect = progressRef.current.getBoundingClientRect();
@@ -197,7 +215,10 @@ const VideoCard = ({ video, isActive, onACEarned }: VideoCardProps) => {
   const speedIndicator = getSpeedIndicator();
 
   return (
-    <div className="relative h-full w-full bg-background snap-start">
+    <div 
+      className="relative h-full w-full bg-background snap-start"
+      {...gestureProps}
+    >
       {/* Video */}
       <video
         ref={videoRef}
@@ -213,234 +234,231 @@ const VideoCard = ({ video, isActive, onACEarned }: VideoCardProps) => {
         onSeeked={handleSeekEnd}
       />
 
-      {/* Subtle Gradient Overlays */}
-      <div className="absolute inset-0 bg-gradient-to-t from-background/70 via-transparent to-background/30 pointer-events-none" />
-
-      {/* Play/Pause Indicator */}
+      {/* Double Tap Heart Animation */}
       <AnimatePresence>
-        {!isPlaying && (
+        {showDoubleTapHeart && (
           <motion.div
-            className="absolute inset-0 flex items-center justify-center"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            className="absolute inset-0 flex items-center justify-center pointer-events-none z-30"
+            initial={{ opacity: 0, scale: 0 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.5 }}
+            transition={{ duration: 0.3 }}
           >
-            <motion.div
-              className="p-4 rounded-full bg-background/20 backdrop-blur-sm"
-              initial={{ scale: 0.8 }}
-              animate={{ scale: 1 }}
-              whileTap={{ scale: 0.9 }}
-            >
-              <Play className="w-10 h-10 text-foreground" fill="currentColor" />
-            </motion.div>
+            <Heart className="w-24 h-24 text-destructive fill-destructive drop-shadow-2xl" />
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* AC Fly Animation */}
-      <AnimatePresence>
-        {showACFly && (
-          <motion.div
-            key={showACFly.id}
-            className="absolute top-1/2 left-1/2 pointer-events-none z-30 flex items-center gap-1"
-            initial={{ opacity: 1, scale: 1, x: "-50%", y: "-50%" }}
-            animate={{ opacity: 0, scale: 0.5, y: "-250px" }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.8, ease: "easeOut" }}
-          >
-            <span className="text-lg font-bold text-primary">+{showACFly.amount} AC</span>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Hide overlays in fullscreen mode */}
+      {!isFullscreen && (
+        <>
+          {/* Subtle Gradient Overlays */}
+          <div className="absolute inset-0 bg-gradient-to-t from-background/70 via-transparent to-background/30 pointer-events-none" />
 
-      {/* Restart Button */}
-      <AnimatePresence>
-        {showRestartButton && (
-          <motion.div
-            className="absolute top-20 left-4 z-10"
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-          >
-            <motion.button
-              className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-background/50 backdrop-blur-sm border border-border/30"
-              whileTap={{ scale: 0.95 }}
-              onClick={handleRestart}
-            >
-              <RotateCcw className="w-4 h-4 text-foreground" />
-              <span className="text-xs text-foreground">Restart</span>
-            </motion.button>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Speed Indicator */}
-      {speedIndicator.isModified && (
-        <motion.div
-          className="absolute top-20 right-4 z-10"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-        >
-          <div className={cn(
-            "px-2 py-1 rounded-full text-xs font-medium",
-            speedIndicator.modifier > 1 
-              ? "bg-green-500/20 text-green-400" 
-              : "bg-orange-500/20 text-orange-400"
-          )}>
-            {speedIndicator.speed}x {speedIndicator.modifier > 1 ? "+5%" : `-${Math.round((1 - speedIndicator.modifier) * 100)}%`}
-          </div>
-        </motion.div>
-      )}
-
-      {/* Seekable Progress Bar */}
-      <div 
-        ref={progressRef}
-        className="absolute bottom-0 left-0 right-0 h-1 bg-muted/20 cursor-pointer z-20"
-        onClick={handleProgressBarClick}
-      >
-        <motion.div
-          className="h-full bg-foreground/60"
-          style={{ width: `${progress}%` }}
-        />
-        {/* Drag handle on hover */}
-        <motion.div
-          className="absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-foreground opacity-0 hover:opacity-100 transition-opacity"
-          style={{ left: `${progress}%`, marginLeft: -6 }}
-        />
-      </div>
-
-      {/* Bottom Info */}
-      <div className="absolute bottom-16 left-4 right-20 z-10">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-        >
-          {/* Username + Follow */}
-          <div className="flex items-center gap-2 mb-2">
-            <p className="font-semibold text-foreground">@{video.username}</p>
-            <FollowButton username={video.username} />
-          </div>
-          
-          {/* Description */}
-          <p className="text-sm text-foreground/90 line-clamp-2 mb-2">{video.description}</p>
-          
-          {/* Hashtags */}
-          <div className="flex flex-wrap gap-1.5 mb-2">
-            {hashtags.slice(0, 4).map((tag, i) => (
-              <motion.span
-                key={tag}
-                className="text-xs text-primary font-medium"
+          {/* Play/Pause Indicator */}
+          <AnimatePresence>
+            {!isPlaying && (
+              <motion.div
+                className="absolute inset-0 flex items-center justify-center"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ delay: 0.3 + i * 0.1 }}
+                exit={{ opacity: 0 }}
               >
-                #{tag}
-              </motion.span>
-            ))}
+                <motion.div
+                  className="p-3 rounded-full bg-background/20 backdrop-blur-sm"
+                  initial={{ scale: 0.8 }}
+                  animate={{ scale: 1 }}
+                  whileTap={{ scale: 0.9 }}
+                >
+                  <Play className="w-8 h-8 text-foreground" fill="currentColor" />
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* AC Fly Animation */}
+          <AnimatePresence>
+            {showACFly && (
+              <motion.div
+                key={showACFly.id}
+                className="absolute top-1/2 left-1/2 pointer-events-none z-30 flex items-center gap-1"
+                initial={{ opacity: 1, scale: 1, x: "-50%", y: "-50%" }}
+                animate={{ opacity: 0, scale: 0.5, y: "-250px" }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.8, ease: "easeOut" }}
+              >
+                <span className="text-base font-bold text-primary">+{showACFly.amount} AC</span>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Restart Button */}
+          <AnimatePresence>
+            {showRestartButton && (
+              <motion.div
+                className="absolute top-16 left-3 z-10"
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+              >
+                <motion.button
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-background/50 backdrop-blur-sm border border-border/30"
+                  whileTap={{ scale: 0.95 }}
+                  onClick={handleRestart}
+                >
+                  <RotateCcw className="w-3 h-3 text-foreground" />
+                  <span className="text-[10px] text-foreground">Restart</span>
+                </motion.button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Speed Indicator */}
+          {speedIndicator.isModified && (
+            <motion.div
+              className="absolute top-16 right-3 z-10"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+            >
+              <div className={cn(
+                "px-2 py-0.5 rounded-full text-[10px] font-medium",
+                speedIndicator.modifier > 1 
+                  ? "bg-green-500/20 text-green-400" 
+                  : "bg-orange-500/20 text-orange-400"
+              )}>
+                {speedIndicator.speed}x {speedIndicator.modifier > 1 ? "+5%" : `-${Math.round((1 - speedIndicator.modifier) * 100)}%`}
+              </div>
+            </motion.div>
+          )}
+
+          {/* Seekable Progress Bar */}
+          <div 
+            ref={progressRef}
+            className="absolute bottom-0 left-0 right-0 h-0.5 bg-muted/20 cursor-pointer z-20"
+            onClick={handleProgressBarClick}
+          >
+            <motion.div
+              className="h-full bg-foreground/60"
+              style={{ width: `${progress}%` }}
+            />
           </div>
 
-          {/* Audio Row */}
-          <AudioRow audioName={audioName} artistName={artistName} />
-        </motion.div>
-      </div>
+          {/* Bottom Info */}
+          <div className="absolute bottom-12 left-3 right-16 z-10">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+            >
+              {/* Username + Follow */}
+              <div className="flex items-center gap-2 mb-1.5">
+                <p className="font-semibold text-sm text-foreground">@{video.username}</p>
+                <FollowButton username={video.username} />
+              </div>
+              
+              {/* Description */}
+              <p className="text-xs text-foreground/90 line-clamp-2 mb-1.5">{video.description}</p>
+              
+              {/* Hashtags */}
+              <div className="flex flex-wrap gap-1 mb-1.5">
+                {hashtags.slice(0, 4).map((tag, i) => (
+                  <motion.span
+                    key={tag}
+                    className="text-[10px] text-primary font-medium"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.3 + i * 0.1 }}
+                  >
+                    #{tag}
+                  </motion.span>
+                ))}
+              </div>
 
-      {/* Right Side Actions */}
-      <div className="absolute right-3 bottom-36 flex flex-col items-center gap-5 z-10">
-        {/* Like */}
-        <motion.button
-          className="flex flex-col items-center gap-1"
-          whileTap={{ scale: 0.85 }}
-          onClick={handleLike}
-        >
-          <motion.div animate={isLiked ? { scale: [1, 1.3, 1] } : {}}>
-            <Heart
-              className={cn(
-                "w-7 h-7 drop-shadow-lg",
-                isLiked ? "text-destructive fill-destructive" : "text-foreground"
+              {/* Audio Row */}
+              <AudioRow audioName={audioName} artistName={artistName} />
+            </motion.div>
+          </div>
+
+          {/* Right Side Actions */}
+          <div className="absolute right-2 bottom-28 flex flex-col items-center gap-4 z-10">
+            {/* Like */}
+            <motion.button
+              className="flex flex-col items-center gap-0.5"
+              whileTap={{ scale: 0.85 }}
+              onClick={handleLike}
+            >
+              <motion.div animate={isLiked ? { scale: [1, 1.3, 1] } : {}}>
+                <Heart
+                  className={cn(
+                    "w-6 h-6 drop-shadow-lg",
+                    isLiked ? "text-destructive fill-destructive" : "text-foreground"
+                  )}
+                />
+              </motion.div>
+              <span className="text-[10px] text-foreground/80 font-medium">
+                {(video.likes + (isLiked ? 1 : 0)).toLocaleString()}
+              </span>
+            </motion.button>
+
+            {/* Comment */}
+            <motion.button
+              className="flex flex-col items-center gap-0.5"
+              whileTap={{ scale: 0.85 }}
+              onClick={() => setShowComments(true)}
+            >
+              <MessageCircle className="w-6 h-6 text-foreground drop-shadow-lg" />
+              <span className="text-[10px] text-foreground/80 font-medium">{video.comments.toLocaleString()}</span>
+            </motion.button>
+
+            {/* Share */}
+            <motion.button
+              className="flex flex-col items-center gap-0.5"
+              whileTap={{ scale: 0.85 }}
+              onClick={handleShare}
+            >
+              <Share2 className="w-6 h-6 text-foreground drop-shadow-lg" />
+              <span className="text-[10px] text-foreground/80 font-medium">{video.shares.toLocaleString()}</span>
+            </motion.button>
+
+            {/* Save */}
+            <motion.button
+              className="flex flex-col items-center gap-0.5"
+              whileTap={{ scale: 0.85 }}
+              onClick={handleSave}
+            >
+              <motion.div animate={isSaved ? { scale: [1, 1.3, 1] } : {}}>
+                <Bookmark
+                  className={cn(
+                    "w-6 h-6 drop-shadow-lg",
+                    isSaved ? "text-primary fill-primary" : "text-foreground"
+                  )}
+                />
+              </motion.div>
+            </motion.button>
+
+            {/* Mute Toggle */}
+            <motion.button
+              className="mt-1"
+              whileTap={{ scale: 0.85 }}
+              onClick={toggleMute}
+            >
+              {isMuted ? (
+                <VolumeX className="w-5 h-5 text-foreground/70 drop-shadow-lg" />
+              ) : (
+                <Volume2 className="w-5 h-5 text-foreground drop-shadow-lg" />
               )}
-            />
-          </motion.div>
-          <span className="text-xs text-foreground/80 font-medium">
-            {(video.likes + (isLiked ? 1 : 0)).toLocaleString()}
-          </span>
-        </motion.button>
+            </motion.button>
 
-        {/* Comment */}
-        <motion.button
-          className="flex flex-col items-center gap-1"
-          whileTap={{ scale: 0.85 }}
-          onClick={() => setShowComments(true)}
-        >
-          <MessageCircle className="w-7 h-7 text-foreground drop-shadow-lg" />
-          <span className="text-xs text-foreground/80 font-medium">{video.comments.toLocaleString()}</span>
-        </motion.button>
-
-        {/* Share */}
-        <motion.button
-          className="flex flex-col items-center gap-1"
-          whileTap={{ scale: 0.85 }}
-          onClick={handleShare}
-        >
-          <Share2 className="w-7 h-7 text-foreground drop-shadow-lg" />
-          <span className="text-xs text-foreground/80 font-medium">{video.shares.toLocaleString()}</span>
-        </motion.button>
-
-        {/* Save */}
-        <motion.button
-          className="flex flex-col items-center gap-1"
-          whileTap={{ scale: 0.85 }}
-          onClick={handleSave}
-        >
-          <motion.div animate={isSaved ? { scale: [1, 1.3, 1] } : {}}>
-            <Bookmark
-              className={cn(
-                "w-7 h-7 drop-shadow-lg",
-                isSaved ? "text-primary fill-primary" : "text-foreground"
-              )}
-            />
-          </motion.div>
-        </motion.button>
-
-        {/* Mute Toggle */}
-        <motion.button
-          className="mt-2"
-          whileTap={{ scale: 0.85 }}
-          onClick={toggleMute}
-        >
-          {isMuted ? (
-            <VolumeX className="w-6 h-6 text-foreground/70 drop-shadow-lg" />
-          ) : (
-            <Volume2 className="w-6 h-6 text-foreground drop-shadow-lg" />
-          )}
-        </motion.button>
-
-        {/* Speed Control */}
-        <motion.button
-          className="mt-1 px-2 py-1 rounded-full bg-background/30 backdrop-blur-sm"
-          whileTap={{ scale: 0.9 }}
-          onClick={cycleSpeed}
-        >
-          <span className="text-xs text-foreground font-medium">{playbackSpeed}x</span>
-        </motion.button>
-      </div>
-
-      {/* AC Earning Indicator */}
-      {isActive && isEarning && (
-        <div className="absolute top-20 left-4 z-10">
-          <motion.div 
-            className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-background/30 backdrop-blur-sm"
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-          >
-            <motion.div 
-              className="w-2 h-2 rounded-full bg-primary"
-              animate={{ scale: [1, 1.3, 1], opacity: [1, 0.7, 1] }}
-              transition={{ duration: 1, repeat: Infinity }}
-            />
-            <span className="text-xs text-foreground/80">Earning AC</span>
-          </motion.div>
-        </div>
+            {/* Speed Control */}
+            <motion.button
+              className="mt-0.5 px-1.5 py-0.5 rounded-full bg-background/30 backdrop-blur-sm"
+              whileTap={{ scale: 0.9 }}
+              onClick={cycleSpeed}
+            >
+              <span className="text-[10px] text-foreground font-medium">{playbackSpeed}x</span>
+            </motion.button>
+          </div>
+        </>
       )}
 
       {/* Comment Sheet */}
