@@ -1,4 +1,3 @@
-import { motion } from "framer-motion";
 import { Play, Users, PlusCircle, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -17,12 +16,10 @@ const tabs = [
 ];
 
 const BottomNav = ({ activeTab, onTabChange }: BottomNavProps) => {
-  // Map 'live' tab to stream for backward compatibility
   const displayTab = activeTab === "live" ? "stream" : activeTab;
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 safe-area-bottom">
-      {/* Background with blur */}
       <div className="absolute inset-0 bg-background/80 backdrop-blur-xl border-t border-border/50" />
       
       <div className="relative flex items-center justify-around px-2 py-2">
@@ -31,78 +28,54 @@ const BottomNav = ({ activeTab, onTabChange }: BottomNavProps) => {
           const Icon = tab.icon;
 
           return (
-            <motion.button
+            <button
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
               className={cn(
-                "relative flex flex-col items-center justify-center py-2 px-4 rounded-2xl transition-colors",
+                "relative flex flex-col items-center justify-center py-2 px-4 rounded-2xl transition-all active:scale-95",
                 tab.isCenter ? "px-5" : "px-4"
               )}
-              whileTap={{ scale: 0.9 }}
             >
-              {/* Active Background */}
-              {isActive && (
-                <motion.div
-                  layoutId="activeTab"
-                  className="absolute inset-0 bg-primary/10 rounded-2xl"
-                  initial={false}
-                  transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                />
-              )}
-
-              {/* Center Button Special Style */}
+              {/* Center Button */}
               {tab.isCenter ? (
-                <motion.div
+                <div
                   className={cn(
-                    "relative p-3 rounded-full",
+                    "relative p-3 rounded-full transition-colors",
                     isActive 
                       ? "bg-primary" 
                       : "bg-muted"
                   )}
-                  whileHover={{ scale: 1.05 }}
                 >
                   <Icon 
                     className={cn(
-                      "w-6 h-6",
+                      "w-6 h-6 transition-colors",
                       isActive ? "text-primary-foreground" : "text-muted-foreground"
                     )} 
+                    fill={isActive ? "currentColor" : "none"}
                   />
-                </motion.div>
+                </div>
               ) : (
                 <>
-                  <motion.div
-                    animate={isActive ? { y: -2 } : { y: 0 }}
-                    transition={{ type: "spring", stiffness: 500 }}
-                  >
-                    <Icon 
-                      className={cn(
-                        "w-6 h-6 transition-colors",
-                        isActive ? "text-primary" : "text-muted-foreground"
-                      )} 
-                    />
-                  </motion.div>
-                  <motion.span
+                  {/* Icon with fill for active state - NO background pills */}
+                  <Icon 
+                    className={cn(
+                      "w-6 h-6 transition-colors",
+                      isActive ? "text-foreground" : "text-muted-foreground"
+                    )}
+                    fill={isActive ? "currentColor" : "none"}
+                    strokeWidth={isActive ? 1.5 : 2}
+                  />
+                  <span
                     className={cn(
                       "text-xs mt-1 transition-colors",
-                      isActive ? "text-primary font-medium" : "text-muted-foreground"
+                      isActive ? "text-foreground font-medium" : "text-muted-foreground"
                     )}
-                    animate={isActive ? { opacity: 1 } : { opacity: 0.7 }}
                   >
                     {tab.label}
-                  </motion.span>
+                  </span>
                 </>
               )}
-
-              {/* Active Indicator Dot */}
-              {isActive && !tab.isCenter && (
-                <motion.div
-                  className="absolute -bottom-1 w-1 h-1 rounded-full bg-primary"
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ type: "spring", stiffness: 500 }}
-                />
-              )}
-            </motion.button>
+            </button>
           );
         })}
       </div>
