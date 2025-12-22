@@ -12,11 +12,17 @@ import {
   Moon,
   Palette,
   Type,
-  Check
+  Check,
+  Zap,
+  Sparkles,
+  Star,
+  Loader2
 } from "lucide-react";
 import { useTheme, ColorScheme, FontOption } from "@/hooks/useTheme";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
+import { useSubscription, Tier } from "@/hooks/useSubscription";
+import { toast } from "sonner";
 
 type SettingsSection = "main" | "account" | "security" | "wallet" | "tier" | "privacy" | "notifications" | "data" | "appearance";
 
@@ -37,9 +43,25 @@ const FONT_OPTIONS: { id: FontOption; name: string }[] = [
   { id: "serif", name: "Playfair" },
 ];
 
+const TIER_ICONS: Record<string, typeof Crown> = {
+  free: Star,
+  user: Zap,
+  both: Sparkles,
+  premium: Crown,
+};
+
+const TIER_COLORS: Record<string, string> = {
+  free: "text-muted-foreground",
+  user: "text-blue-400",
+  both: "text-purple-400",
+  premium: "text-amber-400",
+};
+
 const SettingsPanel = () => {
   const [activeSection, setActiveSection] = useState<SettingsSection>("main");
   const { colorScheme, setColorScheme, font, setFont, mode, toggleMode } = useTheme();
+  const { subscription, tiers, isLoading, changeTier } = useSubscription();
+  const [changingTier, setChangingTier] = useState<string | null>(null);
 
   const settingsSections = [
     { id: "account" as const, label: "Account", icon: User, description: "Profile, username, email" },
@@ -274,21 +296,110 @@ const SettingsPanel = () => {
 
         {activeSection === "tier" && (
           <div className="space-y-4">
-            <div className="p-4 rounded-xl bg-muted/10 text-center">
-              <Crown className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
-              <p className="font-medium text-foreground mb-1">Free Plan</p>
-              <p className="text-xs text-muted-foreground">Basic features included</p>
-            </div>
-            <button className="w-full py-3 rounded-xl bg-foreground text-background font-medium active:scale-[0.98] transition-transform">
-              Upgrade to Pro
-            </button>
-            <div className="space-y-2 text-sm">
-              <p className="text-foreground font-medium">Pro Benefits:</p>
-              <p className="text-muted-foreground">• 2x AC multiplier</p>
-              <p className="text-muted-foreground">• Priority support</p>
-              <p className="text-muted-foreground">• Custom themes</p>
-              <p className="text-muted-foreground">• Analytics dashboard</p>
-            </div>
+            {/* Current Plan Display */}
+            {subscription && (
+              <div className="p-4 rounded-xl bg-muted/10 text-center">
+                {(() => {
+                  const TierIcon = TIER_ICONS[subscription.tier.name] || Crown;
+                  return <TierIcon className={cn("w-8 h-8 mx-auto mb-2", TIER_COLORS[subscription.tier.name])} />;
+                })()}
+                <p className="font-medium text-foreground mb-1">{subscription.tier.display_name} Plan</p>
+                <p className="text-xs text-muted-foreground">
+                  {subscription.tier.monthly_fee_ac > 0 
+                    ? `${subscription.tier.monthly_fee_ac} AC/month` 
+                    : "No monthly fee"}
+                </p>
+                {subscription.status !== 'active' && (
+                  <p className={cn(
+                    "text-xs mt-2 px-2 py-1 rounded-full inline-block",
+                    subscription.status === 'grace_period' ? "bg-amber-500/20 text-amber-400" : "bg-destructive/20 text-destructive"
+                  )}>
+                    {subscription.status === 'grace_period' ? 'Payment Pending' : 'Account Frozen'}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {isLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              <>
+                {/* Tier Selection */}
+                <div className="space-y-3">
+                  <p className="text-sm font-medium text-foreground">Choose Your Plan</p>
+                  {tiers.map((tier) => {
+                    const isCurrentTier = subscription?.tier.name === tier.name;
+                    const TierIcon = TIER_ICONS[tier.name] || Crown;
+                    const isChanging = changingTier === tier.name;
+                    
+                    return (
+                      <button
+                        key={tier.id}
+                        disabled={isCurrentTier || isChanging || changingTier !== null}
+                        onClick={async () => {
+                          setChangingTier(tier.name);
+                          const success = await changeTier(tier.name);
+                          if (success) {
+                            toast.success(`Switched to ${tier.display_name} plan`);
+                          } else {
+                            toast.error("Failed to change plan");
+                          }
+                          setChangingTier(null);
+                        }}
+                        className={cn(
+                          "w-full p-4 rounded-xl text-left transition-all relative",
+                          isCurrentTier 
+                            ? "bg-foreground/10 ring-2 ring-foreground" 
+                            : "bg-muted/10 active:scale-[0.98]",
+                          (isChanging || (changingTier !== null && !isChanging)) && "opacity-50"
+                        )}
+                      >
+                        <div className="flex items-start gap-3">
+                          <TierIcon className={cn("w-5 h-5 mt-0.5", TIER_COLORS[tier.name])} />
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between">
+                              <p className="font-medium text-foreground">{tier.display_name}</p>
+                              {isCurrentTier && (
+                                <span className="text-xs bg-foreground text-background px-2 py-0.5 rounded-full">
+                                  Current
+                                </span>
+                              )}
+                              {isChanging && (
+                                <Loader2 className="w-4 h-4 animate-spin text-foreground" />
+                              )}
+                            </div>
+                            <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground">
+                              <span>{tier.monthly_fee_ac > 0 ? `${tier.monthly_fee_ac} AC/mo` : "Free"}</span>
+                              <span>{tier.base_multiplier}x earnings</span>
+                              <span>{tier.withdrawal_fee_percent}% withdraw fee</span>
+                            </div>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Benefits Comparison */}
+                <div className="p-4 rounded-xl bg-muted/5 space-y-3">
+                  <p className="text-sm font-medium text-foreground">Plan Benefits</p>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="text-muted-foreground">Base Multiplier</div>
+                    <div className="text-foreground text-right">{subscription?.tier.base_multiplier}x AC</div>
+                    <div className="text-muted-foreground">Withdrawal Fee</div>
+                    <div className="text-foreground text-right">{subscription?.tier.withdrawal_fee_percent}%</div>
+                    <div className="text-muted-foreground">Min Withdrawal</div>
+                    <div className="text-foreground text-right">{subscription?.tier.min_withdrawal_ac} AC</div>
+                  </div>
+                </div>
+
+                <p className="text-xs text-muted-foreground text-center">
+                  Monthly fees are deducted automatically from your AC balance
+                </p>
+              </>
+            )}
           </div>
         )}
 
