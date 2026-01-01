@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Heart, MessageCircle, Share2, Bookmark, Play, Pause, Volume2, VolumeX, RotateCcw } from "lucide-react";
+import { Play, Volume2, VolumeX, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useACEarning } from "@/hooks/useACEarning";
 import { useWatchProgress } from "@/hooks/useWatchProgress";
@@ -8,6 +8,13 @@ import { useGestures } from "@/hooks/useGestures";
 import CommentSheet from "../social/CommentSheet";
 import FollowButton from "./FollowButton";
 import AudioRow from "./AudioRow";
+import { 
+  AnimatedEnergyIcon, 
+  AnimatedDiscussIcon, 
+  AnimatedBroadcastIcon, 
+  AnimatedCollectIcon 
+} from "../icons/AnimatedIcons";
+import { EnergyIcon } from "../social/InteractionIcons";
 
 interface VideoCardProps {
   video: {
@@ -256,7 +263,7 @@ const VideoCard = ({ video, isActive, onACEarned, isFullscreen = false, onSwipeR
         onSeeked={handleSeekEnd}
       />
 
-      {/* Double Tap Heart Animation */}
+      {/* Double Tap Energy Animation */}
       <AnimatePresence>
         {showDoubleTapHeart && (
           <motion.div
@@ -266,7 +273,7 @@ const VideoCard = ({ video, isActive, onACEarned, isFullscreen = false, onSwipeR
             exit={{ opacity: 0, scale: 0.5 }}
             transition={{ duration: 0.3 }}
           >
-            <Heart className="w-24 h-24 text-destructive fill-destructive drop-shadow-2xl" />
+            <EnergyIcon className="w-24 h-24 text-amber-400" isActive={true} strokeWidth={2} />
           </motion.div>
         )}
       </AnimatePresence>
@@ -401,62 +408,48 @@ const VideoCard = ({ video, isActive, onACEarned, isFullscreen = false, onSwipeR
             </motion.div>
           </div>
 
-          {/* Right Side Actions */}
+          {/* Right Side Actions - Custom Animated Icons */}
           <div className="absolute right-2 bottom-28 flex flex-col items-center gap-4 z-10">
-            {/* Like */}
-            <motion.button
-              className="flex flex-col items-center gap-0.5"
-              whileTap={{ scale: 0.85 }}
-              onClick={handleLike}
-            >
-              <motion.div animate={isLiked ? { scale: [1, 1.3, 1] } : {}}>
-                <Heart
-                  className={cn(
-                    "w-6 h-6 drop-shadow-lg",
-                    isLiked ? "text-destructive fill-destructive" : "text-foreground"
-                  )}
-                />
-              </motion.div>
+            {/* Like - Energy Icon */}
+            <div className="flex flex-col items-center gap-0.5">
+              <AnimatedEnergyIcon
+                isActive={isLiked}
+                onClick={handleLike}
+                className="drop-shadow-lg"
+              />
               <span className="text-[10px] text-foreground/80 font-medium">
                 {(video.likes + (isLiked ? 1 : 0)).toLocaleString()}
               </span>
-            </motion.button>
+            </div>
 
-            {/* Comment */}
-            <motion.button
-              className="flex flex-col items-center gap-0.5"
-              whileTap={{ scale: 0.85 }}
-              onClick={() => setShowComments(true)}
-            >
-              <MessageCircle className="w-6 h-6 text-foreground drop-shadow-lg" />
+            {/* Comment - Discuss Icon */}
+            <div className="flex flex-col items-center gap-0.5">
+              <AnimatedDiscussIcon
+                isActive={showComments}
+                onClick={() => setShowComments(true)}
+                className="drop-shadow-lg"
+              />
               <span className="text-[10px] text-foreground/80 font-medium">{video.comments.toLocaleString()}</span>
-            </motion.button>
+            </div>
 
-            {/* Share */}
-            <motion.button
-              className="flex flex-col items-center gap-0.5"
-              whileTap={{ scale: 0.85 }}
-              onClick={handleShare}
-            >
-              <Share2 className="w-6 h-6 text-foreground drop-shadow-lg" />
+            {/* Share - Broadcast Icon */}
+            <div className="flex flex-col items-center gap-0.5">
+              <AnimatedBroadcastIcon
+                isActive={false}
+                onClick={handleShare}
+                className="drop-shadow-lg"
+              />
               <span className="text-[10px] text-foreground/80 font-medium">{video.shares.toLocaleString()}</span>
-            </motion.button>
+            </div>
 
-            {/* Save */}
-            <motion.button
-              className="flex flex-col items-center gap-0.5"
-              whileTap={{ scale: 0.85 }}
-              onClick={handleSave}
-            >
-              <motion.div animate={isSaved ? { scale: [1, 1.3, 1] } : {}}>
-                <Bookmark
-                  className={cn(
-                    "w-6 h-6 drop-shadow-lg",
-                    isSaved ? "text-primary fill-primary" : "text-foreground"
-                  )}
-                />
-              </motion.div>
-            </motion.button>
+            {/* Save - Collect Icon */}
+            <div className="flex flex-col items-center gap-0.5">
+              <AnimatedCollectIcon
+                isActive={isSaved}
+                onClick={handleSave}
+                className="drop-shadow-lg"
+              />
+            </div>
 
             {/* Mute Toggle */}
             <motion.button

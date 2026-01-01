@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Edit3, LogIn, UserPlus, LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import AnimatedAvatar from "../profile/AnimatedAvatar";
@@ -10,8 +10,10 @@ import MediaGrid from "../profile/MediaGrid";
 import SettingsPanel from "../profile/SettingsPanel";
 import SocialControl from "../profile/SocialControl";
 import ParticipationRings from "../profile/ParticipationRings";
+import FollowersList from "../profile/FollowersList";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 interface ProfileTabProps {
@@ -28,8 +30,29 @@ const ProfileTab = ({ acBalance }: ProfileTabProps) => {
   const { user, profile, signOut } = useAuth();
   const [activeSection, setActiveSection] = useState<ProfileSection>("overview");
   const [isLive, setIsLive] = useState(false);
+  const [showFollowersList, setShowFollowersList] = useState(false);
+  const [followersListTab, setFollowersListTab] = useState<"followers" | "following">("followers");
+  const [followerCount, setFollowerCount] = useState(0);
+  const [followingCount, setFollowingCount] = useState(0);
 
   const isGuest = !user;
+
+  // Fetch follow counts
+  useEffect(() => {
+    if (!user) return;
+    
+    const fetchCounts = async () => {
+      const [followers, following] = await Promise.all([
+        supabase.from("follows").select("id", { count: "exact" }).eq("following_id", user.id),
+        supabase.from("follows").select("id", { count: "exact" }).eq("follower_id", user.id)
+      ]);
+      
+      setFollowerCount(followers.count || 0);
+      setFollowingCount(following.count || 0);
+    };
+    
+    fetchCounts();
+  }, [user]);
 
   // Derive account type and participation score (would come from backend)
   // For demo: if live = creator, if has content = both, otherwise user
@@ -107,12 +130,26 @@ const ProfileTab = ({ acBalance }: ProfileTabProps) => {
             {/* Quick stats row */}
             {!isGuest && (
               <div className="flex items-center gap-4 mt-2">
-                <button className="text-center">
-                  <span className="block text-sm font-semibold text-foreground">128</span>
+                <button 
+                  className="text-center active:scale-95 transition-transform"
+                  onClick={() => {
+                    setFollowersListTab("following");
+                    setShowFollowersList(true);
+                  }}
+                >
+                  <span className="block text-sm font-semibold text-foreground">{followingCount}</span>
                   <span className="text-[10px] text-muted-foreground">Following</span>
                 </button>
-                <button className="text-center">
-                  <span className="block text-sm font-semibold text-foreground">1.2K</span>
+                <button 
+                  className="text-center active:scale-95 transition-transform"
+                  onClick={() => {
+                    setFollowersListTab("followers");
+                    setShowFollowersList(true);
+                  }}
+                >
+                  <span className="block text-sm font-semibold text-foreground">
+                    {followerCount >= 1000 ? `${(followerCount / 1000).toFixed(1)}K` : followerCount}
+                  </span>
                   <span className="text-[10px] text-muted-foreground">Followers</span>
                 </button>
                 <div className="text-center">
@@ -208,6 +245,16 @@ const ProfileTab = ({ acBalance }: ProfileTabProps) => {
         {activeSection === "social" && <SocialControl />}
         {activeSection === "settings" && <SettingsPanel />}
       </div>
+
+      {/* Followers/Following List Modal */}
+      {user && (
+        <FollowersList
+          isOpen={showFollowersList}
+          onClose={() => setShowFollowersList(false)}
+          initialTab={followersListTab}
+          userId={user.id}
+        />
+      )}
     </div>
   );
 };
