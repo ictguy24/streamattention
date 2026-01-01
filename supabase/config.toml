@@ -2,3 +2,15 @@ project_id = "jxqjelbhahoognmrbgjx"
 
 [functions.process-subscriptions]
 verify_jwt = false
+
+[functions.validate-interaction]
+verify_jwt = true
+
+[functions.manage-session]
+verify_jwt = true
+
+[functions.get-balance]
+verify_jwt = true
+
+[functions.decay-cron]
+verify_jwt = false
