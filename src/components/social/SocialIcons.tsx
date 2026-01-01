@@ -5,8 +5,8 @@ interface IconProps {
   isActive?: boolean;
 }
 
-// Conversations - Simple layered panels (no bubbles)
-export const ConversationsIcon = ({ className, isActive }: IconProps) => (
+// Chat - Layered panels for conversations
+export const ChatIcon = ({ className, isActive }: IconProps) => (
   <svg
     viewBox="0 0 24 24"
     fill="none"
@@ -41,7 +41,7 @@ export const ConversationsIcon = ({ className, isActive }: IconProps) => (
   </svg>
 );
 
-// Threads - Vertical flow with indent
+// Threads - Vertical flow with indent (slow thinking)
 export const ThreadsIcon = ({ className, isActive }: IconProps) => (
   <svg
     viewBox="0 0 24 24"
@@ -61,41 +61,40 @@ export const ThreadsIcon = ({ className, isActive }: IconProps) => (
   </svg>
 );
 
-// Posts - Stacked frames (masonry-like)
-export const PostsIcon = ({ className, isActive }: IconProps) => (
+// Fuzz - Cinematic grid (motion moments)
+export const FuzzIcon = ({ className, isActive }: IconProps) => (
   <svg
     viewBox="0 0 24 24"
     fill="none"
     className={cn("w-5 h-5", className)}
     strokeWidth="1.5"
   >
-    {/* Large tile */}
+    {/* Grid of moments */}
     <rect
       x="3"
       y="3"
-      width="10"
-      height="12"
-      rx="2"
+      width="8"
+      height="8"
+      rx="1.5"
       stroke="currentColor"
       fill={isActive ? "currentColor" : "none"}
       opacity={isActive ? 0.3 : 1}
     />
-    {/* Small tiles */}
     <rect
-      x="15"
+      x="13"
       y="3"
-      width="6"
-      height="6"
+      width="8"
+      height="5"
       rx="1.5"
       stroke="currentColor"
       fill={isActive ? "currentColor" : "none"}
       opacity={isActive ? 0.5 : 0.7}
     />
     <rect
-      x="15"
-      y="11"
-      width="6"
-      height="10"
+      x="13"
+      y="10"
+      width="8"
+      height="11"
       rx="1.5"
       stroke="currentColor"
       fill={isActive ? "currentColor" : "none"}
@@ -103,19 +102,25 @@ export const PostsIcon = ({ className, isActive }: IconProps) => (
     />
     <rect
       x="3"
-      y="17"
-      width="10"
-      height="4"
+      y="13"
+      width="8"
+      height="8"
       rx="1.5"
       stroke="currentColor"
       fill={isActive ? "currentColor" : "none"}
       opacity={isActive ? 0.2 : 0.4}
     />
+    {/* Play indicator */}
+    <polygon
+      points="6,6 6,8 8,7"
+      fill="currentColor"
+      opacity={isActive ? 0.8 : 0.5}
+    />
   </svg>
 );
 
-// Memories - Simple camera with timeline
-export const MemoriesIcon = ({ className, isActive }: IconProps) => (
+// Gallery - Camera with vault (ephemeral & private)
+export const GalleryIcon = ({ className, isActive }: IconProps) => (
   <svg
     viewBox="0 0 24 24"
     fill="none"
@@ -154,11 +159,22 @@ export const MemoriesIcon = ({ className, isActive }: IconProps) => (
       r="2"
       stroke="currentColor"
     />
+    {/* Lock indicator for vault */}
+    <circle
+      cx="18"
+      cy="9"
+      r="1.5"
+      fill="currentColor"
+      opacity={isActive ? 0.8 : 0.4}
+    />
   </svg>
 );
 
 // Legacy exports for backwards compatibility
-export const ChatsIcon = ConversationsIcon;
-export const MomentsIcon = PostsIcon;
+export const ConversationsIcon = ChatIcon;
+export const PostsIcon = FuzzIcon;
+export const MemoriesIcon = GalleryIcon;
+export const ChatsIcon = ChatIcon;
+export const MomentsIcon = FuzzIcon;
 export const PulseIcon = ThreadsIcon;
-export const SnapIcon = MemoriesIcon;
+export const SnapIcon = GalleryIcon;
