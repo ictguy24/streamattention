@@ -447,6 +447,30 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      apply_ac_decay: {
+        Args: { p_user_id: string }
+        Returns: {
+          decayed_amount: number
+          message: string
+          success: boolean
+        }[]
+      }
+      apply_ups_forgiveness: {
+        Args: { p_user_id: string }
+        Returns: {
+          message: string
+          success: boolean
+          ups_boost: number
+        }[]
+      }
+      calculate_ac_decay: {
+        Args: { p_user_id: string }
+        Returns: {
+          days_inactive: number
+          decay_amount: number
+          decay_percent: number
+        }[]
+      }
       calculate_quality_factor: {
         Args: {
           p_duration_ms: number
@@ -478,6 +502,14 @@ export type Database = {
       end_session: {
         Args: { p_abnormal?: boolean; p_session_id: string }
         Returns: boolean
+      }
+      get_decay_eligible_users: {
+        Args: never
+        Returns: {
+          balance: number
+          days_inactive: number
+          user_id: string
+        }[]
       }
       get_interaction_band: {
         Args: { p_type: Database["public"]["Enums"]["interaction_type"] }
