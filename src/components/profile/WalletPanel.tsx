@@ -1,18 +1,23 @@
 import { useState, useEffect } from "react";
 import { ArrowDownToLine, ArrowUpFromLine, Crown, Lock, AlertTriangle } from "lucide-react";
 import DepositWithdrawModal from "./DepositWithdrawModal";
+import WithdrawFlow from "./WithdrawFlow";
 import { cn } from "@/lib/utils";
 import { useWallet } from "@/hooks/useWallet";
 import { useSubscription } from "@/hooks/useSubscription";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
 
 // UGX conversion rate (example: 1 AC = 50 UGX)
 const AC_TO_UGX = 50;
 
 const WalletPanel = () => {
-  const { wallet, isLoading: walletLoading, getWithdrawableBalance } = useWallet();
+  const { user } = useAuth();
+  const { wallet, isLoading: walletLoading, getWithdrawableBalance, refetch } = useWallet();
   const { subscription, isLoading: subLoading } = useSubscription();
-  const [showModal, setShowModal] = useState(false);
-  const [modalMode, setModalMode] = useState<"deposit" | "withdraw">("deposit");
+  const [showDepositModal, setShowDepositModal] = useState(false);
+  const [showWithdrawFlow, setShowWithdrawFlow] = useState(false);
   const [withdrawableBalance, setWithdrawableBalance] = useState(0);
 
   const balance = wallet?.ac_balance || 0;
@@ -43,14 +48,36 @@ const WalletPanel = () => {
   }, [getWithdrawableBalance, balance]);
 
   const openDeposit = () => {
-    setModalMode("deposit");
-    setShowModal(true);
+    setShowDepositModal(true);
   };
 
   const openWithdraw = () => {
     if (isFrozen) return;
-    setModalMode("withdraw");
-    setShowModal(true);
+    setShowWithdrawFlow(true);
+  };
+
+  const handleWithdraw = async (amount: number) => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase.rpc("process_withdrawal", {
+        p_user_id: user.id,
+        p_amount: amount
+      });
+      
+      if (error) throw error;
+      
+      const result = data?.[0];
+      if (result?.success) {
+        toast.success("Withdrawal successful!");
+        refetch();
+      } else {
+        toast.error(result?.message || "Withdrawal failed");
+      }
+    } catch (error) {
+      console.error("Withdrawal error:", error);
+      toast.error("Failed to process withdrawal");
+    }
   };
 
   const getTierColor = () => {
@@ -225,14 +252,22 @@ const WalletPanel = () => {
         </div>
       </div>
 
-      {/* Deposit/Withdraw Modal */}
+      {/* Deposit Modal */}
       <DepositWithdrawModal
-        isOpen={showModal}
-        onClose={() => setShowModal(false)}
-        mode={modalMode}
+        isOpen={showDepositModal}
+        onClose={() => setShowDepositModal(false)}
+        mode="deposit"
         balance={balance}
         withdrawableBalance={withdrawableBalance}
         isFrozen={isFrozen}
+      />
+
+      {/* Psychology-Safe Withdraw Flow */}
+      <WithdrawFlow
+        isOpen={showWithdrawFlow}
+        onClose={() => setShowWithdrawFlow(false)}
+        withdrawableBalance={withdrawableBalance}
+        onWithdraw={handleWithdraw}
       />
     </>
   );
