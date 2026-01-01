@@ -2,8 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Play, Volume2, VolumeX, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useACEarning } from "@/hooks/useACEarning";
-import { useWatchProgress } from "@/hooks/useWatchProgress";
+import { useAttention } from "@/contexts/AttentionContext";
 import { useGestures } from "@/hooks/useGestures";
 import CommentSheet from "../social/CommentSheet";
 import FollowButton from "./FollowButton";
@@ -31,7 +30,7 @@ interface VideoCardProps {
     artistName?: string;
   };
   isActive: boolean;
-  onACEarned: (amount: number) => void;
+  onACEarned?: (amount: number) => void;
   isFullscreen?: boolean;
   onSwipeRight?: () => void;
 }
@@ -50,55 +49,41 @@ const VideoCard = ({ video, isActive, onACEarned, isFullscreen = false, onSwipeR
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [isSeeking, setIsSeeking] = useState(false);
   const [showRestartButton, setShowRestartButton] = useState(false);
-  const [showACFly, setShowACFly] = useState<{ amount: number; id: number } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [showDoubleTapHeart, setShowDoubleTapHeart] = useState(false);
   const restartTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const lastSegmentStartRef = useRef<number>(0);
+  const watchStartRef = useRef<number>(0);
+  const lastReportedTimeRef = useRef<number>(0);
 
-  const { saveProgress, getResumePosition, markSegmentWatched } = useWatchProgress();
-  
-  const {
-    startEarning,
-    pauseEarning,
-    stopEarning,
-    getSpeedIndicator,
-  } = useACEarning({
-    onACEarned: (amount) => {
-      onACEarned(amount);
-      triggerACFly(amount);
-    },
-    playbackSpeed,
-  });
+  // Use Attention context for server-side reporting
+  const { sessionId, reportVideoWatch, reportLike, reportSave } = useAttention();
 
-  // Tap handling - single tap = play/pause, double tap = like
+  // Tap handling
   const tapTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const tapCountRef = useRef(0);
 
   const handleDoubleTap = useCallback(() => {
     if (!isLiked) {
       setIsLiked(true);
-      onACEarned(1);
-      triggerACFly(1);
+      if (sessionId) {
+        reportLike(sessionId, video.id);
+      }
     }
     setShowDoubleTapHeart(true);
     setTimeout(() => setShowDoubleTapHeart(false), 600);
-  }, [isLiked, onACEarned]);
+  }, [isLiked, sessionId, reportLike, video.id]);
 
   const handleVideoTap = useCallback(() => {
     tapCountRef.current += 1;
     
     if (tapCountRef.current === 1) {
-      // Wait to see if it's a double tap
       tapTimeoutRef.current = setTimeout(() => {
         if (tapCountRef.current === 1) {
-          // Single tap - toggle play/pause
           togglePlay();
         }
         tapCountRef.current = 0;
       }, 250);
     } else if (tapCountRef.current === 2) {
-      // Double tap - like
       if (tapTimeoutRef.current) clearTimeout(tapTimeoutRef.current);
       tapCountRef.current = 0;
       handleDoubleTap();
@@ -109,12 +94,16 @@ const VideoCard = ({ video, isActive, onACEarned, isFullscreen = false, onSwipeR
     onSwipeRight: onSwipeRight,
   });
 
-  const triggerACFly = (amount: number) => {
-    setShowACFly({ amount, id: Date.now() });
-    setTimeout(() => setShowACFly(null), 800);
-  };
+  const reportWatchProgress = useCallback(() => {
+    if (!videoRef.current || !sessionId) return;
+    const currentTime = videoRef.current.currentTime * 1000;
+    const watchedDuration = currentTime - lastReportedTimeRef.current;
+    if (watchedDuration >= 5000) {
+      reportVideoWatch(sessionId, video.id, Math.floor(watchedDuration));
+      lastReportedTimeRef.current = currentTime;
+    }
+  }, [sessionId, video.id, reportVideoWatch]);
 
-  // Hashtags with defaults
   const hashtags = video.hashtags || ["fyp", "trending", "viral"];
   const audioName = video.audioName || "Original Sound";
   const artistName = video.artistName || video.username;
@@ -123,31 +112,20 @@ const VideoCard = ({ video, isActive, onACEarned, isFullscreen = false, onSwipeR
     if (!videoRef.current) return;
 
     if (isActive) {
-      const resumePos = getResumePosition(video.id);
-      if (resumePos > 0 && resumePos < videoRef.current.duration - 1) {
-        videoRef.current.currentTime = resumePos;
-        setShowRestartButton(true);
-        restartTimeoutRef.current = setTimeout(() => setShowRestartButton(false), 3000);
-      }
-      
       videoRef.current.play().catch(() => {});
       setIsPlaying(true);
-      lastSegmentStartRef.current = videoRef.current.currentTime;
-      startEarning();
+      watchStartRef.current = Date.now();
+      lastReportedTimeRef.current = 0;
     } else {
-      if (videoRef.current.currentTime > 0) {
-        saveProgress(video.id, videoRef.current.currentTime, videoRef.current.duration);
-        markSegmentWatched(video.id, lastSegmentStartRef.current, videoRef.current.currentTime);
-      }
+      reportWatchProgress();
       videoRef.current.pause();
       setIsPlaying(false);
-      stopEarning();
     }
 
     return () => {
       if (restartTimeoutRef.current) clearTimeout(restartTimeoutRef.current);
     };
-  }, [isActive, video.id]);
+  }, [isActive, video.id, reportWatchProgress]);
 
   const handleTimeUpdate = useCallback(() => {
     if (!videoRef.current || isSeeking || isDragging) return;
@@ -155,44 +133,25 @@ const VideoCard = ({ video, isActive, onACEarned, isFullscreen = false, onSwipeR
     setProgress(currentProgress);
   }, [isSeeking, isDragging]);
 
-  const handleSeekStart = () => {
-    setIsSeeking(true);
-    pauseEarning();
-    if (videoRef.current) {
-      markSegmentWatched(video.id, lastSegmentStartRef.current, videoRef.current.currentTime);
-    }
-  };
-
-  const handleSeekEnd = () => {
-    setIsSeeking(false);
-    if (isPlaying && videoRef.current) {
-      lastSegmentStartRef.current = videoRef.current.currentTime;
-      startEarning();
-    }
-  };
-
   const handleProgressBarClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!videoRef.current || !progressRef.current) return;
     const rect = progressRef.current.getBoundingClientRect();
     const percent = (e.clientX - rect.left) / rect.width;
     const newTime = percent * videoRef.current.duration;
-    
-    handleSeekStart();
+    reportWatchProgress();
     videoRef.current.currentTime = newTime;
     setProgress(percent * 100);
-    handleSeekEnd();
+    lastReportedTimeRef.current = newTime * 1000;
   };
 
   const togglePlay = () => {
     if (!videoRef.current) return;
     if (isPlaying) {
+      reportWatchProgress();
       videoRef.current.pause();
-      pauseEarning();
-      markSegmentWatched(video.id, lastSegmentStartRef.current, videoRef.current.currentTime);
     } else {
+      watchStartRef.current = Date.now();
       videoRef.current.play();
-      lastSegmentStartRef.current = videoRef.current.currentTime;
-      startEarning();
     }
     setIsPlaying(!isPlaying);
   };
@@ -206,7 +165,7 @@ const VideoCard = ({ video, isActive, onACEarned, isFullscreen = false, onSwipeR
   const handleRestart = () => {
     if (!videoRef.current) return;
     videoRef.current.currentTime = 0;
-    lastSegmentStartRef.current = 0;
+    lastReportedTimeRef.current = 0;
     setShowRestartButton(false);
   };
 
@@ -221,34 +180,25 @@ const VideoCard = ({ video, isActive, onACEarned, isFullscreen = false, onSwipeR
   };
 
   const handleLike = () => {
-    if (!isLiked) {
-      onACEarned(1);
-      triggerACFly(1);
+    if (!isLiked && sessionId) {
+      reportLike(sessionId, video.id);
     }
     setIsLiked(!isLiked);
   };
 
   const handleSave = () => {
-    if (!isSaved) {
-      onACEarned(2);
-      triggerACFly(2);
+    if (!isSaved && sessionId) {
+      reportSave(sessionId, video.id);
     }
     setIsSaved(!isSaved);
   };
 
   const handleShare = () => {
-    onACEarned(5);
-    triggerACFly(5);
+    // Share interaction would be reported here
   };
 
-  const speedIndicator = getSpeedIndicator();
-
   return (
-    <div 
-      className="relative h-full w-full bg-background snap-start"
-      {...gestureProps}
-    >
-      {/* Video */}
+    <div className="relative h-full w-full bg-background snap-start" {...gestureProps}>
       <video
         ref={videoRef}
         src={video.url}
@@ -259,11 +209,8 @@ const VideoCard = ({ video, isActive, onACEarned, isFullscreen = false, onSwipeR
         playsInline
         onTimeUpdate={handleTimeUpdate}
         onClick={handleVideoTap}
-        onSeeking={handleSeekStart}
-        onSeeked={handleSeekEnd}
       />
 
-      {/* Double Tap Energy Animation */}
       <AnimatePresence>
         {showDoubleTapHeart && (
           <motion.div
@@ -278,13 +225,10 @@ const VideoCard = ({ video, isActive, onACEarned, isFullscreen = false, onSwipeR
         )}
       </AnimatePresence>
 
-      {/* Hide overlays in fullscreen mode */}
       {!isFullscreen && (
         <>
-          {/* Subtle Gradient Overlays */}
           <div className="absolute inset-0 bg-gradient-to-t from-background/70 via-transparent to-background/30 pointer-events-none" />
 
-          {/* Play/Pause Indicator */}
           <AnimatePresence>
             {!isPlaying && (
               <motion.div
@@ -305,184 +249,59 @@ const VideoCard = ({ video, isActive, onACEarned, isFullscreen = false, onSwipeR
             )}
           </AnimatePresence>
 
-          {/* AC Fly Animation */}
-          <AnimatePresence>
-            {showACFly && (
-              <motion.div
-                key={showACFly.id}
-                className="absolute top-1/2 left-1/2 pointer-events-none z-30 flex items-center gap-1"
-                initial={{ opacity: 1, scale: 1, x: "-50%", y: "-50%" }}
-                animate={{ opacity: 0, scale: 0.5, y: "-250px" }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.8, ease: "easeOut" }}
-              >
-                <span className="text-base font-bold text-primary">+{showACFly.amount} AC</span>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Restart Button */}
-          <AnimatePresence>
-            {showRestartButton && (
-              <motion.div
-                className="absolute top-16 left-3 z-10"
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-              >
-                <motion.button
-                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-background/50 backdrop-blur-sm border border-border/30"
-                  whileTap={{ scale: 0.95 }}
-                  onClick={handleRestart}
-                >
-                  <RotateCcw className="w-3 h-3 text-foreground" />
-                  <span className="text-[10px] text-foreground">Restart</span>
-                </motion.button>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Speed Indicator */}
-          {speedIndicator.isModified && (
-            <motion.div
-              className="absolute top-16 right-3 z-10"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-            >
-              <div className={cn(
-                "px-2 py-0.5 rounded-full text-[10px] font-medium",
-                speedIndicator.modifier > 1 
-                  ? "bg-green-500/20 text-green-400" 
-                  : "bg-orange-500/20 text-orange-400"
-              )}>
-                {speedIndicator.speed}x {speedIndicator.modifier > 1 ? "+5%" : `-${Math.round((1 - speedIndicator.modifier) * 100)}%`}
-              </div>
-            </motion.div>
-          )}
-
-          {/* Seekable Progress Bar */}
           <div 
             ref={progressRef}
             className="absolute bottom-0 left-0 right-0 h-0.5 bg-muted/20 cursor-pointer z-20"
             onClick={handleProgressBarClick}
           >
-            <motion.div
-              className="h-full bg-foreground/60"
-              style={{ width: `${progress}%` }}
-            />
+            <motion.div className="h-full bg-foreground/60" style={{ width: `${progress}%` }} />
           </div>
 
-          {/* Bottom Info */}
           <div className="absolute bottom-12 left-3 right-16 z-10">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-            >
-              {/* Username + Follow */}
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
               <div className="flex items-center gap-2 mb-1.5">
                 <p className="font-semibold text-sm text-foreground">@{video.username}</p>
                 <FollowButton username={video.username} />
               </div>
-              
-              {/* Description */}
               <p className="text-xs text-foreground/90 line-clamp-2 mb-1.5">{video.description}</p>
-              
-              {/* Hashtags */}
               <div className="flex flex-wrap gap-1 mb-1.5">
                 {hashtags.slice(0, 4).map((tag, i) => (
-                  <motion.span
-                    key={tag}
-                    className="text-[10px] text-primary font-medium"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.3 + i * 0.1 }}
-                  >
+                  <motion.span key={tag} className="text-[10px] text-primary font-medium" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 + i * 0.1 }}>
                     #{tag}
                   </motion.span>
                 ))}
               </div>
-
-              {/* Audio Row */}
               <AudioRow audioName={audioName} artistName={artistName} />
             </motion.div>
           </div>
 
-          {/* Right Side Actions - Custom Animated Icons */}
           <div className="absolute right-2 bottom-28 flex flex-col items-center gap-4 z-10">
-            {/* Like - Energy Icon */}
             <div className="flex flex-col items-center gap-0.5">
-              <AnimatedEnergyIcon
-                isActive={isLiked}
-                onClick={handleLike}
-                className="drop-shadow-lg"
-              />
-              <span className="text-[10px] text-foreground/80 font-medium">
-                {(video.likes + (isLiked ? 1 : 0)).toLocaleString()}
-              </span>
+              <AnimatedEnergyIcon isActive={isLiked} onClick={handleLike} className="drop-shadow-lg" />
+              <span className="text-[10px] text-foreground/80 font-medium">{(video.likes + (isLiked ? 1 : 0)).toLocaleString()}</span>
             </div>
-
-            {/* Comment - Discuss Icon */}
             <div className="flex flex-col items-center gap-0.5">
-              <AnimatedDiscussIcon
-                isActive={showComments}
-                onClick={() => setShowComments(true)}
-                className="drop-shadow-lg"
-              />
+              <AnimatedDiscussIcon isActive={showComments} onClick={() => setShowComments(true)} className="drop-shadow-lg" />
               <span className="text-[10px] text-foreground/80 font-medium">{video.comments.toLocaleString()}</span>
             </div>
-
-            {/* Share - Broadcast Icon */}
             <div className="flex flex-col items-center gap-0.5">
-              <AnimatedBroadcastIcon
-                isActive={false}
-                onClick={handleShare}
-                className="drop-shadow-lg"
-              />
+              <AnimatedBroadcastIcon isActive={false} onClick={handleShare} className="drop-shadow-lg" />
               <span className="text-[10px] text-foreground/80 font-medium">{video.shares.toLocaleString()}</span>
             </div>
-
-            {/* Save - Collect Icon */}
             <div className="flex flex-col items-center gap-0.5">
-              <AnimatedCollectIcon
-                isActive={isSaved}
-                onClick={handleSave}
-                className="drop-shadow-lg"
-              />
+              <AnimatedCollectIcon isActive={isSaved} onClick={handleSave} className="drop-shadow-lg" />
             </div>
-
-            {/* Mute Toggle */}
-            <motion.button
-              className="mt-1"
-              whileTap={{ scale: 0.85 }}
-              onClick={toggleMute}
-            >
-              {isMuted ? (
-                <VolumeX className="w-5 h-5 text-foreground/70 drop-shadow-lg" />
-              ) : (
-                <Volume2 className="w-5 h-5 text-foreground drop-shadow-lg" />
-              )}
+            <motion.button className="mt-1" whileTap={{ scale: 0.85 }} onClick={toggleMute}>
+              {isMuted ? <VolumeX className="w-5 h-5 text-foreground/70 drop-shadow-lg" /> : <Volume2 className="w-5 h-5 text-foreground drop-shadow-lg" />}
             </motion.button>
-
-            {/* Speed Control */}
-            <motion.button
-              className="mt-0.5 px-1.5 py-0.5 rounded-full bg-background/30 backdrop-blur-sm"
-              whileTap={{ scale: 0.9 }}
-              onClick={cycleSpeed}
-            >
+            <motion.button className="mt-0.5 px-1.5 py-0.5 rounded-full bg-background/30 backdrop-blur-sm" whileTap={{ scale: 0.9 }} onClick={cycleSpeed}>
               <span className="text-[10px] text-foreground font-medium">{playbackSpeed}x</span>
             </motion.button>
           </div>
         </>
       )}
 
-      {/* Comment Sheet */}
-      <CommentSheet
-        isOpen={showComments}
-        onClose={() => setShowComments(false)}
-        videoId={video.id}
-        onACEarned={onACEarned}
-      />
+      <CommentSheet isOpen={showComments} onClose={() => setShowComments(false)} videoId={video.id} onACEarned={onACEarned} />
     </div>
   );
 };

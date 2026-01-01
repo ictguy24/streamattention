@@ -14,6 +14,47 @@ export type Database = {
   }
   public: {
     Tables: {
+      attention_ledger: {
+        Row: {
+          created_at: string
+          id: string
+          interaction_id: string | null
+          quality_factor: number
+          raw_ac: number
+          user_id: string
+          verification_ratio: number
+          verified_ac: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          interaction_id?: string | null
+          quality_factor: number
+          raw_ac: number
+          user_id: string
+          verification_ratio: number
+          verified_ac: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          interaction_id?: string | null
+          quality_factor?: number
+          raw_ac?: number
+          user_id?: string
+          verification_ratio?: number
+          verified_ac?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attention_ledger_interaction_id_fkey"
+            columns: ["interaction_id"]
+            isOneToOne: false
+            referencedRelation: "interactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       follows: {
         Row: {
           created_at: string | null
@@ -35,36 +76,161 @@ export type Database = {
         }
         Relationships: []
       }
+      interactions: {
+        Row: {
+          content_hash: string | null
+          context_hash: string | null
+          created_at: string
+          duration_ms: number | null
+          id: string
+          interaction_type: Database["public"]["Enums"]["interaction_type"]
+          metadata: Json | null
+          session_id: string | null
+          target_id: string | null
+          user_id: string
+        }
+        Insert: {
+          content_hash?: string | null
+          context_hash?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          id?: string
+          interaction_type: Database["public"]["Enums"]["interaction_type"]
+          metadata?: Json | null
+          session_id?: string | null
+          target_id?: string | null
+          user_id: string
+        }
+        Update: {
+          content_hash?: string | null
+          context_hash?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          id?: string
+          interaction_type?: Database["public"]["Enums"]["interaction_type"]
+          metadata?: Json | null
+          session_id?: string | null
+          target_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "interactions_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payouts: {
+        Row: {
+          amount_ac: number
+          amount_fiat: number | null
+          created_at: string
+          cycle_id: string | null
+          id: string
+          processed_at: string | null
+          status: Database["public"]["Enums"]["payout_status"] | null
+          user_id: string
+        }
+        Insert: {
+          amount_ac: number
+          amount_fiat?: number | null
+          created_at?: string
+          cycle_id?: string | null
+          id?: string
+          processed_at?: string | null
+          status?: Database["public"]["Enums"]["payout_status"] | null
+          user_id: string
+        }
+        Update: {
+          amount_ac?: number
+          amount_fiat?: number | null
+          created_at?: string
+          cycle_id?: string | null
+          id?: string
+          processed_at?: string | null
+          status?: Database["public"]["Enums"]["payout_status"] | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           ac_balance: number
+          account_type: Database["public"]["Enums"]["account_type"] | null
           avatar_url: string | null
           created_at: string
           display_name: string | null
           id: string
+          last_active_at: string | null
           tier: string
+          trust_state: Database["public"]["Enums"]["trust_state"] | null
           updated_at: string
+          ups: number | null
           username: string | null
         }
         Insert: {
           ac_balance?: number
+          account_type?: Database["public"]["Enums"]["account_type"] | null
           avatar_url?: string | null
           created_at?: string
           display_name?: string | null
           id: string
+          last_active_at?: string | null
           tier?: string
+          trust_state?: Database["public"]["Enums"]["trust_state"] | null
           updated_at?: string
+          ups?: number | null
           username?: string | null
         }
         Update: {
           ac_balance?: number
+          account_type?: Database["public"]["Enums"]["account_type"] | null
           avatar_url?: string | null
           created_at?: string
           display_name?: string | null
           id?: string
+          last_active_at?: string | null
           tier?: string
+          trust_state?: Database["public"]["Enums"]["trust_state"] | null
           updated_at?: string
+          ups?: number | null
           username?: string | null
+        }
+        Relationships: []
+      }
+      sessions: {
+        Row: {
+          abnormal_flag: boolean | null
+          created_at: string | null
+          device_fingerprint_hash: string
+          end_time: string | null
+          id: string
+          metadata: Json | null
+          start_time: string
+          user_id: string
+        }
+        Insert: {
+          abnormal_flag?: boolean | null
+          created_at?: string | null
+          device_fingerprint_hash: string
+          end_time?: string | null
+          id?: string
+          metadata?: Json | null
+          start_time?: string
+          user_id: string
+        }
+        Update: {
+          abnormal_flag?: boolean | null
+          created_at?: string | null
+          device_fingerprint_hash?: string
+          end_time?: string | null
+          id?: string
+          metadata?: Json | null
+          start_time?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -204,6 +370,36 @@ export type Database = {
         }
         Relationships: []
       }
+      ups_history: {
+        Row: {
+          created_at: string
+          delta: number
+          id: string
+          new_ups: number
+          previous_ups: number
+          reason: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          delta: number
+          id?: string
+          new_ups: number
+          previous_ups: number
+          reason: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          delta?: number
+          id?: string
+          new_ups?: number
+          previous_ups?: number
+          reason?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       wallets: {
         Row: {
           ac_balance: number | null
@@ -251,6 +447,22 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      calculate_quality_factor: {
+        Args: {
+          p_duration_ms: number
+          p_metadata: Json
+          p_type: Database["public"]["Enums"]["interaction_type"]
+        }
+        Returns: number
+      }
+      calculate_raw_ac: {
+        Args: { p_type: Database["public"]["Enums"]["interaction_type"] }
+        Returns: number
+      }
+      calculate_trust_state: {
+        Args: { p_ups: number }
+        Returns: Database["public"]["Enums"]["trust_state"]
+      }
       calculate_withdrawable_balance: {
         Args: { p_user_id: string }
         Returns: number
@@ -259,12 +471,42 @@ export type Database = {
         Args: { p_new_tier_name: string; p_user_id: string }
         Returns: boolean
       }
+      create_session: {
+        Args: { p_device_hash: string; p_metadata?: Json; p_user_id: string }
+        Returns: string
+      }
+      end_session: {
+        Args: { p_abnormal?: boolean; p_session_id: string }
+        Returns: boolean
+      }
+      get_interaction_band: {
+        Args: { p_type: Database["public"]["Enums"]["interaction_type"] }
+        Returns: string
+      }
       get_subscriptions_due: {
         Args: never
         Returns: {
           fee_amount: number
           tier_name: string
           user_id: string
+        }[]
+      }
+      get_verification_ratio: { Args: { p_user_id: string }; Returns: number }
+      get_verified_balance: { Args: { p_user_id: string }; Returns: number }
+      mint_verified_ac: {
+        Args: {
+          p_content_hash?: string
+          p_context_hash?: string
+          p_duration_ms?: number
+          p_interaction_type: Database["public"]["Enums"]["interaction_type"]
+          p_metadata?: Json
+          p_session_id: string
+          p_target_id: string
+          p_user_id: string
+        }
+        Returns: {
+          interaction_id: string
+          verified_ac: number
         }[]
       }
       process_subscription_deduction: {
@@ -282,9 +524,26 @@ export type Database = {
           success: boolean
         }[]
       }
+      update_ups: {
+        Args: { p_delta: number; p_reason: string; p_user_id: string }
+        Returns: number
+      }
     }
     Enums: {
-      [_ in never]: never
+      account_type: "user" | "creator" | "both"
+      interaction_type:
+        | "like"
+        | "emoji_comment"
+        | "sentence_comment"
+        | "insightful_comment"
+        | "thread_read"
+        | "video_watch"
+        | "save"
+        | "post"
+        | "voice_message"
+        | "video_message"
+      payout_status: "pending" | "processing" | "completed" | "failed"
+      trust_state: "cold" | "warm" | "active" | "trusted"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -411,6 +670,22 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      account_type: ["user", "creator", "both"],
+      interaction_type: [
+        "like",
+        "emoji_comment",
+        "sentence_comment",
+        "insightful_comment",
+        "thread_read",
+        "video_watch",
+        "save",
+        "post",
+        "voice_message",
+        "video_message",
+      ],
+      payout_status: ["pending", "processing", "completed", "failed"],
+      trust_state: ["cold", "warm", "active", "trusted"],
+    },
   },
 } as const
