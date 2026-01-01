@@ -64,7 +64,10 @@ const VideoCard = ({ video, isActive, onACEarned, isFullscreen = false, onSwipeR
     playbackSpeed,
   });
 
-  // Gesture handlers
+  // Tap handling - single tap = play/pause, double tap = like
+  const tapTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const tapCountRef = useRef(0);
+
   const handleDoubleTap = useCallback(() => {
     if (!isLiked) {
       setIsLiked(true);
@@ -75,8 +78,27 @@ const VideoCard = ({ video, isActive, onACEarned, isFullscreen = false, onSwipeR
     setTimeout(() => setShowDoubleTapHeart(false), 600);
   }, [isLiked, onACEarned]);
 
+  const handleVideoTap = useCallback(() => {
+    tapCountRef.current += 1;
+    
+    if (tapCountRef.current === 1) {
+      // Wait to see if it's a double tap
+      tapTimeoutRef.current = setTimeout(() => {
+        if (tapCountRef.current === 1) {
+          // Single tap - toggle play/pause
+          togglePlay();
+        }
+        tapCountRef.current = 0;
+      }, 250);
+    } else if (tapCountRef.current === 2) {
+      // Double tap - like
+      if (tapTimeoutRef.current) clearTimeout(tapTimeoutRef.current);
+      tapCountRef.current = 0;
+      handleDoubleTap();
+    }
+  }, [handleDoubleTap]);
+
   const { gestureProps } = useGestures({
-    onDoubleTap: handleDoubleTap,
     onSwipeRight: onSwipeRight,
   });
 
@@ -229,7 +251,7 @@ const VideoCard = ({ video, isActive, onACEarned, isFullscreen = false, onSwipeR
         muted={isMuted}
         playsInline
         onTimeUpdate={handleTimeUpdate}
-        onClick={togglePlay}
+        onClick={handleVideoTap}
         onSeeking={handleSeekStart}
         onSeeked={handleSeekEnd}
       />

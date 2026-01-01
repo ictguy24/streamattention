@@ -1,39 +1,39 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { ConversationsIcon, ThreadsIcon, PostsIcon, MemoriesIcon } from "../social/SocialIcons";
-import ConversationsMode from "../social/ConversationsMode";
+import { ChatIcon, ThreadsIcon, FuzzIcon, GalleryIcon } from "../social/SocialIcons";
+import ChatMode from "../social/ChatMode";
 import ThreadsMode from "../social/ThreadsMode";
-import PostsMode from "../social/PostsMode";
-import MemoriesMode from "../social/MemoriesMode";
+import FuzzMode from "../social/FuzzMode";
+import GalleryMode from "../social/GalleryMode";
 
-type SocialMode = "conversations" | "threads" | "posts" | "memories";
+type SocialMode = "chat" | "threads" | "fuzz" | "gallery";
 
 interface SocialTabProps {
   onACEarned?: (amount: number) => void;
 }
 
 const modes = [
-  { id: "conversations" as const, Icon: ConversationsIcon, label: "Conversations" },
+  { id: "chat" as const, Icon: ChatIcon, label: "Chat" },
   { id: "threads" as const, Icon: ThreadsIcon, label: "Threads" },
-  { id: "posts" as const, Icon: PostsIcon, label: "Posts" },
-  { id: "memories" as const, Icon: MemoriesIcon, label: "Memories" },
+  { id: "fuzz" as const, Icon: FuzzIcon, label: "Fuzz" },
+  { id: "gallery" as const, Icon: GalleryIcon, label: "Gallery" },
 ];
 
 const SocialTab = ({ onACEarned }: SocialTabProps) => {
-  const [activeMode, setActiveMode] = useState<SocialMode>("conversations");
+  const [activeMode, setActiveMode] = useState<SocialMode>("chat");
 
   const renderMode = () => {
     switch (activeMode) {
-      case "conversations":
-        return <ConversationsMode onACEarned={onACEarned} />;
+      case "chat":
+        return <ChatMode onACEarned={onACEarned} />;
       case "threads":
         return <ThreadsMode onACEarned={onACEarned} />;
-      case "posts":
-        return <PostsMode onACEarned={onACEarned} />;
-      case "memories":
-        return <MemoriesMode onACEarned={onACEarned} />;
+      case "fuzz":
+        return <FuzzMode onACEarned={onACEarned} />;
+      case "gallery":
+        return <GalleryMode onACEarned={onACEarned} />;
       default:
-        return <ConversationsMode onACEarned={onACEarned} />;
+        return <ChatMode onACEarned={onACEarned} />;
     }
   };
 
@@ -41,7 +41,7 @@ const SocialTab = ({ onACEarned }: SocialTabProps) => {
 
   return (
     <div className="flex flex-col min-h-[calc(100vh-8rem)]">
-      {/* Mode Switcher - Grounded, no spring animations */}
+      {/* Mode Switcher */}
       <div className="px-4 mb-4">
         <div className="relative flex items-center justify-between">
           {modes.map((mode) => (
@@ -65,7 +65,7 @@ const SocialTab = ({ onACEarned }: SocialTabProps) => {
             </button>
           ))}
           
-          {/* Underline indicator - simple slide, no spring */}
+          {/* Underline indicator */}
           <div 
             className="absolute bottom-0 h-0.5 bg-foreground transition-all duration-200 ease-out"
             style={{
@@ -76,7 +76,7 @@ const SocialTab = ({ onACEarned }: SocialTabProps) => {
         </div>
       </div>
 
-      {/* Mode Content - Simple opacity transition */}
+      {/* Mode Content */}
       <div className="flex-1 overflow-y-auto pb-4">
         <div 
           key={activeMode}
