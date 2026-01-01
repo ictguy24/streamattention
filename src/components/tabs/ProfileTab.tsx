@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Edit3, LogIn, UserPlus, Users, LogOut } from "lucide-react";
+import { Edit3, LogIn, UserPlus, LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import AnimatedAvatar from "../profile/AnimatedAvatar";
 import WalletPanel from "../profile/WalletPanel";
@@ -9,6 +9,7 @@ import PerformanceDashboard from "../profile/PerformanceDashboard";
 import MediaGrid from "../profile/MediaGrid";
 import SettingsPanel from "../profile/SettingsPanel";
 import SocialControl from "../profile/SocialControl";
+import ParticipationRings from "../profile/ParticipationRings";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -19,6 +20,9 @@ interface ProfileTabProps {
 
 type ProfileSection = "overview" | "history" | "analytics" | "content" | "social" | "settings";
 
+// Account type derived from user behavior (would come from backend in production)
+type AccountType = "user" | "creator" | "both";
+
 const ProfileTab = ({ acBalance }: ProfileTabProps) => {
   const navigate = useNavigate();
   const { user, profile, signOut } = useAuth();
@@ -27,20 +31,23 @@ const ProfileTab = ({ acBalance }: ProfileTabProps) => {
 
   const isGuest = !user;
 
-  const sections: { id: ProfileSection; label: string; icon?: typeof Users }[] = [
+  // Derive account type and participation score (would come from backend)
+  // For demo: if live = creator, if has content = both, otherwise user
+  const hasContent = (profile?.ac_balance || acBalance) > 500;
+  const accountType: AccountType = isLive ? "creator" : hasContent ? "both" : "user";
+  const participationScore = Math.min(Math.floor((profile?.ac_balance || acBalance) / 100), 100);
+
+  const sections: { id: ProfileSection; label: string }[] = [
     { id: "overview", label: "Overview" },
     { id: "history", label: "History" },
     { id: "analytics", label: "Analytics" },
     { id: "content", label: "Content" },
-    { id: "social", label: "Social", icon: Users },
+    { id: "social", label: "Social" },
     { id: "settings", label: "Settings" },
   ];
 
   // Use profile AC balance if available, otherwise use prop
   const displayBalance = profile?.ac_balance ?? acBalance;
-  const monthlyEarned = Math.floor(displayBalance * 0.8);
-  const dailyEarned = Math.floor(displayBalance * 0.05);
-  const lifetimeEarned = Math.floor(displayBalance * 2.5);
 
   const handleSignOut = async () => {
     await signOut();
@@ -52,18 +59,37 @@ const ProfileTab = ({ acBalance }: ProfileTabProps) => {
 
   return (
     <div className="flex flex-col pb-8">
-      {/* Profile Header */}
+      {/* Profile Header with Participation Rings */}
       <div className="relative px-4 pt-2 pb-4">
-        {/* Avatar & Info */}
-        <div className="flex items-center gap-4">
-          <AnimatedAvatar 
-            size="lg" 
-            isOnline={true} 
-            isLive={isLive}
-            avatarUrl={profile?.avatar_url}
-          />
+        {/* Avatar, Rings & Info */}
+        <div className="flex items-start gap-4">
+          {/* Left: Avatar with Participation Rings overlay */}
+          <div className="relative">
+            <ParticipationRings 
+              score={participationScore} 
+              accountType={accountType}
+              className="absolute -inset-2 z-0"
+            />
+            <div className="relative z-10">
+              <AnimatedAvatar 
+                size="lg" 
+                isOnline={true} 
+                isLive={isLive}
+                avatarUrl={profile?.avatar_url}
+              />
+            </div>
+            {/* Account type badge */}
+            <div className={cn(
+              "absolute -bottom-1 -right-1 z-20 px-1.5 py-0.5 rounded-full text-[8px] font-medium uppercase tracking-wider",
+              accountType === "creator" && "bg-secondary text-secondary-foreground",
+              accountType === "both" && "bg-accent text-accent-foreground",
+              accountType === "user" && "bg-primary text-primary-foreground"
+            )}>
+              {accountType === "both" ? "Dual" : accountType}
+            </div>
+          </div>
 
-          <div className="flex-1">
+          <div className="flex-1 pt-2">
             <div className="flex items-center gap-2">
               <h2 className="text-base font-bold text-foreground">
                 {isGuest ? "Guest User" : displayName}
@@ -77,6 +103,24 @@ const ProfileTab = ({ acBalance }: ProfileTabProps) => {
             <p className="text-xs text-muted-foreground">
               {isGuest ? "@guest_user" : `@${displayUsername}`}
             </p>
+            
+            {/* Quick stats row */}
+            {!isGuest && (
+              <div className="flex items-center gap-4 mt-2">
+                <button className="text-center">
+                  <span className="block text-sm font-semibold text-foreground">128</span>
+                  <span className="text-[10px] text-muted-foreground">Following</span>
+                </button>
+                <button className="text-center">
+                  <span className="block text-sm font-semibold text-foreground">1.2K</span>
+                  <span className="text-[10px] text-muted-foreground">Followers</span>
+                </button>
+                <div className="text-center">
+                  <span className="block text-sm font-semibold text-foreground">{participationScore}</span>
+                  <span className="text-[10px] text-muted-foreground">Score</span>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Sign Out Button */}
@@ -149,7 +193,6 @@ const ProfileTab = ({ acBalance }: ProfileTabProps) => {
               )}
               onClick={() => setActiveSection(section.id)}
             >
-              {section.icon && <section.icon className="w-2.5 h-2.5" />}
               {section.label}
             </button>
           ))}
