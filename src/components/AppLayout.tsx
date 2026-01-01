@@ -1,54 +1,89 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Bell } from "lucide-react";
 import ACCounter from "./ACCounter";
 import LiveIndicator from "./LiveIndicator";
-import BottomNav from "./BottomNav";
 import StreamTab from "./tabs/StreamTab";
 import SocialTab from "./tabs/SocialTab";
 import CreateTab from "./tabs/CreateTab";
 import LiveTab from "./tabs/LiveTab";
 import ProfileTab from "./tabs/ProfileTab";
+import CompanionsTab from "./tabs/CompanionsTab";
 import NotificationSheet from "./stream/NotificationSheet";
 import { useGestures } from "@/hooks/useGestures";
 
-type TabType = "stream" | "social" | "create" | "live" | "profile";
+// Horizontal zone order: Companions ↔ Stream (Center) ↔ Social Space ↔ Profile
+type ZoneType = "companions" | "stream" | "social" | "profile";
+const ZONE_ORDER: ZoneType[] = ["companions", "stream", "social", "profile"];
 
-const TAB_ORDER: TabType[] = ["stream", "social", "create", "live", "profile"];
+// Keep create/live as overlay modes, not zones
+type OverlayMode = "create" | "live" | null;
 
 const AppLayout = () => {
-  const [activeTab, setActiveTab] = useState<TabType>("stream");
+  const [activeZone, setActiveZone] = useState<ZoneType>("stream");
+  const [overlayMode, setOverlayMode] = useState<OverlayMode>(null);
   const [acBalance, setAcBalance] = useState(0);
   const [multiplier, setMultiplier] = useState(1);
   const [hasActiveLiveSessions, setHasActiveLiveSessions] = useState(true);
   const [isUserLive, setIsUserLive] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  
+  // Touch tracking for horizontal navigation
+  const containerRef = useRef<HTMLDivElement>(null);
+  const touchStartX = useRef<number | null>(null);
+  const touchStartY = useRef<number | null>(null);
 
   const handleACEarned = useCallback((amount: number) => {
     const earnedAmount = Math.round(amount * multiplier);
     setAcBalance((prev) => prev + earnedAmount);
   }, [multiplier]);
 
-  // Tab navigation via swipe
+  // Zone navigation via swipe
   const handleSwipeLeft = useCallback(() => {
-    const currentIndex = TAB_ORDER.indexOf(activeTab);
-    if (currentIndex < TAB_ORDER.length - 1) {
-      setActiveTab(TAB_ORDER[currentIndex + 1]);
+    if (overlayMode) return; // Don't navigate zones in overlay mode
+    const currentIndex = ZONE_ORDER.indexOf(activeZone);
+    if (currentIndex < ZONE_ORDER.length - 1) {
+      setActiveZone(ZONE_ORDER[currentIndex + 1]);
     }
-  }, [activeTab]);
+  }, [activeZone, overlayMode]);
 
   const handleSwipeRight = useCallback(() => {
-    const currentIndex = TAB_ORDER.indexOf(activeTab);
+    if (overlayMode) return;
+    const currentIndex = ZONE_ORDER.indexOf(activeZone);
     if (currentIndex > 0) {
-      setActiveTab(TAB_ORDER[currentIndex - 1]);
+      setActiveZone(ZONE_ORDER[currentIndex - 1]);
     }
-  }, [activeTab]);
+  }, [activeZone, overlayMode]);
 
-  // Gesture handling for tab switching
+  // Custom touch handlers for horizontal zone navigation
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+  }, []);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (touchStartX.current === null || touchStartY.current === null) return;
+    
+    const deltaX = e.changedTouches[0].clientX - touchStartX.current;
+    const deltaY = e.changedTouches[0].clientY - touchStartY.current;
+    const SWIPE_THRESHOLD = 80;
+
+    // Only trigger horizontal swipe if it's more horizontal than vertical
+    if (Math.abs(deltaX) > Math.abs(deltaY) * 1.5 && Math.abs(deltaX) > SWIPE_THRESHOLD) {
+      if (deltaX > 0) {
+        handleSwipeRight();
+      } else {
+        handleSwipeLeft();
+      }
+    }
+
+    touchStartX.current = null;
+    touchStartY.current = null;
+  }, [handleSwipeLeft, handleSwipeRight]);
+
+  // Gesture handling for pinch fullscreen
   const { gestureProps } = useGestures({
-    onSwipeLeft: handleSwipeLeft,
-    onSwipeRight: handleSwipeRight,
     onPinchStart: () => setIsFullscreen(true),
     onPinchEnd: () => setIsFullscreen(false),
   });
@@ -56,39 +91,77 @@ const AppLayout = () => {
   // Streak multiplier
   useEffect(() => {
     const checkStreak = setInterval(() => {
-      if (activeTab === "stream") {
+      if (activeZone === "stream" || activeZone === "companions") {
         setMultiplier((prev) => Math.min(prev + 0.1, 3));
       }
     }, 30000);
 
     return () => clearInterval(checkStreak);
-  }, [activeTab]);
+  }, [activeZone]);
 
-  const renderTab = () => {
-    switch (activeTab) {
+  const renderZone = () => {
+    // If overlay mode is active, show that instead
+    if (overlayMode === "create") {
+      return <CreateTab />;
+    }
+    if (overlayMode === "live") {
+      return <LiveTab />;
+    }
+
+    switch (activeZone) {
+      case "companions":
+        return (
+          <CompanionsTab 
+            onACEarned={handleACEarned} 
+            isFullscreen={isFullscreen} 
+            onSwipeLeft={handleSwipeLeft} 
+          />
+        );
       case "stream":
-        return <StreamTab onACEarned={handleACEarned} isFullscreen={isFullscreen} onSwipeRight={handleSwipeRight} />;
+        return (
+          <StreamTab 
+            onACEarned={handleACEarned} 
+            isFullscreen={isFullscreen} 
+            onSwipeRight={handleSwipeRight} 
+          />
+        );
       case "social":
         return <SocialTab onACEarned={handleACEarned} />;
-      case "create":
-        return <CreateTab />;
-      case "live":
-        return <LiveTab />;
       case "profile":
         return <ProfileTab acBalance={acBalance} />;
       default:
-        return <StreamTab onACEarned={handleACEarned} isFullscreen={isFullscreen} onSwipeRight={handleSwipeRight} />;
+        return (
+          <StreamTab 
+            onACEarned={handleACEarned} 
+            isFullscreen={isFullscreen} 
+            onSwipeRight={handleSwipeRight} 
+          />
+        );
     }
   };
 
   const handleLiveClick = () => {
-    setActiveTab("live");
+    setOverlayMode("live");
   };
 
+  // Close overlay and return to zones
+  const closeOverlay = () => {
+    setOverlayMode(null);
+  };
+
+  // Get current zone index for indicator
+  const currentZoneIndex = ZONE_ORDER.indexOf(activeZone);
+
   return (
-    <div className="min-h-screen bg-background overflow-hidden" {...gestureProps}>
+    <div 
+      ref={containerRef}
+      className="min-h-screen bg-background overflow-hidden"
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+      {...gestureProps}
+    >
       {/* Top Header - Hidden in fullscreen */}
-      {!isFullscreen && (
+      {!isFullscreen && !overlayMode && (
         <header className="fixed top-0 left-0 right-0 z-40 safe-area-top">
           <div className="flex items-center justify-between px-3 py-2">
             {/* Left: AC Counter + Live */}
@@ -112,7 +185,6 @@ const AppLayout = () => {
                 onClick={() => setShowNotifications(true)}
               >
                 <Bell className="w-4 h-4 text-foreground/70" />
-                {/* Notification dot */}
                 <span className="absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full bg-primary" />
               </motion.button>
             </div>
@@ -120,23 +192,63 @@ const AppLayout = () => {
         </header>
       )}
 
+      {/* Zone Indicator - Subtle dots showing position */}
+      {!isFullscreen && !overlayMode && (
+        <div className="fixed top-14 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1.5">
+          {ZONE_ORDER.map((zone, index) => (
+            <button
+              key={zone}
+              onClick={() => setActiveZone(zone)}
+              className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${
+                index === currentZoneIndex 
+                  ? "bg-foreground w-4" 
+                  : "bg-foreground/30"
+              }`}
+              aria-label={`Go to ${zone}`}
+            />
+          ))}
+        </div>
+      )}
+
       {/* Main Content */}
-      <main className={activeTab === "stream" ? "h-screen pb-16 pt-12" : "pt-14 pb-20 min-h-screen"}>
+      <main className={
+        activeZone === "stream" || activeZone === "companions" 
+          ? "h-screen pb-0 pt-12" 
+          : "pt-16 pb-4 min-h-screen"
+      }>
         <AnimatePresence mode="wait">
           <motion.div
-            key={activeTab}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.15 }}
+            key={overlayMode || activeZone}
+            initial={{ opacity: 0, x: overlayMode ? 0 : 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: overlayMode ? 0 : -20 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            className="h-full"
           >
-            {renderTab()}
+            {renderZone()}
           </motion.div>
         </AnimatePresence>
       </main>
 
-      {/* Bottom Navigation - Hidden in fullscreen */}
-      {!isFullscreen && <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />}
+      {/* Overlay Close Button */}
+      {overlayMode && (
+        <button
+          onClick={closeOverlay}
+          className="fixed top-4 right-4 z-50 p-2 rounded-full bg-background/80 backdrop-blur-sm"
+        >
+          <span className="text-foreground text-sm">✕</span>
+        </button>
+      )}
+
+      {/* Create FAB - Only show when not in overlay */}
+      {!isFullscreen && !overlayMode && (
+        <button
+          onClick={() => setOverlayMode("create")}
+          className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-primary flex items-center justify-center shadow-lg active:scale-95 transition-transform"
+        >
+          <span className="text-primary-foreground text-2xl font-light">+</span>
+        </button>
+      )}
 
       {/* Notification Sheet */}
       <NotificationSheet 
