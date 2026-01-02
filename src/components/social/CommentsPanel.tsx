@@ -1,47 +1,9 @@
 import { useState, useRef, useEffect } from "react";
-import { X, Send, Mic, Image } from "lucide-react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { X, Send, Mic, Image, Loader2 } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
-
-interface Comment {
-  id: string;
-  username: string;
-  text: string;
-  timeAgo: string;
-  likes: number;
-  isLiked: boolean;
-  replies?: Comment[];
-}
-
-const DEMO_COMMENTS: Comment[] = [
-  {
-    id: "1",
-    username: "creative_mind",
-    text: "This is incredible! The attention to detail is amazing.",
-    timeAgo: "2m",
-    likes: 45,
-    isLiked: false,
-    replies: [
-      { id: "1-1", username: "author", text: "Thank you so much!", timeAgo: "1m", likes: 12, isLiked: true },
-    ],
-  },
-  {
-    id: "2",
-    username: "daily_explorer",
-    text: "Where was this taken? I need to visit!",
-    timeAgo: "5m",
-    likes: 23,
-    isLiked: true,
-  },
-  {
-    id: "3",
-    username: "photography_pro",
-    text: "The lighting in this shot is perfect. What time of day did you capture this?",
-    timeAgo: "12m",
-    likes: 67,
-    isLiked: false,
-  },
-];
+import { useComments } from "@/hooks/useComments";
+import { formatDistanceToNow } from "date-fns";
 
 interface CommentsPanelProps {
   isOpen: boolean;
@@ -51,9 +13,9 @@ interface CommentsPanelProps {
 }
 
 const CommentsPanel = ({ isOpen, onClose, contentId, onACEarned }: CommentsPanelProps) => {
-  const [comments, setComments] = useState(DEMO_COMMENTS);
+  const { comments, isLoading, addComment, isAddingComment } = useComments(isOpen ? contentId : null);
   const [newComment, setNewComment] = useState("");
-  const [replyingTo, setReplyingTo] = useState<string | null>(null);
+  const [likedComments, setLikedComments] = useState<Set<string>>(new Set());
   const inputRef = useRef<HTMLInputElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -65,31 +27,33 @@ const CommentsPanel = ({ isOpen, onClose, contentId, onACEarned }: CommentsPanel
     }
   }, [isOpen]);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!newComment.trim()) return;
     
-    const comment: Comment = {
-      id: Date.now().toString(),
-      username: "you",
-      text: newComment,
-      timeAgo: "now",
-      likes: 0,
-      isLiked: false,
-    };
-    
-    setComments(prev => [comment, ...prev]);
-    setNewComment("");
-    onACEarned?.(2);
+    try {
+      await addComment(newComment);
+      setNewComment("");
+      onACEarned?.(2);
+    } catch (error) {
+      console.error("Failed to add comment:", error);
+    }
   };
 
   const toggleLike = (id: string) => {
-    setComments(prev =>
-      prev.map(c =>
-        c.id === id
-          ? { ...c, isLiked: !c.isLiked, likes: c.isLiked ? c.likes - 1 : c.likes + 1 }
-          : c
-      )
-    );
+    setLikedComments(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) newSet.delete(id);
+      else newSet.add(id);
+      return newSet;
+    });
+  };
+
+  const formatTimeAgo = (date: string) => {
+    try {
+      return formatDistanceToNow(new Date(date), { addSuffix: false });
+    } catch {
+      return "now";
+    }
   };
 
   if (!isOpen) return null;
@@ -121,66 +85,56 @@ const CommentsPanel = ({ isOpen, onClose, contentId, onACEarned }: CommentsPanel
 
         {/* Comments List */}
         <div className="flex-1 overflow-y-auto px-4 py-3">
-          {comments.map((comment) => (
-            <div key={comment.id} className="py-3 border-b border-border/10 last:border-b-0">
-              <div className="flex items-start gap-3">
-                <Avatar className="w-8 h-8 shrink-0">
-                  <AvatarFallback className="bg-muted/30 text-foreground text-xs">
-                    {comment.username[0].toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-sm font-medium text-foreground">@{comment.username}</span>
-                    <span className="text-[10px] text-muted-foreground">{comment.timeAgo}</span>
-                  </div>
-                  
-                  <p className="text-sm text-foreground leading-relaxed">{comment.text}</p>
-                  
-                  <div className="flex items-center gap-4 mt-2 text-muted-foreground">
-                    <button 
-                      className={cn(
-                        "text-xs active:scale-95 transition-all",
-                        comment.isLiked && "text-red-500"
-                      )}
-                      onClick={() => toggleLike(comment.id)}
-                    >
-                      {comment.likes} likes
-                    </button>
-                    <button 
-                      className="text-xs active:scale-95 transition-all"
-                      onClick={() => setReplyingTo(replyingTo === comment.id ? null : comment.id)}
-                    >
-                      Reply
-                    </button>
-                  </div>
-
-                  {/* Replies */}
-                  {comment.replies && comment.replies.length > 0 && (
-                    <div className="mt-3 pl-4 space-y-3">
-                      {comment.replies.map((reply) => (
-                        <div key={reply.id} className="flex items-start gap-2">
-                          <Avatar className="w-6 h-6 shrink-0">
-                            <AvatarFallback className="bg-muted/30 text-foreground text-[10px]">
-                              {reply.username[0].toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs font-medium text-foreground">@{reply.username}</span>
-                              <span className="text-[10px] text-muted-foreground">{reply.timeAgo}</span>
-                            </div>
-                            <p className="text-xs text-foreground leading-relaxed">{reply.text}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
+          {isLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
             </div>
-          ))}
+          ) : comments.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-sm text-muted-foreground">No comments yet</p>
+              <p className="text-xs text-muted-foreground/60 mt-1">Be the first to comment!</p>
+            </div>
+          ) : (
+            comments.map((comment) => {
+              const isLiked = likedComments.has(comment.id);
+              return (
+                <div key={comment.id} className="py-3 border-b border-border/10 last:border-b-0">
+                  <div className="flex items-start gap-3">
+                    <Avatar className="w-8 h-8 shrink-0">
+                      <AvatarImage src={comment.avatar_url} />
+                      <AvatarFallback className="bg-muted/30 text-foreground text-xs">
+                        {(comment.username || 'U')[0].toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-sm font-medium text-foreground">@{comment.username || 'user'}</span>
+                        <span className="text-[10px] text-muted-foreground">{formatTimeAgo(comment.created_at)}</span>
+                      </div>
+                      
+                      <p className="text-sm text-foreground leading-relaxed">{comment.content}</p>
+                      
+                      <div className="flex items-center gap-4 mt-2 text-muted-foreground">
+                        <button 
+                          className={cn(
+                            "text-xs active:scale-95 transition-all",
+                            isLiked && "text-red-500"
+                          )}
+                          onClick={() => toggleLike(comment.id)}
+                        >
+                          {isLiked ? '1 like' : 'Like'}
+                        </button>
+                        <button className="text-xs active:scale-95 transition-all">
+                          Reply
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
 
         {/* Input */}
@@ -214,9 +168,13 @@ const CommentsPanel = ({ isOpen, onClose, contentId, onACEarned }: CommentsPanel
                 newComment.trim() ? "bg-foreground/10 text-foreground" : "bg-muted/10 text-muted-foreground"
               )}
               onClick={handleSubmit}
-              disabled={!newComment.trim()}
+              disabled={!newComment.trim() || isAddingComment}
             >
-              <Send className="w-5 h-5" strokeWidth={1.5} />
+              {isAddingComment ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <Send className="w-5 h-5" strokeWidth={1.5} />
+              )}
             </button>
           </div>
         </div>
