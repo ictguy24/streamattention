@@ -1,49 +1,10 @@
 import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import VideoCard from "../stream/VideoCard";
-
-// Same videos but filtered to "followed" users only
-const COMPANION_VIDEOS = [
-  {
-    id: "c1",
-    url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
-    poster: "https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=400",
-    username: "alex_followed",
-    description: "Creating something special ✨",
-    likes: 1234,
-    comments: 89,
-    shares: 45,
-    hashtags: ["creator", "following"],
-    audioName: "Creative Flow",
-    artistName: "alex_followed",
-  },
-  {
-    id: "c2",
-    url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
-    poster: "https://images.unsplash.com/photo-1593642632559-0c6d3fc62b89?w=400",
-    username: "sarah_followed",
-    description: "Behind the scenes 🎬",
-    likes: 2456,
-    comments: 156,
-    shares: 78,
-    hashtags: ["bts", "creator"],
-    audioName: "Studio Vibes",
-    artistName: "sarah_followed",
-  },
-  {
-    id: "c3",
-    url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4",
-    poster: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=400",
-    username: "mike_followed",
-    description: "New content dropping soon 🔥",
-    likes: 3789,
-    comments: 234,
-    shares: 123,
-    hashtags: ["teaser", "soon"],
-    audioName: "Drop It",
-    artistName: "mike_followed",
-  },
-];
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { Loader2, Users } from "lucide-react";
 
 interface CompanionsTabProps {
   isFullscreen?: boolean;
@@ -51,9 +12,46 @@ interface CompanionsTabProps {
 }
 
 const CompanionsTab = ({ isFullscreen = false, onSwipeLeft }: CompanionsTabProps) => {
+  const { user } = useAuth();
   const [activeIndex, setActiveIndex] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
+
+  // Fetch posts from followed users only
+  const { data: posts = [], isLoading, error } = useQuery({
+    queryKey: ["followed_posts", user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+
+      const { data, error } = await supabase
+        .rpc("get_followed_posts", { 
+          p_user_id: user.id,
+          p_limit: 20,
+          p_offset: 0
+        });
+
+      if (error) throw error;
+
+      return (data || []).map((post: any) => ({
+        id: post.post_id,
+        url: post.media_url || "",
+        poster: post.thumbnail_url || post.cover_image_url,
+        username: post.username || "user",
+        description: post.description || "",
+        likes: post.like_count || 0,
+        comments: post.comment_count || 0,
+        shares: 0,
+        hashtags: [],
+        audioName: post.music_title || "Original audio",
+        artistName: post.username || "Creator",
+        musicUrl: post.music_url,
+        musicVolume: post.music_volume || 1,
+        originalVolume: post.original_volume || 1,
+        musicTitle: post.music_title,
+      }));
+    },
+    enabled: !!user,
+  });
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -77,14 +75,48 @@ const CompanionsTab = ({ isFullscreen = false, onSwipeLeft }: CompanionsTabProps
     items.forEach((item) => observerRef.current?.observe(item));
 
     return () => observerRef.current?.disconnect();
-  }, []);
+  }, [posts]);
+
+  if (isLoading) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="h-full flex items-center justify-center px-8">
+        <div className="text-center">
+          <Users className="w-12 h-12 text-muted-foreground mx-auto mb-3" strokeWidth={1.5} />
+          <p className="text-muted-foreground text-sm">
+            Sign in to see content from creators you follow
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (posts.length === 0) {
+    return (
+      <div className="h-full flex items-center justify-center px-8">
+        <div className="text-center">
+          <Users className="w-12 h-12 text-muted-foreground mx-auto mb-3" strokeWidth={1.5} />
+          <p className="text-muted-foreground text-sm">
+            Follow creators to see their content here
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
       ref={containerRef}
       className="h-full w-full overflow-y-auto snap-y snap-mandatory no-scrollbar"
     >
-      {COMPANION_VIDEOS.map((video, index) => (
+      {posts.map((video, index) => (
         <motion.div
           key={video.id}
           data-index={index}
@@ -101,17 +133,6 @@ const CompanionsTab = ({ isFullscreen = false, onSwipeLeft }: CompanionsTabProps
           />
         </motion.div>
       ))}
-      
-      {/* Empty state indicator */}
-      {COMPANION_VIDEOS.length === 0 && (
-        <div className="h-full flex items-center justify-center">
-          <div className="text-center px-8">
-            <p className="text-muted-foreground text-sm">
-              Follow creators to see their content here
-            </p>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

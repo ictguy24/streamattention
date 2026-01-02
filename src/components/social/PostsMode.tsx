@@ -1,205 +1,105 @@
-import { useState, useRef } from "react";
-import { MoreHorizontal, Play, ImageIcon, Plus, X, Edit3, Image, Send } from "lucide-react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { useState, useRef, useEffect } from "react";
+import { MoreHorizontal, Play, ImageIcon, Plus, X, Edit3, Image, Send, Loader2 } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import CommentsPanel from "./CommentsPanel";
 import { EnergyIcon, DiscussIcon, BroadcastIcon, CollectIcon, AmplifyIcon } from "./InteractionIcons";
-
-interface Post {
-  id: string;
-  username: string;
-  content: string;
-  mediaType: "image" | "video" | "carousel";
-  mediaCount?: number;
-  likes: number;
-  comments: number;
-  reposts: number;
-  saves: number;
-  timeAgo: string;
-  isLiked: boolean;
-  isReposted: boolean;
-  isSaved: boolean;
-  hashtags?: string[];
-}
-
-const DEMO_POSTS: Post[] = [
-  {
-    id: "1",
-    username: "travel_adventures",
-    content: "Sunset views from the mountains. The hike was worth every step.",
-    mediaType: "carousel",
-    mediaCount: 5,
-    likes: 2340,
-    comments: 89,
-    reposts: 45,
-    saves: 234,
-    timeAgo: "2h",
-    isLiked: false,
-    isReposted: false,
-    isSaved: false,
-    hashtags: ["travel", "adventure", "mountains"],
-  },
-  {
-    id: "2",
-    username: "foodie_delights",
-    content: "Made this amazing pasta from scratch. Recipe in bio.",
-    mediaType: "image",
-    likes: 1205,
-    comments: 45,
-    reposts: 23,
-    saves: 156,
-    timeAgo: "4h",
-    isLiked: true,
-    isReposted: false,
-    isSaved: true,
-    hashtags: ["food", "homemade", "pasta"],
-  },
-  {
-    id: "3",
-    username: "daily_vlogs",
-    content: "A day in my life as a creator. Full video on my profile.",
-    mediaType: "video",
-    likes: 5670,
-    comments: 234,
-    reposts: 156,
-    saves: 445,
-    timeAgo: "6h",
-    isLiked: false,
-    isReposted: true,
-    isSaved: false,
-    hashtags: ["vlog", "creator", "dayinmylife"],
-  },
-  {
-    id: "4",
-    username: "tech_reviews",
-    content: "First impressions of the new device. Surprisingly good.",
-    mediaType: "video",
-    likes: 3420,
-    comments: 178,
-    reposts: 89,
-    saves: 267,
-    timeAgo: "8h",
-    isLiked: false,
-    isReposted: false,
-    isSaved: false,
-    hashtags: ["tech", "review"],
-  },
-];
+import { usePosts, useCreatePost } from "@/hooks/usePosts";
+import { useAuth } from "@/hooks/useAuth";
+import { formatDistanceToNow } from "date-fns";
 
 interface PostsModeProps {
   onACEarned?: (amount: number) => void;
 }
 
 const PostsMode = ({ onACEarned }: PostsModeProps) => {
-  const [posts, setPosts] = useState(DEMO_POSTS);
+  const { user } = useAuth();
+  const { posts, isLoading } = usePosts();
+  const { createPost, isUploading } = useCreatePost();
   const [openCommentId, setOpenCommentId] = useState<string | null>(null);
   const [showCreatePost, setShowCreatePost] = useState(false);
-  const [editingPostId, setEditingPostId] = useState<string | null>(null);
   const [newPostContent, setNewPostContent] = useState("");
   const [newPostMedia, setNewPostMedia] = useState<File | null>(null);
+  const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
+  const [savedPosts, setSavedPosts] = useState<Set<string>>(new Set());
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const toggleLike = (id: string) => {
-    const post = posts.find(p => p.id === id);
-    if (post && !post.isLiked) {
+    if (!likedPosts.has(id)) {
       onACEarned?.(1);
     }
-    setPosts(prev =>
-      prev.map(p =>
-        p.id === id
-          ? { ...p, isLiked: !p.isLiked, likes: p.isLiked ? p.likes - 1 : p.likes + 1 }
-          : p
-      )
-    );
-  };
-
-  const toggleRepost = (id: string) => {
-    const post = posts.find(p => p.id === id);
-    if (post && !post.isReposted) {
-      onACEarned?.(2);
-    }
-    setPosts(prev =>
-      prev.map(p =>
-        p.id === id
-          ? { ...p, isReposted: !p.isReposted, reposts: p.isReposted ? p.reposts - 1 : p.reposts + 1 }
-          : p
-      )
-    );
+    setLikedPosts(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
   };
 
   const toggleSave = (id: string) => {
-    const post = posts.find(p => p.id === id);
-    if (post && !post.isSaved) {
+    if (!savedPosts.has(id)) {
       onACEarned?.(1);
     }
-    setPosts(prev =>
-      prev.map(p =>
-        p.id === id
-          ? { ...p, isSaved: !p.isSaved, saves: p.isSaved ? p.saves - 1 : p.saves + 1 }
-          : p
-      )
-    );
+    setSavedPosts(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
   };
 
   const handleShare = (id: string) => {
     if (navigator.share) {
+      const post = posts.find(p => p.id === id);
       navigator.share({
         title: 'Check out this post',
-        text: posts.find(p => p.id === id)?.content,
+        text: post?.description || '',
         url: window.location.href,
       });
     }
     onACEarned?.(5);
   };
 
-  const handleCreatePost = () => {
+  const handleCreatePost = async () => {
     if (!newPostContent.trim() && !newPostMedia) return;
     
-    const newPost: Post = {
-      id: Date.now().toString(),
-      username: "you",
-      content: newPostContent,
-      mediaType: newPostMedia?.type.startsWith("video/") ? "video" : "image",
-      likes: 0,
-      comments: 0,
-      reposts: 0,
-      saves: 0,
-      timeAgo: "now",
-      isLiked: false,
-      isReposted: false,
-      isSaved: false,
-    };
-    
-    setPosts(prev => [newPost, ...prev]);
-    setNewPostContent("");
-    setNewPostMedia(null);
-    setShowCreatePost(false);
-    onACEarned?.(10);
-  };
-
-  const handleEditPost = (id: string) => {
-    const post = posts.find(p => p.id === id);
-    if (post) {
-      setNewPostContent(post.content);
-      setEditingPostId(id);
-      setShowCreatePost(true);
+    try {
+      await createPost({
+        description: newPostContent,
+        contentType: newPostMedia?.type.startsWith("video/") ? "video" : "image",
+        mediaFile: newPostMedia || undefined,
+      });
+      
+      setNewPostContent("");
+      setNewPostMedia(null);
+      setShowCreatePost(false);
+      onACEarned?.(10);
+    } catch (error) {
+      console.error("Failed to create post:", error);
     }
   };
 
-  const handleSaveEdit = () => {
-    if (!editingPostId) return;
-    
-    setPosts(prev =>
-      prev.map(p =>
-        p.id === editingPostId
-          ? { ...p, content: newPostContent }
-          : p
-      )
-    );
-    setEditingPostId(null);
-    setNewPostContent("");
-    setShowCreatePost(false);
+  const formatTimeAgo = (date: string) => {
+    try {
+      return formatDistanceToNow(new Date(date), { addSuffix: false });
+    } catch {
+      return "now";
+    }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col px-4">
@@ -220,7 +120,7 @@ const PostsMode = ({ onACEarned }: PostsModeProps) => {
         <span className="text-foreground font-medium">Create Post</span>
       </button>
 
-      {/* Create/Edit Post Modal */}
+      {/* Create Post Modal */}
       {showCreatePost && (
         <div className="fixed inset-0 z-50 bg-background/95 flex flex-col animate-fade-in">
           <div className="flex items-center justify-between px-4 py-3 border-b border-border/20">
@@ -228,16 +128,13 @@ const PostsMode = ({ onACEarned }: PostsModeProps) => {
               className="p-2 rounded-lg hover:bg-muted/20 active:scale-95 transition-transform"
               onClick={() => {
                 setShowCreatePost(false);
-                setEditingPostId(null);
                 setNewPostContent("");
                 setNewPostMedia(null);
               }}
             >
               <X className="w-6 h-6 text-foreground" strokeWidth={1.5} />
             </button>
-            <span className="font-medium text-foreground">
-              {editingPostId ? "Edit Post" : "Create Post"}
-            </span>
+            <span className="font-medium text-foreground">Create Post</span>
             <button
               className={cn(
                 "px-4 py-1.5 rounded-lg text-sm font-medium transition-colors active:scale-95",
@@ -245,10 +142,10 @@ const PostsMode = ({ onACEarned }: PostsModeProps) => {
                   ? "bg-foreground text-background"
                   : "bg-muted/20 text-muted-foreground"
               )}
-              onClick={editingPostId ? handleSaveEdit : handleCreatePost}
-              disabled={!newPostContent.trim() && !newPostMedia}
+              onClick={handleCreatePost}
+              disabled={(!newPostContent.trim() && !newPostMedia) || isCreating}
             >
-              {editingPostId ? "Save" : "Post"}
+              {isCreating ? <Loader2 className="w-4 h-4 animate-spin" /> : "Post"}
             </button>
           </div>
 
@@ -266,7 +163,6 @@ const PostsMode = ({ onACEarned }: PostsModeProps) => {
                   autoFocus
                 />
                 
-                {/* Media preview */}
                 {newPostMedia && (
                   <div className="mt-3 relative">
                     <div className="w-full h-48 bg-muted/20 rounded-lg flex items-center justify-center">
@@ -298,123 +194,112 @@ const PostsMode = ({ onACEarned }: PostsModeProps) => {
         </div>
       )}
 
+      {/* Empty State */}
+      {posts.length === 0 && (
+        <div className="text-center py-12">
+          <ImageIcon className="w-12 h-12 text-muted-foreground mx-auto mb-3" strokeWidth={1.5} />
+          <p className="text-muted-foreground text-sm">No posts yet</p>
+          <p className="text-muted-foreground text-xs mt-1">Be the first to share something!</p>
+        </div>
+      )}
+
       {/* Masonry Grid */}
       <div className="columns-2 gap-3 space-y-3">
-        {posts.map((post) => (
-          <div
-            key={post.id}
-            className="break-inside-avoid bg-muted/10 rounded-lg overflow-hidden"
-          >
-            {/* Media Placeholder */}
-            <div className={cn(
-              "relative bg-muted/20 flex items-center justify-center",
-              post.mediaType === "carousel" ? "aspect-square" : 
-              post.mediaType === "video" ? "aspect-video" : "aspect-[4/5]"
-            )}>
-              <div className="flex flex-col items-center gap-1 text-muted-foreground">
-                {post.mediaType === "video" ? (
-                  <Play className="w-8 h-8" strokeWidth={1.5} />
+        {posts.map((post) => {
+          const isLiked = likedPosts.has(post.id);
+          const isSaved = savedPosts.has(post.id);
+          const isVideo = post.content_type === "video";
+
+          return (
+            <div
+              key={post.id}
+              className="break-inside-avoid bg-muted/10 rounded-lg overflow-hidden"
+            >
+              {/* Media */}
+              <div className={cn(
+                "relative bg-muted/20 flex items-center justify-center",
+                isVideo ? "aspect-video" : "aspect-[4/5]"
+              )}>
+                {post.thumbnail_url || post.cover_image_url ? (
+                  <img 
+                    src={post.thumbnail_url || post.cover_image_url || ''} 
+                    alt="" 
+                    className="w-full h-full object-cover"
+                  />
                 ) : (
-                  <ImageIcon className="w-8 h-8" strokeWidth={1.5} />
+                  <div className="flex flex-col items-center gap-1 text-muted-foreground">
+                    {isVideo ? (
+                      <Play className="w-8 h-8" strokeWidth={1.5} />
+                    ) : (
+                      <ImageIcon className="w-8 h-8" strokeWidth={1.5} />
+                    )}
+                  </div>
                 )}
               </div>
 
-              {post.mediaType === "carousel" && (
-                <div className="absolute top-2 right-2 px-2 py-0.5 rounded bg-background/60 backdrop-blur-sm">
-                  <span className="text-[10px] text-foreground">1/{post.mediaCount}</span>
+              {/* Content */}
+              <div className="p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <Avatar className="w-6 h-6">
+                      <AvatarImage src={post.avatar_url || undefined} />
+                      <AvatarFallback className="bg-muted/30 text-foreground text-[10px]">
+                        {(post.username || 'U')[0].toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="text-xs font-medium text-foreground">@{post.username || 'user'}</span>
+                  </div>
+                  <span className="text-[10px] text-muted-foreground">
+                    {formatTimeAgo(post.created_at || '')}
+                  </span>
                 </div>
-              )}
-            </div>
 
-            {/* Content */}
-            <div className="p-3">
-              {/* Header */}
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <Avatar className="w-6 h-6">
-                    <AvatarFallback className="bg-muted/30 text-foreground text-[10px]">
-                      {post.username[0].toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span className="text-xs font-medium text-foreground">@{post.username}</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <span className="text-[10px] text-muted-foreground">{post.timeAgo}</span>
-                  {post.username === "you" && (
-                    <button
-                      className="p-1 rounded hover:bg-muted/20 active:scale-95 transition-all"
-                      onClick={() => handleEditPost(post.id)}
-                    >
-                      <Edit3 className="w-3 h-3 text-muted-foreground" strokeWidth={1.5} />
-                    </button>
-                  )}
+                {post.description && (
+                  <p className="text-xs text-foreground leading-relaxed mb-3">{post.description}</p>
+                )}
+
+                {/* Actions */}
+                <div className="flex items-center gap-3 text-muted-foreground">
+                  <button
+                    className={cn(
+                      "flex items-center gap-1 active:scale-95 transition-all",
+                      isLiked ? "text-amber-500" : ""
+                    )}
+                    onClick={() => toggleLike(post.id)}
+                  >
+                    <EnergyIcon className="w-4 h-4" isActive={isLiked} strokeWidth={1.5} />
+                    <span className="text-[10px]">{(post.like_count || 0) + (isLiked ? 1 : 0)}</span>
+                  </button>
+
+                  <button 
+                    className="flex items-center gap-1 active:scale-95 transition-all"
+                    onClick={() => setOpenCommentId(post.id)}
+                  >
+                    <DiscussIcon className="w-4 h-4" strokeWidth={1.5} />
+                    <span className="text-[10px]">{post.comment_count || 0}</span>
+                  </button>
+
+                  <button
+                    className={cn(
+                      "flex items-center gap-1 active:scale-95 transition-all",
+                      isSaved ? "text-blue-500" : ""
+                    )}
+                    onClick={() => toggleSave(post.id)}
+                  >
+                    <CollectIcon className="w-4 h-4" isActive={isSaved} strokeWidth={1.5} />
+                  </button>
+                  
+                  <button 
+                    className="flex items-center gap-1 active:scale-95 transition-all ml-auto"
+                    onClick={() => handleShare(post.id)}
+                  >
+                    <BroadcastIcon className="w-4 h-4" strokeWidth={1.5} />
+                  </button>
                 </div>
               </div>
-
-              {/* Text */}
-              <p className="text-xs text-foreground leading-relaxed mb-2">{post.content}</p>
-
-              {/* Hashtags */}
-              {post.hashtags && (
-                <div className="flex flex-wrap gap-1 mb-3">
-                  {post.hashtags.map(tag => (
-                    <span key={tag} className="text-[10px] text-muted-foreground">#{tag}</span>
-                  ))}
-                </div>
-              )}
-
-              {/* Actions - Custom icons */}
-              <div className="flex items-center gap-3 text-muted-foreground">
-                <button
-                  className={cn(
-                    "flex items-center gap-1 active:scale-95 transition-all",
-                    post.isLiked ? "text-amber-500" : ""
-                  )}
-                  onClick={() => toggleLike(post.id)}
-                >
-                  <EnergyIcon className="w-4 h-4" isActive={post.isLiked} strokeWidth={1.5} />
-                  <span className="text-[10px]">{post.likes.toLocaleString()}</span>
-                </button>
-
-                <button 
-                  className="flex items-center gap-1 active:scale-95 transition-all"
-                  onClick={() => setOpenCommentId(post.id)}
-                >
-                  <DiscussIcon className="w-4 h-4" strokeWidth={1.5} />
-                  <span className="text-[10px]">{post.comments}</span>
-                </button>
-
-                <button
-                  className={cn(
-                    "flex items-center gap-1 active:scale-95 transition-all",
-                    post.isReposted ? "text-green-500" : ""
-                  )}
-                  onClick={() => toggleRepost(post.id)}
-                >
-                  <AmplifyIcon className="w-4 h-4" isActive={post.isReposted} strokeWidth={1.5} />
-                  <span className="text-[10px]">{post.reposts}</span>
-                </button>
-
-                <button
-                  className={cn(
-                    "flex items-center gap-1 active:scale-95 transition-all",
-                    post.isSaved ? "text-blue-500" : ""
-                  )}
-                  onClick={() => toggleSave(post.id)}
-                >
-                  <CollectIcon className="w-4 h-4" isActive={post.isSaved} strokeWidth={1.5} />
-                </button>
-                
-                <button 
-                  className="flex items-center gap-1 active:scale-95 transition-all ml-auto"
-                  onClick={() => handleShare(post.id)}
-                >
-                  <BroadcastIcon className="w-4 h-4" strokeWidth={1.5} />
-                </button>
-              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Comments Panel */}
