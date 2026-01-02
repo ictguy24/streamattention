@@ -13,21 +13,19 @@ import ParticipationRings from "../profile/ParticipationRings";
 import FollowersList from "../profile/FollowersList";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
+import { useAttention } from "@/contexts/AttentionContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-
-interface ProfileTabProps {
-  acBalance: number;
-}
 
 type ProfileSection = "overview" | "history" | "analytics" | "content" | "social" | "settings";
 
 // Account type derived from user behavior (would come from backend in production)
 type AccountType = "user" | "creator" | "both";
 
-const ProfileTab = ({ acBalance }: ProfileTabProps) => {
+const ProfileTab = () => {
   const navigate = useNavigate();
   const { user, profile, signOut } = useAuth();
+  const { balance } = useAttention();
   const [activeSection, setActiveSection] = useState<ProfileSection>("overview");
   const [isLive, setIsLive] = useState(false);
   const [showFollowersList, setShowFollowersList] = useState(false);
@@ -54,11 +52,10 @@ const ProfileTab = ({ acBalance }: ProfileTabProps) => {
     fetchCounts();
   }, [user]);
 
-  // Derive account type and participation score (would come from backend)
-  // For demo: if live = creator, if has content = both, otherwise user
-  const hasContent = (profile?.ac_balance || acBalance) > 500;
+  // Derive account type and participation score
+  const hasContent = balance > 500;
   const accountType: AccountType = isLive ? "creator" : hasContent ? "both" : "user";
-  const participationScore = Math.min(Math.floor((profile?.ac_balance || acBalance) / 100), 100);
+  const participationScore = Math.min(Math.floor(balance / 100), 100);
 
   const sections: { id: ProfileSection; label: string }[] = [
     { id: "overview", label: "Overview" },
@@ -68,9 +65,6 @@ const ProfileTab = ({ acBalance }: ProfileTabProps) => {
     { id: "social", label: "Social" },
     { id: "settings", label: "Settings" },
   ];
-
-  // Use profile AC balance if available, otherwise use prop
-  const displayBalance = profile?.ac_balance ?? acBalance;
 
   const handleSignOut = async () => {
     await signOut();

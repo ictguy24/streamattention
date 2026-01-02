@@ -24,14 +24,7 @@ const DEMO_CONVERSATIONS: Conversation[] = [
   { id: "6", name: "David Kim", lastMessage: "Thanks for the follow!", time: "1d", unread: 0, online: false },
 ];
 
-// Semantic reactions instead of likes
-const SEMANTIC_REACTIONS = ["curiosity", "insight", "fire", "agree"] as const;
-
-interface ChatModeProps {
-  onACEarned?: (amount: number) => void;
-}
-
-const ChatMode = ({ onACEarned }: ChatModeProps) => {
+const ChatMode = () => {
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -46,7 +39,6 @@ const ChatMode = ({ onACEarned }: ChatModeProps) => {
         chatName={selectedConversation.name}
         isOnline={selectedConversation.online}
         onBack={() => setSelectedConversation(null)}
-        onACEarned={onACEarned}
       />
     );
   }

@@ -11,6 +11,7 @@ import ProfileTab from "./tabs/ProfileTab";
 import CompanionsTab from "./tabs/CompanionsTab";
 import NotificationSheet from "./stream/NotificationSheet";
 import { useGestures } from "@/hooks/useGestures";
+import { useAttention } from "@/contexts/AttentionContext";
 
 // Horizontal zone order: Companions ↔ Stream (Center) ↔ Social Space ↔ Profile
 type ZoneType = "companions" | "stream" | "social" | "profile";
@@ -20,9 +21,11 @@ const ZONE_ORDER: ZoneType[] = ["companions", "stream", "social", "profile"];
 type OverlayMode = "create" | "live" | null;
 
 const AppLayout = () => {
+  // Server-verified balance from AttentionContext
+  const { balance } = useAttention();
+  
   const [activeZone, setActiveZone] = useState<ZoneType>("stream");
   const [overlayMode, setOverlayMode] = useState<OverlayMode>(null);
-  const [acBalance, setAcBalance] = useState(0);
   const [multiplier, setMultiplier] = useState(1);
   const [hasActiveLiveSessions, setHasActiveLiveSessions] = useState(true);
   const [isUserLive, setIsUserLive] = useState(false);
@@ -33,11 +36,6 @@ const AppLayout = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const touchStartX = useRef<number | null>(null);
   const touchStartY = useRef<number | null>(null);
-
-  const handleACEarned = useCallback((amount: number) => {
-    const earnedAmount = Math.round(amount * multiplier);
-    setAcBalance((prev) => prev + earnedAmount);
-  }, [multiplier]);
 
   // Zone navigation via swipe
   const handleSwipeLeft = useCallback(() => {
@@ -112,7 +110,6 @@ const AppLayout = () => {
       case "companions":
         return (
           <CompanionsTab 
-            onACEarned={handleACEarned} 
             isFullscreen={isFullscreen} 
             onSwipeLeft={handleSwipeLeft} 
           />
@@ -120,19 +117,17 @@ const AppLayout = () => {
       case "stream":
         return (
           <StreamTab 
-            onACEarned={handleACEarned} 
             isFullscreen={isFullscreen} 
             onSwipeRight={handleSwipeRight} 
           />
         );
       case "social":
-        return <SocialTab onACEarned={handleACEarned} />;
+        return <SocialTab />;
       case "profile":
-        return <ProfileTab acBalance={acBalance} />;
+        return <ProfileTab />;
       default:
         return (
           <StreamTab 
-            onACEarned={handleACEarned} 
             isFullscreen={isFullscreen} 
             onSwipeRight={handleSwipeRight} 
           />
@@ -167,7 +162,7 @@ const AppLayout = () => {
             {/* Left: AC Counter + Live */}
             <div className="flex items-center gap-2">
               <ACCounter 
-                balance={acBalance} 
+                balance={balance} 
                 multiplier={multiplier > 1 ? Math.round(multiplier * 10) / 10 : undefined} 
               />
               <LiveIndicator

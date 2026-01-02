@@ -6,12 +6,11 @@ import FeedToggle from "../stream/FeedToggle";
 type FeedType = "companions" | "stream";
 
 interface StreamTabProps {
-  onACEarned: (amount: number) => void;
   isFullscreen?: boolean;
   onSwipeRight?: () => void;
 }
 
-const StreamTab = ({ onACEarned, isFullscreen = false, onSwipeRight }: StreamTabProps) => {
+const StreamTab = ({ isFullscreen = false, onSwipeRight }: StreamTabProps) => {
   const [activeTab, setActiveTab] = useState<FeedType>("stream");
 
   return (
@@ -29,7 +28,7 @@ const StreamTab = ({ onACEarned, isFullscreen = false, onSwipeRight }: StreamTab
       )}
 
       {/* Video Feed */}
-      <VideoFeed onACEarned={onACEarned} isFullscreen={isFullscreen} onSwipeRight={onSwipeRight} />
+      <VideoFeed isFullscreen={isFullscreen} onSwipeRight={onSwipeRight} />
     </motion.div>
   );
 };

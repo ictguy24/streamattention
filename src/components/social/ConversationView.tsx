@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { ChevronLeft, Send, Mic, Video, Image, Phone, MoreVertical, Paperclip, Square } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
+import { useAttention } from "@/contexts/AttentionContext";
 
 interface Message {
   id: string;
@@ -18,7 +19,6 @@ interface ConversationViewProps {
   chatName: string;
   isOnline: boolean;
   onBack: () => void;
-  onACEarned?: (amount: number) => void;
 }
 
 const DEMO_MESSAGES: Message[] = [
@@ -30,7 +30,8 @@ const DEMO_MESSAGES: Message[] = [
   { id: "6", text: "Want to collab on something?", isSent: false, timestamp: "10:36 AM" },
 ];
 
-const ConversationView = ({ chatId, chatName, isOnline, onBack, onACEarned }: ConversationViewProps) => {
+const ConversationView = ({ chatId, chatName, isOnline, onBack }: ConversationViewProps) => {
+  const { sessionId, reportComment } = useAttention();
   const [messages, setMessages] = useState(DEMO_MESSAGES);
   const [newMessage, setNewMessage] = useState("");
   const [isRecordingAudio, setIsRecordingAudio] = useState(false);
@@ -79,13 +80,17 @@ const ConversationView = ({ chatId, chatName, isOnline, onBack, onACEarned }: Co
     };
     
     setMessages(prev => [...prev, message]);
+    
+    // Report message interaction to server
+    if (sessionId) {
+      reportComment(sessionId, chatId, newMessage);
+    }
+    
     setNewMessage("");
-    onACEarned?.(1);
   };
 
   const handleStartAudioRecording = () => {
     setIsRecordingAudio(true);
-    // Would use MediaRecorder API in production
   };
 
   const handleStopAudioRecording = () => {
@@ -98,7 +103,6 @@ const ConversationView = ({ chatId, chatName, isOnline, onBack, onACEarned }: Co
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     };
     setMessages(prev => [...prev, message]);
-    onACEarned?.(2);
   };
 
   const handleStartVideoRecording = () => {
@@ -115,7 +119,6 @@ const ConversationView = ({ chatId, chatName, isOnline, onBack, onACEarned }: Co
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     };
     setMessages(prev => [...prev, message]);
-    onACEarned?.(3);
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -133,7 +136,6 @@ const ConversationView = ({ chatId, chatName, isOnline, onBack, onACEarned }: Co
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     };
     setMessages(prev => [...prev, message]);
-    onACEarned?.(2);
   };
 
   const handleCall = (type: "audio" | "video") => {

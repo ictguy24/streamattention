@@ -1,28 +1,22 @@
 import { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 
 interface ACCounterProps {
   balance: number;
   multiplier?: number;
-  earnedThisSession?: number;
 }
 
-const ACCounter = ({ balance, multiplier = 1, earnedThisSession = 0 }: ACCounterProps) => {
+const ACCounter = ({ balance, multiplier = 1 }: ACCounterProps) => {
   const [displayBalance, setDisplayBalance] = useState(balance);
   const [isAnimating, setIsAnimating] = useState(false);
-  const [recentEarned, setRecentEarned] = useState(0);
   const prevBalanceRef = useRef(balance);
 
   useEffect(() => {
     if (balance !== prevBalanceRef.current) {
       const diff = balance - prevBalanceRef.current;
       
-      if (diff > 0) {
+      if (diff !== 0) {
         setIsAnimating(true);
-        setRecentEarned(prev => prev + diff);
-        
-        // Clear recent earned after 3s
-        setTimeout(() => setRecentEarned(0), 3000);
       }
 
       // Smooth counter animation
@@ -75,20 +69,6 @@ const ACCounter = ({ balance, multiplier = 1, earnedThisSession = 0 }: ACCounter
           )}
         </span>
       </div>
-
-      {/* AC Earned Subtitle */}
-      <AnimatePresence>
-        {recentEarned > 0 && (
-          <motion.span
-            className="text-[9px] text-primary/80 absolute -bottom-3 left-0"
-            initial={{ opacity: 0, y: -3 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 3 }}
-          >
-            +{recentEarned}
-          </motion.span>
-        )}
-      </AnimatePresence>
     </div>
   );
 };
