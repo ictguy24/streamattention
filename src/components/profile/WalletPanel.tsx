@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
-import { ArrowDownToLine, ArrowUpFromLine, Crown, Lock, AlertTriangle } from "lucide-react";
+import { ArrowDownToLine, ArrowUpFromLine, Crown, Lock, AlertTriangle, Shield } from "lucide-react";
 import DepositWithdrawModal from "./DepositWithdrawModal";
 import WithdrawFlow from "./WithdrawFlow";
 import { cn } from "@/lib/utils";
 import { useWallet } from "@/hooks/useWallet";
 import { useSubscription } from "@/hooks/useSubscription";
+import { useAttention } from "@/contexts/AttentionContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -12,15 +13,28 @@ import { toast } from "sonner";
 // UGX conversion rate (example: 1 AC = 50 UGX)
 const AC_TO_UGX = 50;
 
+// Trust state display config
+const TRUST_STATE_CONFIG = {
+  cold: { label: "Cold", color: "text-blue-400", bg: "bg-blue-400/10" },
+  warm: { label: "Warm", color: "text-yellow-400", bg: "bg-yellow-400/10" },
+  active: { label: "Active", color: "text-green-400", bg: "bg-green-400/10" },
+  trusted: { label: "Trusted", color: "text-emerald-400", bg: "bg-emerald-400/10" },
+};
+
 const WalletPanel = () => {
   const { user } = useAuth();
   const { wallet, isLoading: walletLoading, getWithdrawableBalance, refetch } = useWallet();
   const { subscription, isLoading: subLoading } = useSubscription();
+  
+  // Server-verified balance from AttentionContext
+  const { balance: verifiedBalance, ups, trustState, isBalanceLoading } = useAttention();
+  
   const [showDepositModal, setShowDepositModal] = useState(false);
   const [showWithdrawFlow, setShowWithdrawFlow] = useState(false);
   const [withdrawableBalance, setWithdrawableBalance] = useState(0);
 
-  const balance = wallet?.ac_balance || 0;
+  // Use server-verified balance from attention_ledger
+  const balance = verifiedBalance;
   const lifetimeEarned = wallet?.lifetime_earned || 0;
   const tier = subscription?.tier?.name || "free";
   const tierDisplayName = subscription?.tier?.display_name || "Free";
@@ -29,6 +43,10 @@ const WalletPanel = () => {
   const nextDeduction = subscription?.next_deduction_at;
   const isFrozen = wallet?.withdrawal_frozen || false;
   const freezeReason = wallet?.freeze_reason;
+
+  // Trust state display
+  const trustConfig = TRUST_STATE_CONFIG[trustState as keyof typeof TRUST_STATE_CONFIG] || TRUST_STATE_CONFIG.cold;
+  const upsPercent = Math.round(ups * 100);
 
   // Calculate progress to next milestone
   const milestones = [100, 500, 1000, 5000, 10000];
@@ -107,7 +125,7 @@ const WalletPanel = () => {
     return `${daysUntil} days`;
   };
 
-  if (walletLoading || subLoading) {
+  if (walletLoading || subLoading || isBalanceLoading) {
     return (
       <div className="mx-4 p-4 rounded-2xl bg-card/60 backdrop-blur-md border border-border/30 animate-pulse">
         <div className="h-8 bg-muted/30 rounded mb-3" />
@@ -125,11 +143,20 @@ const WalletPanel = () => {
   return (
     <>
       <div className="mx-4 p-4 rounded-2xl bg-card/60 backdrop-blur-md border border-border/30">
-        {/* Tier Badge & Subscription Status */}
+        {/* Tier Badge & Trust State */}
         <div className="flex items-center justify-between mb-3">
-          <div className={cn("flex items-center gap-1.5 px-2 py-1 rounded-full", getTierBg())}>
-            <Crown className={cn("w-3.5 h-3.5", getTierColor())} strokeWidth={1.5} />
-            <span className={cn("text-xs font-medium", getTierColor())}>{tierDisplayName}</span>
+          <div className="flex items-center gap-2">
+            <div className={cn("flex items-center gap-1.5 px-2 py-1 rounded-full", getTierBg())}>
+              <Crown className={cn("w-3.5 h-3.5", getTierColor())} strokeWidth={1.5} />
+              <span className={cn("text-xs font-medium", getTierColor())}>{tierDisplayName}</span>
+            </div>
+            {/* Trust State Badge */}
+            <div className={cn("flex items-center gap-1 px-2 py-1 rounded-full", trustConfig.bg)}>
+              <Shield className={cn("w-3 h-3", trustConfig.color)} strokeWidth={1.5} />
+              <span className={cn("text-[10px] font-medium", trustConfig.color)}>
+                {trustConfig.label} · {upsPercent}%
+              </span>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             {multiplier > 1 && (
@@ -156,7 +183,7 @@ const WalletPanel = () => {
         {/* Main Balance */}
         <div className="flex items-start justify-between mb-2">
           <div>
-            <p className="text-xs text-muted-foreground mb-1">Total Balance</p>
+            <p className="text-xs text-muted-foreground mb-1">Verified Balance</p>
             <div className="flex items-baseline gap-1.5">
               <span className="text-3xl font-bold text-foreground tabular-nums">
                 {balance.toLocaleString()}

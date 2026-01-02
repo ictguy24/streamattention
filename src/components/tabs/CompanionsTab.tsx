@@ -46,12 +46,11 @@ const COMPANION_VIDEOS = [
 ];
 
 interface CompanionsTabProps {
-  onACEarned: (amount: number) => void;
   isFullscreen?: boolean;
   onSwipeLeft?: () => void;
 }
 
-const CompanionsTab = ({ onACEarned, isFullscreen = false, onSwipeLeft }: CompanionsTabProps) => {
+const CompanionsTab = ({ isFullscreen = false, onSwipeLeft }: CompanionsTabProps) => {
   const [activeIndex, setActiveIndex] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
@@ -97,7 +96,6 @@ const CompanionsTab = ({ onACEarned, isFullscreen = false, onSwipeLeft }: Compan
           <VideoCard
             video={video}
             isActive={index === activeIndex}
-            onACEarned={onACEarned}
             isFullscreen={isFullscreen}
             onSwipeRight={onSwipeLeft}
           />

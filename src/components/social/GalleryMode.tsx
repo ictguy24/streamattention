@@ -51,11 +51,7 @@ const VAULT_ITEMS: VaultItem[] = [
   { id: "v3", type: "photo", savedAt: "2 weeks ago" },
 ];
 
-interface GalleryModeProps {
-  onACEarned?: (amount: number) => void;
-}
-
-const GalleryMode = ({ onACEarned }: GalleryModeProps) => {
+const GalleryMode = () => {
   const [showCamera, setShowCamera] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState("none");
   const [isFrontCamera, setIsFrontCamera] = useState(true);

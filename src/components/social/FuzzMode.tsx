@@ -3,6 +3,7 @@ import { Play, Eye } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { EnergyIcon, DiscussIcon, BroadcastIcon, CollectIcon } from "./InteractionIcons";
+import { useAttention } from "@/contexts/AttentionContext";
 
 interface FuzzItem {
   id: string;
@@ -26,19 +27,16 @@ const DEMO_FUZZ: FuzzItem[] = [
   { id: "8", username: "tech_unbox", type: "photo", views: 7800, likes: 389, isLiked: false, isSaved: false },
 ];
 
-interface FuzzModeProps {
-  onACEarned?: (amount: number) => void;
-}
-
-const FuzzMode = ({ onACEarned }: FuzzModeProps) => {
+const FuzzMode = () => {
+  const { sessionId, reportLike, reportSave } = useAttention();
   const [items, setItems] = useState(DEMO_FUZZ);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [holdingId, setHoldingId] = useState<string | null>(null);
 
   const toggleLike = (id: string) => {
     const item = items.find(i => i.id === id);
-    if (item && !item.isLiked) {
-      onACEarned?.(1);
+    if (item && !item.isLiked && sessionId) {
+      reportLike(sessionId, id);
     }
     setItems(prev =>
       prev.map(i =>
@@ -51,8 +49,8 @@ const FuzzMode = ({ onACEarned }: FuzzModeProps) => {
 
   const toggleSave = (id: string) => {
     const item = items.find(i => i.id === id);
-    if (item && !item.isSaved) {
-      onACEarned?.(1);
+    if (item && !item.isSaved && sessionId) {
+      reportSave(sessionId, id);
     }
     setItems(prev =>
       prev.map(i =>

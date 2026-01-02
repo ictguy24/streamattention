@@ -2,7 +2,8 @@ import { useState, useRef } from "react";
 import { MoreHorizontal, Send, Mic, Image, Quote, Square } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
-import { EnergyIcon, DiscussIcon, BroadcastIcon, AmplifyIcon } from "./InteractionIcons";
+import { EnergyIcon, DiscussIcon, AmplifyIcon } from "./InteractionIcons";
+import { useAttention } from "@/contexts/AttentionContext";
 
 interface Thread {
   id: string;
@@ -60,11 +61,8 @@ const DEMO_THREADS: Thread[] = [
   },
 ];
 
-interface ThreadsModeProps {
-  onACEarned?: (amount: number) => void;
-}
-
-const ThreadsMode = ({ onACEarned }: ThreadsModeProps) => {
+const ThreadsMode = () => {
+  const { sessionId, reportLike } = useAttention();
   const [threads, setThreads] = useState(DEMO_THREADS);
   const [newThread, setNewThread] = useState("");
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
@@ -78,8 +76,8 @@ const ThreadsMode = ({ onACEarned }: ThreadsModeProps) => {
 
   const toggleLike = (id: string) => {
     const thread = threads.find(t => t.id === id);
-    if (thread && !thread.isLiked) {
-      onACEarned?.(1);
+    if (thread && !thread.isLiked && sessionId) {
+      reportLike(sessionId, id);
     }
     setThreads(prev =>
       prev.map(t =>
@@ -91,10 +89,6 @@ const ThreadsMode = ({ onACEarned }: ThreadsModeProps) => {
   };
 
   const toggleRepost = (id: string) => {
-    const thread = threads.find(t => t.id === id);
-    if (thread && !thread.isReposted) {
-      onACEarned?.(2);
-    }
     setThreads(prev =>
       prev.map(t =>
         t.id === id
@@ -128,12 +122,10 @@ const ThreadsMode = ({ onACEarned }: ThreadsModeProps) => {
     setNewThread("");
     setQuotingThread(null);
     setAttachedMedia(null);
-    onACEarned?.(5);
   };
 
   const handleReply = (threadId: string) => {
     if (!replyText.trim()) return;
-    onACEarned?.(3);
     setReplyingTo(null);
     setReplyText("");
   };
@@ -154,7 +146,6 @@ const ThreadsMode = ({ onACEarned }: ThreadsModeProps) => {
     setIsRecordingAudio(false);
     if (recordingIntervalRef.current) clearInterval(recordingIntervalRef.current);
     setRecordingDuration(0);
-    onACEarned?.(2);
   };
 
   const formatDuration = (seconds: number) => {

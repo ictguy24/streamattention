@@ -57,12 +57,11 @@ const DEMO_VIDEOS = [
 ];
 
 interface VideoFeedProps {
-  onACEarned: (amount: number) => void;
   isFullscreen?: boolean;
   onSwipeRight?: () => void;
 }
 
-const VideoFeed = ({ onACEarned, isFullscreen = false, onSwipeRight }: VideoFeedProps) => {
+const VideoFeed = ({ isFullscreen = false, onSwipeRight }: VideoFeedProps) => {
   const [activeIndex, setActiveIndex] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
@@ -111,7 +110,6 @@ const VideoFeed = ({ onACEarned, isFullscreen = false, onSwipeRight }: VideoFeed
           <VideoCard
             video={video}
             isActive={index === activeIndex}
-            onACEarned={onACEarned}
             isFullscreen={isFullscreen}
             onSwipeRight={onSwipeRight}
           />

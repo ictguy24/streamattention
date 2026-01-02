@@ -8,10 +8,6 @@ import GalleryMode from "../social/GalleryMode";
 
 type SocialMode = "chat" | "threads" | "fuzz" | "gallery";
 
-interface SocialTabProps {
-  onACEarned?: (amount: number) => void;
-}
-
 const modes = [
   { id: "chat" as const, Icon: ChatIcon, label: "Chat" },
   { id: "threads" as const, Icon: ThreadsIcon, label: "Threads" },
@@ -19,21 +15,21 @@ const modes = [
   { id: "gallery" as const, Icon: GalleryIcon, label: "Gallery" },
 ];
 
-const SocialTab = ({ onACEarned }: SocialTabProps) => {
+const SocialTab = () => {
   const [activeMode, setActiveMode] = useState<SocialMode>("chat");
 
   const renderMode = () => {
     switch (activeMode) {
       case "chat":
-        return <ChatMode onACEarned={onACEarned} />;
+        return <ChatMode />;
       case "threads":
-        return <ThreadsMode onACEarned={onACEarned} />;
+        return <ThreadsMode />;
       case "fuzz":
-        return <FuzzMode onACEarned={onACEarned} />;
+        return <FuzzMode />;
       case "gallery":
-        return <GalleryMode onACEarned={onACEarned} />;
+        return <GalleryMode />;
       default:
-        return <ChatMode onACEarned={onACEarned} />;
+        return <ChatMode />;
     }
   };
 

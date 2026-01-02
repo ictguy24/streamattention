@@ -30,14 +30,13 @@ interface VideoCardProps {
     artistName?: string;
   };
   isActive: boolean;
-  onACEarned?: (amount: number) => void;
   isFullscreen?: boolean;
   onSwipeRight?: () => void;
 }
 
 const PLAYBACK_SPEEDS = [0.75, 1, 1.25, 1.5];
 
-const VideoCard = ({ video, isActive, onACEarned, isFullscreen = false, onSwipeRight }: VideoCardProps) => {
+const VideoCard = ({ video, isActive, isFullscreen = false, onSwipeRight }: VideoCardProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const progressRef = useRef<HTMLDivElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -301,7 +300,7 @@ const VideoCard = ({ video, isActive, onACEarned, isFullscreen = false, onSwipeR
         </>
       )}
 
-      <CommentSheet isOpen={showComments} onClose={() => setShowComments(false)} videoId={video.id} onACEarned={onACEarned} />
+      <CommentSheet isOpen={showComments} onClose={() => setShowComments(false)} videoId={video.id} />
     </div>
   );
 };
