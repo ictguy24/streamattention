@@ -22,11 +22,7 @@ const DEMO_CHATS: Chat[] = [
   { id: "6", name: "David Kim", lastMessage: "Thanks for the follow!", time: "1d", unread: 0, online: false },
 ];
 
-interface ChatsModeProps {
-  onACEarned?: (amount: number) => void;
-}
-
-const ChatsMode = ({ onACEarned }: ChatsModeProps) => {
+const ChatsMode = () => {
   const [selectedChat, setSelectedChat] = useState<Chat | null>(null);
 
   return (
@@ -115,7 +111,6 @@ const ChatsMode = ({ onACEarned }: ChatsModeProps) => {
             chatName={selectedChat.name}
             isOnline={selectedChat.online}
             onBack={() => setSelectedChat(null)}
-            onACEarned={onACEarned}
           />
         )}
       </AnimatePresence>

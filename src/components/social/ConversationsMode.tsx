@@ -22,11 +22,7 @@ const DEMO_CONVERSATIONS: Conversation[] = [
   { id: "6", name: "David Kim", lastMessage: "Thanks for the follow!", time: "1d", unread: 0, online: false },
 ];
 
-interface ConversationsModeProps {
-  onACEarned?: (amount: number) => void;
-}
-
-const ConversationsMode = ({ onACEarned }: ConversationsModeProps) => {
+const ConversationsMode = () => {
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -41,7 +37,6 @@ const ConversationsMode = ({ onACEarned }: ConversationsModeProps) => {
         chatName={selectedConversation.name}
         isOnline={selectedConversation.online}
         onBack={() => setSelectedConversation(null)}
-        onACEarned={onACEarned}
       />
     );
   }
