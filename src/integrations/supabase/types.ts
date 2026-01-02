@@ -76,6 +76,27 @@ export type Database = {
         }
         Relationships: []
       }
+      hashtags: {
+        Row: {
+          created_at: string | null
+          id: string
+          name: string
+          use_count: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          name: string
+          use_count?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          name?: string
+          use_count?: number | null
+        }
+        Relationships: []
+      }
       interactions: {
         Row: {
           content_hash: string | null
@@ -123,6 +144,45 @@ export type Database = {
           },
         ]
       }
+      music_library: {
+        Row: {
+          artist: string | null
+          audio_url: string
+          created_at: string | null
+          duration_ms: number | null
+          genre: string | null
+          id: string
+          is_active: boolean | null
+          preview_url: string | null
+          title: string
+          use_count: number | null
+        }
+        Insert: {
+          artist?: string | null
+          audio_url: string
+          created_at?: string | null
+          duration_ms?: number | null
+          genre?: string | null
+          id?: string
+          is_active?: boolean | null
+          preview_url?: string | null
+          title: string
+          use_count?: number | null
+        }
+        Update: {
+          artist?: string | null
+          audio_url?: string
+          created_at?: string | null
+          duration_ms?: number | null
+          genre?: string | null
+          id?: string
+          is_active?: boolean | null
+          preview_url?: string | null
+          title?: string
+          use_count?: number | null
+        }
+        Relationships: []
+      }
       payouts: {
         Row: {
           amount_ac: number
@@ -156,12 +216,116 @@ export type Database = {
         }
         Relationships: []
       }
+      post_hashtags: {
+        Row: {
+          hashtag_id: string
+          post_id: string
+        }
+        Insert: {
+          hashtag_id: string
+          post_id: string
+        }
+        Update: {
+          hashtag_id?: string
+          post_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_hashtags_hashtag_id_fkey"
+            columns: ["hashtag_id"]
+            isOneToOne: false
+            referencedRelation: "hashtags"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_hashtags_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      posts: {
+        Row: {
+          comment_count: number | null
+          content_type: string
+          cover_image_url: string | null
+          created_at: string | null
+          description: string | null
+          duration_ms: number | null
+          id: string
+          is_public: boolean | null
+          like_count: number | null
+          media_url: string | null
+          music_source: string | null
+          music_title: string | null
+          music_url: string | null
+          music_volume: number | null
+          original_volume: number | null
+          share_count: number | null
+          thumbnail_url: string | null
+          title: string | null
+          updated_at: string | null
+          user_id: string
+          view_count: number | null
+        }
+        Insert: {
+          comment_count?: number | null
+          content_type: string
+          cover_image_url?: string | null
+          created_at?: string | null
+          description?: string | null
+          duration_ms?: number | null
+          id?: string
+          is_public?: boolean | null
+          like_count?: number | null
+          media_url?: string | null
+          music_source?: string | null
+          music_title?: string | null
+          music_url?: string | null
+          music_volume?: number | null
+          original_volume?: number | null
+          share_count?: number | null
+          thumbnail_url?: string | null
+          title?: string | null
+          updated_at?: string | null
+          user_id: string
+          view_count?: number | null
+        }
+        Update: {
+          comment_count?: number | null
+          content_type?: string
+          cover_image_url?: string | null
+          created_at?: string | null
+          description?: string | null
+          duration_ms?: number | null
+          id?: string
+          is_public?: boolean | null
+          like_count?: number | null
+          media_url?: string | null
+          music_source?: string | null
+          music_title?: string | null
+          music_url?: string | null
+          music_volume?: number | null
+          original_volume?: number | null
+          share_count?: number | null
+          thumbnail_url?: string | null
+          title?: string | null
+          updated_at?: string | null
+          user_id?: string
+          view_count?: number | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           ac_balance: number
           account_type: Database["public"]["Enums"]["account_type"] | null
           avatar_url: string | null
           created_at: string
+          daily_ac_earned: number | null
+          daily_ac_reset_at: string | null
           display_name: string | null
           id: string
           last_active_at: string | null
@@ -176,6 +340,8 @@ export type Database = {
           account_type?: Database["public"]["Enums"]["account_type"] | null
           avatar_url?: string | null
           created_at?: string
+          daily_ac_earned?: number | null
+          daily_ac_reset_at?: string | null
           display_name?: string | null
           id: string
           last_active_at?: string | null
@@ -190,6 +356,8 @@ export type Database = {
           account_type?: Database["public"]["Enums"]["account_type"] | null
           avatar_url?: string | null
           created_at?: string
+          daily_ac_earned?: number | null
+          daily_ac_reset_at?: string | null
           display_name?: string | null
           id?: string
           last_active_at?: string | null
@@ -400,6 +568,38 @@ export type Database = {
         }
         Relationships: []
       }
+      user_interests: {
+        Row: {
+          created_at: string | null
+          hashtag_id: string
+          interest_score: number | null
+          source: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          hashtag_id: string
+          interest_score?: number | null
+          source?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          hashtag_id?: string
+          interest_score?: number | null
+          source?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_interests_hashtag_id_fkey"
+            columns: ["hashtag_id"]
+            isOneToOne: false
+            referencedRelation: "hashtags"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wallets: {
         Row: {
           ac_balance: number | null
@@ -495,6 +695,7 @@ export type Database = {
         Args: { p_new_tier_name: string; p_user_id: string }
         Returns: boolean
       }
+      check_daily_ac_reset: { Args: { p_user_id: string }; Returns: undefined }
       create_session: {
         Args: { p_device_hash: string; p_metadata?: Json; p_user_id: string }
         Returns: string
@@ -502,6 +703,13 @@ export type Database = {
       end_session: {
         Args: { p_abnormal?: boolean; p_session_id: string }
         Returns: boolean
+      }
+      get_daily_ac_ceiling: {
+        Args: { p_trust_state: Database["public"]["Enums"]["trust_state"] }
+        Returns: {
+          max_ac: number
+          min_ac: number
+        }[]
       }
       get_decay_eligible_users: {
         Args: never
@@ -514,6 +722,31 @@ export type Database = {
       get_interaction_band: {
         Args: { p_type: Database["public"]["Enums"]["interaction_type"] }
         Returns: string
+      }
+      get_personalized_feed: {
+        Args: { p_limit?: number; p_offset?: number; p_user_id: string }
+        Returns: {
+          avatar_url: string
+          comment_count: number
+          content_type: string
+          cover_image_url: string
+          created_at: string
+          description: string
+          display_name: string
+          like_count: number
+          media_url: string
+          music_title: string
+          music_url: string
+          music_volume: number
+          original_volume: number
+          post_id: string
+          relevance_score: number
+          thumbnail_url: string
+          title: string
+          user_id: string
+          username: string
+          view_count: number
+        }[]
       }
       get_subscriptions_due: {
         Args: never
