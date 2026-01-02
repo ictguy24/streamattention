@@ -1,19 +1,33 @@
 import { useState, useRef, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { 
-  X, Check, Type, Palette, Sliders, RotateCcw, 
-  Play, Pause, Volume2, VolumeX, Scissors
+  X, Type, Palette, Sliders, Music,
+  Play, Pause, Volume2, VolumeX, Upload, Library
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useMusicLibrary } from "@/hooks/usePosts";
 
 interface MediaEditorProps {
   media: {
-    file: File;
+    file: File | null;
+    blob: Blob | null;
     type: "image" | "video";
     url: string;
   };
-  onSave: (editedMedia: { url: string; type: "image" | "video"; filters: string; texts: TextOverlay[] }) => void;
+  onSave: (editedMedia: EditedMediaOutput) => void;
   onClose: () => void;
+}
+
+export interface EditedMediaOutput {
+  url: string;
+  type: "image" | "video";
+  filters: string;
+  texts: TextOverlay[];
+  musicFile?: File;
+  musicLibraryId?: string;
+  musicVolume: number;
+  originalVolume: number;
+  musicTitle?: string;
 }
 
 interface TextOverlay {
@@ -40,7 +54,10 @@ const TEXT_COLORS = ["#ffffff", "#000000", "#00e5ff", "#a855f7", "#ec4899", "#f5
 
 const MediaEditor = ({ media, onSave, onClose }: MediaEditorProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [activeTab, setActiveTab] = useState<"filters" | "text" | "adjust">("filters");
+  const musicRef = useRef<HTMLAudioElement>(null);
+  const musicInputRef = useRef<HTMLInputElement>(null);
+  
+  const [activeTab, setActiveTab] = useState<"filters" | "text" | "music" | "adjust">("filters");
   const [selectedFilter, setSelectedFilter] = useState("none");
   const [textOverlays, setTextOverlays] = useState<TextOverlay[]>([]);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -48,6 +65,17 @@ const MediaEditor = ({ media, onSave, onClose }: MediaEditorProps) => {
   const [showTextInput, setShowTextInput] = useState(false);
   const [newTextValue, setNewTextValue] = useState("");
   const [selectedTextColor, setSelectedTextColor] = useState("#ffffff");
+  
+  // Music state
+  const [musicFile, setMusicFile] = useState<File | null>(null);
+  const [musicLibraryId, setMusicLibraryId] = useState<string | null>(null);
+  const [musicTitle, setMusicTitle] = useState<string | null>(null);
+  const [musicVolume, setMusicVolume] = useState(0.7);
+  const [originalVolume, setOriginalVolume] = useState(1.0);
+  const [musicPreviewUrl, setMusicPreviewUrl] = useState<string | null>(null);
+  const [showMusicPicker, setShowMusicPicker] = useState(false);
+  
+  const { tracks: libraryTracks, isLoading: loadingLibrary } = useMusicLibrary();
 
   useEffect(() => {
     if (media.type === "video" && videoRef.current) {
@@ -56,12 +84,35 @@ const MediaEditor = ({ media, onSave, onClose }: MediaEditorProps) => {
     }
   }, [media.type]);
 
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.volume = originalVolume;
+    }
+  }, [originalVolume]);
+
+  useEffect(() => {
+    if (musicRef.current) {
+      musicRef.current.volume = musicVolume;
+    }
+  }, [musicVolume]);
+
+  // Sync music with video
+  useEffect(() => {
+    if (musicRef.current && videoRef.current && isPlaying && musicPreviewUrl) {
+      musicRef.current.play().catch(() => {});
+    } else if (musicRef.current) {
+      musicRef.current.pause();
+    }
+  }, [isPlaying, musicPreviewUrl]);
+
   const togglePlay = () => {
     if (videoRef.current) {
       if (isPlaying) {
         videoRef.current.pause();
+        musicRef.current?.pause();
       } else {
         videoRef.current.play();
+        musicRef.current?.play().catch(() => {});
       }
       setIsPlaying(!isPlaying);
     }
@@ -95,6 +146,35 @@ const MediaEditor = ({ media, onSave, onClose }: MediaEditorProps) => {
     setTextOverlays(textOverlays.filter((t) => t.id !== id));
   };
 
+  const handleMusicUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setMusicFile(file);
+      setMusicLibraryId(null);
+      setMusicTitle(file.name.replace(/\.[^/.]+$/, ''));
+      const url = URL.createObjectURL(file);
+      setMusicPreviewUrl(url);
+    }
+  };
+
+  const selectLibraryTrack = (track: any) => {
+    setMusicLibraryId(track.id);
+    setMusicFile(null);
+    setMusicTitle(track.title);
+    setMusicPreviewUrl(track.preview_url || track.audio_url);
+    setShowMusicPicker(false);
+  };
+
+  const removeMusic = () => {
+    setMusicFile(null);
+    setMusicLibraryId(null);
+    setMusicTitle(null);
+    if (musicPreviewUrl && musicFile) {
+      URL.revokeObjectURL(musicPreviewUrl);
+    }
+    setMusicPreviewUrl(null);
+  };
+
   const handleSave = () => {
     const filter = FILTERS.find((f) => f.id === selectedFilter);
     onSave({
@@ -102,6 +182,11 @@ const MediaEditor = ({ media, onSave, onClose }: MediaEditorProps) => {
       type: media.type,
       filters: filter?.css || "",
       texts: textOverlays,
+      musicFile: musicFile || undefined,
+      musicLibraryId: musicLibraryId || undefined,
+      musicVolume,
+      originalVolume,
+      musicTitle: musicTitle || undefined,
     });
   };
 
@@ -152,6 +237,11 @@ const MediaEditor = ({ media, onSave, onClose }: MediaEditorProps) => {
             muted={isMuted}
             playsInline
           />
+        )}
+
+        {/* Background music audio element */}
+        {musicPreviewUrl && (
+          <audio ref={musicRef} src={musicPreviewUrl} loop />
         )}
 
         {/* Text Overlays */}
@@ -210,6 +300,14 @@ const MediaEditor = ({ media, onSave, onClose }: MediaEditorProps) => {
             </motion.button>
           </div>
         )}
+
+        {/* Music indicator */}
+        {musicTitle && (
+          <div className="absolute bottom-4 right-4 px-3 py-1.5 rounded-full bg-background/50 backdrop-blur-sm flex items-center gap-2">
+            <Music className="w-4 h-4 text-primary" />
+            <span className="text-xs text-foreground truncate max-w-32">{musicTitle}</span>
+          </div>
+        )}
       </div>
 
       {/* Text Input Modal */}
@@ -262,6 +360,61 @@ const MediaEditor = ({ media, onSave, onClose }: MediaEditorProps) => {
         </motion.div>
       )}
 
+      {/* Music Library Picker */}
+      <AnimatePresence>
+        {showMusicPicker && (
+          <motion.div
+            className="absolute inset-0 bg-background/95 backdrop-blur-sm flex flex-col z-10"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+          >
+            <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+              <motion.button
+                className="p-2 rounded-full hover:bg-muted"
+                whileTap={{ scale: 0.9 }}
+                onClick={() => setShowMusicPicker(false)}
+              >
+                <X className="w-6 h-6 text-foreground" />
+              </motion.button>
+              <span className="font-semibold text-foreground">Music Library</span>
+              <div className="w-10" />
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-4">
+              {loadingLibrary ? (
+                <div className="flex items-center justify-center py-8">
+                  <span className="text-muted-foreground">Loading...</span>
+                </div>
+              ) : libraryTracks.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">No tracks available yet</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {libraryTracks.map((track) => (
+                    <motion.button
+                      key={track.id}
+                      className="w-full p-3 rounded-xl bg-muted/50 flex items-center gap-3 hover:bg-muted transition-colors"
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => selectLibraryTrack(track)}
+                    >
+                      <div className="p-2 rounded-lg bg-primary/10">
+                        <Music className="w-5 h-5 text-primary" />
+                      </div>
+                      <div className="flex-1 text-left">
+                        <p className="font-medium text-foreground">{track.title}</p>
+                        <p className="text-xs text-muted-foreground">{track.artist || 'Unknown'} • {track.genre || 'Music'}</p>
+                      </div>
+                    </motion.button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Editor Tabs */}
       <div className="border-t border-border">
         {/* Tab Headers */}
@@ -285,6 +438,16 @@ const MediaEditor = ({ media, onSave, onClose }: MediaEditorProps) => {
           >
             <Type className="w-4 h-4 mx-auto mb-1" />
             Text
+          </button>
+          <button
+            className={cn(
+              "flex-1 py-3 text-sm font-medium transition-colors",
+              activeTab === "music" ? "text-primary border-b-2 border-primary" : "text-muted-foreground"
+            )}
+            onClick={() => setActiveTab("music")}
+          >
+            <Music className="w-4 h-4 mx-auto mb-1" />
+            Music
           </button>
           <button
             className={cn(
@@ -345,6 +508,95 @@ const MediaEditor = ({ media, onSave, onClose }: MediaEditorProps) => {
               <Type className="w-5 h-5 text-primary" />
               <span className="font-medium text-foreground">Add Text</span>
             </motion.button>
+          )}
+
+          {activeTab === "music" && (
+            <div className="space-y-4">
+              {/* Current music or add options */}
+              {musicTitle ? (
+                <div className="p-3 rounded-xl bg-primary/10 border border-primary/20">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <Music className="w-5 h-5 text-primary" />
+                      <span className="font-medium text-foreground truncate">{musicTitle}</span>
+                    </div>
+                    <motion.button
+                      className="p-1.5 rounded-full bg-muted"
+                      whileTap={{ scale: 0.9 }}
+                      onClick={removeMusic}
+                    >
+                      <X className="w-4 h-4 text-muted-foreground" />
+                    </motion.button>
+                  </div>
+                  
+                  {/* Volume controls */}
+                  <div className="space-y-3">
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs text-muted-foreground">Music Volume</span>
+                        <span className="text-xs text-foreground">{Math.round(musicVolume * 100)}%</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.1"
+                        value={musicVolume}
+                        onChange={(e) => setMusicVolume(parseFloat(e.target.value))}
+                        className="w-full accent-primary"
+                      />
+                    </div>
+                    {media.type === "video" && (
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs text-muted-foreground">Original Audio</span>
+                          <span className="text-xs text-foreground">{Math.round(originalVolume * 100)}%</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0"
+                          max="1"
+                          step="0.1"
+                          value={originalVolume}
+                          onChange={(e) => setOriginalVolume(parseFloat(e.target.value))}
+                          className="w-full accent-primary"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  <motion.button
+                    className="p-4 rounded-xl bg-muted flex flex-col items-center gap-2"
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => musicInputRef.current?.click()}
+                  >
+                    <Upload className="w-6 h-6 text-primary" />
+                    <span className="text-sm font-medium text-foreground">Upload</span>
+                    <span className="text-xs text-muted-foreground">MP3, WAV</span>
+                  </motion.button>
+                  
+                  <motion.button
+                    className="p-4 rounded-xl bg-muted flex flex-col items-center gap-2"
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => setShowMusicPicker(true)}
+                  >
+                    <Library className="w-6 h-6 text-secondary" />
+                    <span className="text-sm font-medium text-foreground">Library</span>
+                    <span className="text-xs text-muted-foreground">Free tracks</span>
+                  </motion.button>
+                </div>
+              )}
+              
+              <input
+                ref={musicInputRef}
+                type="file"
+                accept="audio/*"
+                className="hidden"
+                onChange={handleMusicUpload}
+              />
+            </div>
           )}
 
           {activeTab === "adjust" && (

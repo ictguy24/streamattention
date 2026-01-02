@@ -28,6 +28,10 @@ interface VideoCardProps {
     hashtags?: string[];
     audioName?: string;
     artistName?: string;
+    musicUrl?: string | null;
+    musicVolume?: number;
+    originalVolume?: number;
+    musicTitle?: string | null;
   };
   isActive: boolean;
   isFullscreen?: boolean;
