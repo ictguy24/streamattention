@@ -143,9 +143,9 @@ const PostsMode = ({ onACEarned }: PostsModeProps) => {
                   : "bg-muted/20 text-muted-foreground"
               )}
               onClick={handleCreatePost}
-              disabled={(!newPostContent.trim() && !newPostMedia) || isCreating}
+              disabled={(!newPostContent.trim() && !newPostMedia) || isUploading}
             >
-              {isCreating ? <Loader2 className="w-4 h-4 animate-spin" /> : "Post"}
+              {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Post"}
             </button>
           </div>
 
