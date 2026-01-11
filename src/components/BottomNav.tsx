@@ -1,5 +1,5 @@
-import { Play, Users, PlusCircle, User } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { StreamIcon, SocialIcon, CreateIcon, ProfileIcon } from "./icons/NavIcons";
 
 type TabType = "stream" | "social" | "create" | "live" | "profile";
 
@@ -9,10 +9,10 @@ interface BottomNavProps {
 }
 
 const tabs = [
-  { id: "stream" as const, icon: Play, label: "Stream" },
-  { id: "social" as const, icon: Users, label: "Social" },
-  { id: "create" as const, icon: PlusCircle, label: "Create", isCenter: true },
-  { id: "profile" as const, icon: User, label: "Profile" },
+  { id: "stream" as const, Icon: StreamIcon, label: "Stream" },
+  { id: "social" as const, Icon: SocialIcon, label: "Social" },
+  { id: "create" as const, Icon: CreateIcon, label: "Create", isCenter: true },
+  { id: "profile" as const, Icon: ProfileIcon, label: "Profile" },
 ];
 
 const BottomNav = ({ activeTab, onTabChange }: BottomNavProps) => {
@@ -25,7 +25,6 @@ const BottomNav = ({ activeTab, onTabChange }: BottomNavProps) => {
       <div className="relative flex items-center justify-around px-2 py-2">
         {tabs.map((tab) => {
           const isActive = displayTab === tab.id;
-          const Icon = tab.icon;
 
           return (
             <button
@@ -46,24 +45,23 @@ const BottomNav = ({ activeTab, onTabChange }: BottomNavProps) => {
                       : "bg-muted"
                   )}
                 >
-                  <Icon 
+                  <tab.Icon 
                     className={cn(
-                      "w-6 h-6 transition-colors",
+                      "transition-colors",
                       isActive ? "text-primary-foreground" : "text-muted-foreground"
                     )} 
-                    fill={isActive ? "currentColor" : "none"}
+                    filled={isActive}
                   />
                 </div>
               ) : (
                 <>
-                  {/* Icon with fill for active state - NO background pills */}
-                  <Icon 
+                  {/* Color-fill icon based on active state */}
+                  <tab.Icon 
                     className={cn(
-                      "w-6 h-6 transition-colors",
+                      "transition-colors",
                       isActive ? "text-foreground" : "text-muted-foreground"
                     )}
-                    fill={isActive ? "currentColor" : "none"}
-                    strokeWidth={isActive ? 1.5 : 2}
+                    filled={isActive}
                   />
                   <span
                     className={cn(

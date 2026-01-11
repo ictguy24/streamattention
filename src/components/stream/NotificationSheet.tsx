@@ -1,20 +1,12 @@
-import { useState } from "react";
 import { AnimatePresence, PanInfo, motion } from "framer-motion";
-import { X, Check, UserMinus } from "lucide-react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { X, Check, Loader2 } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { EnergyIcon, DiscussIcon, AmplifyIcon, ConnectIcon } from "@/components/social/InteractionIcons";
-
-interface Notification {
-  id: string;
-  type: "follow" | "like" | "comment" | "repost";
-  username: string;
-  message: string;
-  timeAgo: string;
-  isRead: boolean;
-  isFollowing: boolean;
-  contentId?: string;
-}
+import { useNotifications } from "@/hooks/useNotifications";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 interface NotificationSheetProps {
   isOpen: boolean;
@@ -23,17 +15,10 @@ interface NotificationSheetProps {
   onNavigateToContent?: (contentId: string) => void;
 }
 
-const DEMO_NOTIFICATIONS: Notification[] = [
-  { id: "1", type: "follow", username: "alex_rivera", message: "started following you", timeAgo: "2m", isRead: false, isFollowing: false },
-  { id: "2", type: "like", username: "sarah_chen", message: "liked your video", timeAgo: "15m", isRead: false, isFollowing: true, contentId: "video_1" },
-  { id: "3", type: "comment", username: "mike_j", message: "commented: This is amazing! 🔥", timeAgo: "1h", isRead: false, isFollowing: true, contentId: "post_2" },
-  { id: "4", type: "follow", username: "emma_wilson", message: "started following you", timeAgo: "2h", isRead: true, isFollowing: false },
-  { id: "5", type: "repost", username: "david_kim", message: "amplified your thread", timeAgo: "5h", isRead: true, isFollowing: true, contentId: "thread_1" },
-  { id: "6", type: "like", username: "luna_stars", message: "liked your memory", timeAgo: "1d", isRead: true, isFollowing: false, contentId: "memory_1" },
-];
-
 const NotificationSheet = ({ isOpen, onClose, onNavigateToProfile, onNavigateToContent }: NotificationSheetProps) => {
-  const [notifications, setNotifications] = useState(DEMO_NOTIFICATIONS);
+  const { notifications, isLoading, unreadCount, markAsRead } = useNotifications();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
 
   const handleDragEnd = (_: any, info: PanInfo) => {
     if (info.velocity.y > 500 || info.offset.y > 200) {
@@ -51,33 +36,42 @@ const NotificationSheet = ({ isOpen, onClose, onNavigateToProfile, onNavigateToC
     }
   };
 
-  const handleFollowBack = (id: string) => {
-    setNotifications(prev =>
-      prev.map(n =>
-        n.id === id ? { ...n, isFollowing: true } : n
-      )
-    );
+  // Follow back mutation
+  const followMutation = useMutation({
+    mutationFn: async (actorId: string) => {
+      if (!user?.id) throw new Error("Not authenticated");
+      const { error } = await supabase.from("follows").insert({
+        follower_id: user.id,
+        following_id: actorId,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["follows"] });
+    },
+  });
+
+  const handleUsernameClick = (username: string | undefined) => {
+    if (username) {
+      onNavigateToProfile?.(username);
+      onClose();
+    }
   };
 
-  const handleUnfollow = (id: string) => {
-    setNotifications(prev =>
-      prev.map(n =>
-        n.id === id ? { ...n, isFollowing: false } : n
-      )
-    );
+  const handleContentClick = (contentId: string | null) => {
+    if (contentId) {
+      onNavigateToContent?.(contentId);
+      onClose();
+    }
   };
 
-  const handleUsernameClick = (username: string) => {
-    onNavigateToProfile?.(username);
-    onClose();
+  const formatTimeAgo = (date: string) => {
+    const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
+    if (seconds < 60) return "now";
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h`;
+    return `${Math.floor(seconds / 86400)}d`;
   };
-
-  const handleContentClick = (contentId: string) => {
-    onNavigateToContent?.(contentId);
-    onClose();
-  };
-
-  const unreadCount = notifications.filter(n => !n.isRead).length;
 
   return (
     <AnimatePresence>
@@ -129,80 +123,99 @@ const NotificationSheet = ({ isOpen, onClose, onNavigateToProfile, onNavigateToC
 
             {/* Notifications List */}
             <div className="flex-1 overflow-y-auto">
-              {notifications.map((notification) => (
-                <div
-                  key={notification.id}
-                  className={cn(
-                    "flex items-center gap-3 px-4 py-3 border-b border-border/30",
-                    !notification.isRead && "bg-foreground/5"
-                  )}
-                >
-                  {/* Avatar - Clickable to profile */}
-                  <button
-                    className="relative shrink-0 active:scale-95 transition-transform"
-                    onClick={() => handleUsernameClick(notification.username)}
-                  >
-                    <Avatar className="w-10 h-10">
-                      <AvatarFallback className="bg-muted/30 text-foreground text-sm">
-                        {notification.username[0].toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="absolute -bottom-1 -right-1 p-1 rounded-full bg-card">
-                      {getIcon(notification.type)}
-                    </div>
-                  </button>
-
-                  {/* Content - Clickable parts */}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-foreground">
-                      <button
-                        className="font-medium hover:underline"
-                        onClick={() => handleUsernameClick(notification.username)}
-                      >
-                        @{notification.username}
-                      </button>{" "}
-                      {notification.contentId ? (
-                        <button
-                          className="text-muted-foreground hover:text-foreground hover:underline"
-                          onClick={() => handleContentClick(notification.contentId!)}
-                        >
-                          {notification.message}
-                        </button>
-                      ) : (
-                        <span className="text-muted-foreground">{notification.message}</span>
-                      )}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-0.5">{notification.timeAgo}</p>
+              {isLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : notifications.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <div className="w-16 h-16 rounded-full bg-muted/30 flex items-center justify-center mb-4">
+                    <ConnectIcon className="w-8 h-8 text-muted-foreground" />
                   </div>
+                  <p className="text-sm text-muted-foreground">No notifications yet</p>
+                  <p className="text-xs text-muted-foreground mt-1">When someone interacts with you, you'll see it here</p>
+                </div>
+              ) : (
+                notifications.map((notification) => (
+                  <div
+                    key={notification.id}
+                    className={cn(
+                      "flex items-center gap-3 px-4 py-3 border-b border-border/30",
+                      !notification.is_read && "bg-foreground/5"
+                    )}
+                    onClick={() => {
+                      if (!notification.is_read) {
+                        markAsRead(notification.id);
+                      }
+                    }}
+                  >
+                    {/* Avatar */}
+                    <button
+                      className="relative shrink-0 active:scale-95 transition-transform"
+                      onClick={() => handleUsernameClick(notification.actor_username)}
+                    >
+                      <Avatar className="w-10 h-10">
+                        <AvatarImage src={notification.actor_avatar || undefined} />
+                        <AvatarFallback className="bg-muted/30 text-foreground text-sm">
+                          {notification.actor_username?.[0]?.toUpperCase() || "?"}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="absolute -bottom-1 -right-1 p-1 rounded-full bg-card">
+                        {getIcon(notification.type)}
+                      </div>
+                    </button>
 
-                  {/* Action Buttons */}
-                  {notification.type === "follow" && (
-                    <div className="shrink-0">
-                      {notification.isFollowing ? (
-                        <button
-                          className="px-3 py-1.5 rounded-lg bg-muted/20 text-muted-foreground text-xs font-medium flex items-center gap-1 active:scale-95 transition-transform"
-                          onClick={() => handleUnfollow(notification.id)}
-                        >
-                          <Check className="w-3 h-3" />
-                          Following
-                        </button>
-                      ) : (
+                    {/* Content */}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-foreground">
+                        {notification.actor_username && (
+                          <button
+                            className="font-medium hover:underline"
+                            onClick={() => handleUsernameClick(notification.actor_username)}
+                          >
+                            @{notification.actor_username}
+                          </button>
+                        )}{" "}
+                        {notification.content_id ? (
+                          <button
+                            className="text-muted-foreground hover:text-foreground hover:underline"
+                            onClick={() => handleContentClick(notification.content_id)}
+                          >
+                            {notification.message}
+                          </button>
+                        ) : (
+                          <span className="text-muted-foreground">{notification.message}</span>
+                        )}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {formatTimeAgo(notification.created_at)}
+                      </p>
+                    </div>
+
+                    {/* Action Buttons for follows */}
+                    {notification.type === "follow" && notification.actor_id && (
+                      <div className="shrink-0">
                         <button
                           className="px-3 py-1.5 rounded-lg bg-foreground text-background text-xs font-medium active:scale-95 transition-transform"
-                          onClick={() => handleFollowBack(notification.id)}
+                          onClick={() => followMutation.mutate(notification.actor_id!)}
+                          disabled={followMutation.isPending}
                         >
-                          Follow Back
+                          {followMutation.isPending ? (
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                          ) : (
+                            "Follow Back"
+                          )}
                         </button>
-                      )}
-                    </div>
-                  )}
+                      </div>
+                    )}
 
-                  {/* Unread indicator */}
-                  {!notification.isRead && (
-                    <div className="w-2 h-2 rounded-full bg-foreground shrink-0" />
-                  )}
-                </div>
-              ))}
+                    {/* Unread indicator */}
+                    {!notification.is_read && (
+                      <div className="w-2 h-2 rounded-full bg-foreground shrink-0" />
+                    )}
+                  </div>
+                ))
+              )}
             </div>
           </motion.div>
         </>
