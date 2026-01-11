@@ -378,6 +378,39 @@ export type Database = {
         }
         Relationships: []
       }
+      notifications: {
+        Row: {
+          actor_id: string | null
+          content_id: string | null
+          created_at: string | null
+          id: string
+          is_read: boolean | null
+          message: string | null
+          type: string
+          user_id: string
+        }
+        Insert: {
+          actor_id?: string | null
+          content_id?: string | null
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          message?: string | null
+          type: string
+          user_id: string
+        }
+        Update: {
+          actor_id?: string | null
+          content_id?: string | null
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          message?: string | null
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       payouts: {
         Row: {
           amount_ac: number
@@ -518,49 +551,58 @@ export type Database = {
           ac_balance: number
           account_type: Database["public"]["Enums"]["account_type"] | null
           avatar_url: string | null
+          bio: string | null
           created_at: string
           daily_ac_earned: number | null
           daily_ac_reset_at: string | null
           display_name: string | null
           id: string
           last_active_at: string | null
+          social_links: Json | null
           tier: string
           trust_state: Database["public"]["Enums"]["trust_state"] | null
           updated_at: string
           ups: number | null
           username: string | null
+          website_url: string | null
         }
         Insert: {
           ac_balance?: number
           account_type?: Database["public"]["Enums"]["account_type"] | null
           avatar_url?: string | null
+          bio?: string | null
           created_at?: string
           daily_ac_earned?: number | null
           daily_ac_reset_at?: string | null
           display_name?: string | null
           id: string
           last_active_at?: string | null
+          social_links?: Json | null
           tier?: string
           trust_state?: Database["public"]["Enums"]["trust_state"] | null
           updated_at?: string
           ups?: number | null
           username?: string | null
+          website_url?: string | null
         }
         Update: {
           ac_balance?: number
           account_type?: Database["public"]["Enums"]["account_type"] | null
           avatar_url?: string | null
+          bio?: string | null
           created_at?: string
           daily_ac_earned?: number | null
           daily_ac_reset_at?: string | null
           display_name?: string | null
           id?: string
           last_active_at?: string | null
+          social_links?: Json | null
           tier?: string
           trust_state?: Database["public"]["Enums"]["trust_state"] | null
           updated_at?: string
           ups?: number | null
           username?: string | null
+          website_url?: string | null
         }
         Relationships: []
       }

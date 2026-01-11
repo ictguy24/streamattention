@@ -8,85 +8,97 @@ interface LiveIndicatorProps {
   className?: string;
 }
 
-// Elite Broadcast SVG Icon
-const BroadcastIcon = ({ className }: { className?: string }) => (
-  <svg 
-    viewBox="0 0 24 24" 
-    className={className}
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    {/* Center tower */}
-    <path d="M12 12v8" />
-    <path d="M8 20h8" />
-    {/* Broadcasting signal waves */}
-    <path d="M8.5 8.5a5 5 0 0 1 7 0" />
-    <path d="M6 6a8 8 0 0 1 12 0" />
-    <path d="M3.5 3.5a12 12 0 0 1 17 0" />
-    {/* Center dot */}
-    <circle cx="12" cy="12" r="2" fill="currentColor" />
-  </svg>
-);
-
 const LiveIndicator = ({ 
   hasActiveSessions = false, 
   isUserLive = false, 
   onClick,
   className 
 }: LiveIndicatorProps) => {
+  const isActive = isUserLive || hasActiveSessions;
+
   return (
     <motion.button
       className={cn(
-        "relative flex items-center justify-center w-10 h-10 rounded-full transition-all",
-        isUserLive 
-          ? "bg-destructive text-destructive-foreground" 
-          : hasActiveSessions
-            ? "bg-primary/20 text-primary border border-primary/30"
-            : "bg-muted/30 text-muted-foreground border border-border/50",
+        "relative flex items-center justify-center w-10 h-10 rounded-full transition-all overflow-hidden",
+        isActive 
+          ? "bg-destructive" 
+          : "bg-muted/50 border border-border/50",
         className
       )}
       whileTap={{ scale: 0.9 }}
       onClick={onClick}
     >
-      {/* Glowing ring for user live */}
-      {isUserLive && (
+      {/* Pulsing glow ring for active state */}
+      {isActive && (
         <motion.div
           className="absolute inset-0 rounded-full bg-destructive"
           animate={{ 
             boxShadow: [
-              "0 0 0 0 hsl(var(--destructive) / 0.6)",
-              "0 0 0 10px hsl(var(--destructive) / 0)",
+              "0 0 0 0 hsl(var(--destructive) / 0.7)",
+              "0 0 0 8px hsl(var(--destructive) / 0)",
             ]
           }}
-          transition={{ duration: 1.2, repeat: Infinity }}
+          transition={{ duration: 1.5, repeat: Infinity, ease: "easeOut" }}
         />
       )}
 
-      {/* Soft pulse for active sessions */}
-      {hasActiveSessions && !isUserLive && (
-        <motion.div
-          className="absolute inset-0 rounded-full bg-primary/20"
-          animate={{ 
-            scale: [1, 1.15, 1],
-            opacity: [0.4, 0.2, 0.4] 
-          }}
-          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-        />
-      )}
-
-      {/* Elite Broadcast Icon */}
-      <motion.div
-        className="relative z-10"
-        animate={isUserLive || hasActiveSessions ? { 
-          scale: [1, 1.05, 1] 
-        } : {}}
-        transition={{ duration: 1.5, repeat: Infinity }}
+      {/* Broadcast waves icon */}
+      <svg 
+        viewBox="0 0 24 24" 
+        className={cn(
+          "w-5 h-5 relative z-10",
+          isActive ? "text-destructive-foreground" : "text-muted-foreground"
+        )}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
       >
-        <BroadcastIcon className="w-5 h-5" />
-      </motion.div>
+        {/* Outer wave */}
+        <motion.path 
+          d="M4.5 6.5a10 10 0 0 1 15 0"
+          initial={{ opacity: 0.4 }}
+          animate={isActive ? { 
+            opacity: [0.4, 1, 0.4],
+            strokeWidth: [2, 2.5, 2]
+          } : {}}
+          transition={{ duration: 1.5, repeat: Infinity, delay: 0.4 }}
+        />
+        {/* Middle wave */}
+        <motion.path 
+          d="M7 9a6 6 0 0 1 10 0"
+          initial={{ opacity: 0.6 }}
+          animate={isActive ? { 
+            opacity: [0.6, 1, 0.6],
+            strokeWidth: [2, 2.5, 2]
+          } : {}}
+          transition={{ duration: 1.5, repeat: Infinity, delay: 0.2 }}
+        />
+        {/* Inner wave */}
+        <motion.path 
+          d="M9.5 11.5a3 3 0 0 1 5 0"
+          initial={{ opacity: 0.8 }}
+          animate={isActive ? { 
+            opacity: [0.8, 1, 0.8],
+            strokeWidth: [2, 2.5, 2]
+          } : {}}
+          transition={{ duration: 1.5, repeat: Infinity }}
+        />
+        {/* Center dot */}
+        <motion.circle 
+          cx="12" 
+          cy="14" 
+          r="2" 
+          fill="currentColor"
+          stroke="none"
+          animate={isActive ? { scale: [1, 1.2, 1] } : {}}
+          transition={{ duration: 1, repeat: Infinity }}
+        />
+        {/* Antenna/Stand */}
+        <line x1="12" y1="16" x2="12" y2="20" />
+        <line x1="9" y1="20" x2="15" y2="20" />
+      </svg>
     </motion.button>
   );
 };

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Edit3, LogIn, UserPlus, LogOut } from "lucide-react";
+import { Edit3, LogIn, UserPlus, LogOut, Instagram, Twitter, Youtube, Link as LinkIcon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import AnimatedAvatar from "../profile/AnimatedAvatar";
 import WalletPanel from "../profile/WalletPanel";
@@ -11,6 +11,7 @@ import SettingsPanel from "../profile/SettingsPanel";
 import SocialControl from "../profile/SocialControl";
 import ParticipationRings from "../profile/ParticipationRings";
 import FollowersList from "../profile/FollowersList";
+import ProfileEditModal from "../profile/ProfileEditModal";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { useAttention } from "@/contexts/AttentionContext";
@@ -18,9 +19,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 type ProfileSection = "overview" | "history" | "analytics" | "content" | "social" | "settings";
-
-// Account type derived from user behavior (would come from backend in production)
 type AccountType = "user" | "creator" | "both";
+
+interface SocialLinks {
+  instagram?: string;
+  twitter?: string;
+  youtube?: string;
+  tiktok?: string;
+}
 
 const ProfileTab = () => {
   const navigate = useNavigate();
@@ -32,8 +38,14 @@ const ProfileTab = () => {
   const [followersListTab, setFollowersListTab] = useState<"followers" | "following">("followers");
   const [followerCount, setFollowerCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
+  const [showEditModal, setShowEditModal] = useState(false);
 
   const isGuest = !user;
+
+  // Extract profile data with extended fields
+  const bio = (profile as any)?.bio || "";
+  const websiteUrl = (profile as any)?.website_url || "";
+  const socialLinks: SocialLinks = (profile as any)?.social_links || {};
 
   // Fetch follow counts
   useEffect(() => {
@@ -87,14 +99,17 @@ const ProfileTab = () => {
               accountType={accountType}
               className="absolute -inset-2 z-0"
             />
-            <div className="relative z-10">
+            <button 
+              className="relative z-10 active:scale-95 transition-transform"
+              onClick={() => !isGuest && setShowEditModal(true)}
+            >
               <AnimatedAvatar 
                 size="lg" 
                 isOnline={true} 
                 isLive={isLive}
                 avatarUrl={profile?.avatar_url}
               />
-            </div>
+            </button>
             {/* Account type badge */}
             <div className={cn(
               "absolute -bottom-1 -right-1 z-20 px-1.5 py-0.5 rounded-full text-[8px] font-medium uppercase tracking-wider",
@@ -112,7 +127,10 @@ const ProfileTab = () => {
                 {isGuest ? "Guest User" : displayName}
               </h2>
               {!isGuest && (
-                <button className="p-1 rounded-full hover:bg-muted/50 active:scale-95 transition-transform">
+                <button 
+                  className="p-1 rounded-full hover:bg-muted/50 active:scale-95 transition-transform"
+                  onClick={() => setShowEditModal(true)}
+                >
                   <Edit3 className="w-3 h-3 text-muted-foreground" />
                 </button>
               )}
@@ -120,6 +138,57 @@ const ProfileTab = () => {
             <p className="text-xs text-muted-foreground">
               {isGuest ? "@guest_user" : `@${displayUsername}`}
             </p>
+
+            {/* Bio */}
+            {!isGuest && bio && (
+              <p className="text-xs text-foreground/80 mt-1.5 line-clamp-2">{bio}</p>
+            )}
+
+            {/* Social Links */}
+            {!isGuest && (socialLinks.instagram || socialLinks.twitter || socialLinks.youtube || websiteUrl) && (
+              <div className="flex items-center gap-2 mt-2">
+                {socialLinks.instagram && (
+                  <a 
+                    href={`https://instagram.com/${socialLinks.instagram}`} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="p-1 rounded-full hover:bg-muted/50 active:scale-95 transition-transform"
+                  >
+                    <Instagram className="w-3.5 h-3.5 text-muted-foreground" />
+                  </a>
+                )}
+                {socialLinks.twitter && (
+                  <a 
+                    href={`https://twitter.com/${socialLinks.twitter}`} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="p-1 rounded-full hover:bg-muted/50 active:scale-95 transition-transform"
+                  >
+                    <Twitter className="w-3.5 h-3.5 text-muted-foreground" />
+                  </a>
+                )}
+                {socialLinks.youtube && (
+                  <a 
+                    href={`https://youtube.com/${socialLinks.youtube}`} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="p-1 rounded-full hover:bg-muted/50 active:scale-95 transition-transform"
+                  >
+                    <Youtube className="w-3.5 h-3.5 text-muted-foreground" />
+                  </a>
+                )}
+                {websiteUrl && (
+                  <a 
+                    href={websiteUrl.startsWith("http") ? websiteUrl : `https://${websiteUrl}`} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="p-1 rounded-full hover:bg-muted/50 active:scale-95 transition-transform"
+                  >
+                    <LinkIcon className="w-3.5 h-3.5 text-muted-foreground" />
+                  </a>
+                )}
+              </div>
+            )}
             
             {/* Quick stats row */}
             {!isGuest && (
@@ -249,6 +318,12 @@ const ProfileTab = () => {
           userId={user.id}
         />
       )}
+
+      {/* Profile Edit Modal */}
+      <ProfileEditModal
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+      />
     </div>
   );
 };

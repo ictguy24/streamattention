@@ -1,35 +1,12 @@
 import { motion } from "framer-motion";
-import { Eye, Users, TrendingUp, MapPin, Clock, Globe } from "lucide-react";
-
-interface VisitorInsightsProps {
-  totalViews: number;
-  uniqueVisitors: number;
-  viewsChange: number;
-  topLocations: { name: string; count: number }[];
-  peakHours: { hour: string; count: number }[];
-}
-
-const DEMO_INSIGHTS: VisitorInsightsProps = {
-  totalViews: 1234,
-  uniqueVisitors: 892,
-  viewsChange: 23,
-  topLocations: [
-    { name: "United States", count: 456 },
-    { name: "United Kingdom", count: 234 },
-    { name: "Canada", count: 156 },
-    { name: "Germany", count: 89 },
-  ],
-  peakHours: [
-    { hour: "9 AM", count: 45 },
-    { hour: "12 PM", count: 78 },
-    { hour: "6 PM", count: 123 },
-    { hour: "9 PM", count: 98 },
-  ],
-};
+import { Eye, Users, TrendingUp, Clock, Lock } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 const VisitorInsights = () => {
-  const insights = DEMO_INSIGHTS;
-  const maxHourCount = Math.max(...insights.peakHours.map(h => h.count));
+  const { user } = useAuth();
+
+  // For now, show a "Coming Soon" state since analytics requires backend tracking
+  // In production, this would fetch from an analytics edge function or table
 
   return (
     <div className="space-y-4">
@@ -39,8 +16,23 @@ const VisitorInsights = () => {
         <h3 className="font-semibold text-foreground">Visitor Insights</h3>
       </div>
 
-      {/* Overview Stats */}
-      <div className="grid grid-cols-2 gap-3">
+      {/* Coming Soon State */}
+      <motion.div
+        className="glass-card rounded-xl p-8 text-center"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+      >
+        <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted/30 flex items-center justify-center">
+          <Lock className="w-8 h-8 text-muted-foreground" />
+        </div>
+        <h4 className="text-lg font-medium text-foreground mb-2">Analytics Coming Soon</h4>
+        <p className="text-sm text-muted-foreground max-w-xs mx-auto">
+          Track who views your profile, where they're from, and when they're most active.
+        </p>
+      </motion.div>
+
+      {/* Placeholder Stats */}
+      <div className="grid grid-cols-2 gap-3 opacity-50">
         <motion.div
           className="glass-card rounded-xl p-4"
           initial={{ opacity: 0, y: 20 }}
@@ -51,13 +43,7 @@ const VisitorInsights = () => {
             <span className="text-xs text-muted-foreground">Profile Views</span>
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-bold text-foreground">
-              {insights.totalViews.toLocaleString()}
-            </span>
-            <span className="text-xs text-green-500 flex items-center gap-0.5">
-              <TrendingUp className="w-3 h-3" />
-              +{insights.viewsChange}%
-            </span>
+            <span className="text-2xl font-bold text-foreground">—</span>
           </div>
         </motion.div>
 
@@ -71,15 +57,13 @@ const VisitorInsights = () => {
             <Users className="w-4 h-4 text-secondary" />
             <span className="text-xs text-muted-foreground">Unique Visitors</span>
           </div>
-          <span className="text-2xl font-bold text-foreground">
-            {insights.uniqueVisitors.toLocaleString()}
-          </span>
+          <span className="text-2xl font-bold text-foreground">—</span>
         </motion.div>
       </div>
 
-      {/* Peak Hours */}
+      {/* Peak Hours Placeholder */}
       <motion.div
-        className="glass-card rounded-xl p-4"
+        className="glass-card rounded-xl p-4 opacity-50"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
@@ -89,54 +73,15 @@ const VisitorInsights = () => {
           <span className="text-sm font-medium text-foreground">Peak Hours</span>
         </div>
         <div className="flex items-end justify-between gap-2 h-20">
-          {insights.peakHours.map((hour, index) => (
-            <div key={hour.hour} className="flex-1 flex flex-col items-center gap-1">
-              <motion.div
-                className="w-full rounded-t-lg bg-gradient-to-t from-primary/50 to-primary"
-                initial={{ height: 0 }}
-                animate={{ height: `${(hour.count / maxHourCount) * 100}%` }}
-                transition={{ delay: 0.3 + index * 0.1, duration: 0.5 }}
+          {["9 AM", "12 PM", "6 PM", "9 PM"].map((hour, index) => (
+            <div key={hour} className="flex-1 flex flex-col items-center gap-1">
+              <div
+                className="w-full rounded-t-lg bg-muted/30"
+                style={{ height: `${20 + index * 15}%` }}
               />
-              <span className="text-[10px] text-muted-foreground">{hour.hour}</span>
+              <span className="text-[10px] text-muted-foreground">{hour}</span>
             </div>
           ))}
-        </div>
-      </motion.div>
-
-      {/* Top Locations */}
-      <motion.div
-        className="glass-card rounded-xl p-4"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
-      >
-        <div className="flex items-center gap-2 mb-4">
-          <Globe className="w-4 h-4 text-secondary" />
-          <span className="text-sm font-medium text-foreground">Top Locations</span>
-        </div>
-        <div className="space-y-3">
-          {insights.topLocations.map((location, index) => {
-            const percentage = (location.count / insights.totalViews) * 100;
-            return (
-              <div key={location.name} className="space-y-1">
-                <div className="flex items-center justify-between text-sm">
-                  <div className="flex items-center gap-2">
-                    <MapPin className="w-3 h-3 text-muted-foreground" />
-                    <span className="text-foreground">{location.name}</span>
-                  </div>
-                  <span className="text-muted-foreground">{location.count}</span>
-                </div>
-                <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-                  <motion.div
-                    className="h-full rounded-full bg-gradient-to-r from-primary to-secondary"
-                    initial={{ width: 0 }}
-                    animate={{ width: `${percentage}%` }}
-                    transition={{ delay: 0.4 + index * 0.1, duration: 0.5 }}
-                  />
-                </div>
-              </div>
-            );
-          })}
         </div>
       </motion.div>
     </div>
