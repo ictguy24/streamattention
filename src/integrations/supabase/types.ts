@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      achievements: {
+        Row: {
+          ac_reward: number | null
+          created_at: string | null
+          description: string | null
+          icon: string
+          id: string
+          name: string
+          rarity: string
+          requirement_count: number
+          requirement_type: string
+        }
+        Insert: {
+          ac_reward?: number | null
+          created_at?: string | null
+          description?: string | null
+          icon?: string
+          id?: string
+          name: string
+          rarity?: string
+          requirement_count?: number
+          requirement_type: string
+        }
+        Update: {
+          ac_reward?: number | null
+          created_at?: string | null
+          description?: string | null
+          icon?: string
+          id?: string
+          name?: string
+          rarity?: string
+          requirement_count?: number
+          requirement_type?: string
+        }
+        Relationships: []
+      }
       attention_ledger: {
         Row: {
           created_at: string
@@ -809,6 +845,41 @@ export type Database = {
         }
         Relationships: []
       }
+      user_achievements: {
+        Row: {
+          achievement_id: string
+          created_at: string | null
+          id: string
+          progress: number | null
+          unlocked_at: string | null
+          user_id: string
+        }
+        Insert: {
+          achievement_id: string
+          created_at?: string | null
+          id?: string
+          progress?: number | null
+          unlocked_at?: string | null
+          user_id: string
+        }
+        Update: {
+          achievement_id?: string
+          created_at?: string | null
+          id?: string
+          progress?: number | null
+          unlocked_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_achievements_achievement_id_fkey"
+            columns: ["achievement_id"]
+            isOneToOne: false
+            referencedRelation: "achievements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_interests: {
         Row: {
           created_at: string | null
@@ -840,6 +911,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_streaks: {
+        Row: {
+          current_streak: number | null
+          last_active_date: string | null
+          longest_streak: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          current_streak?: number | null
+          last_active_date?: string | null
+          longest_streak?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          current_streak?: number | null
+          last_active_date?: string | null
+          longest_streak?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       wallets: {
         Row: {
