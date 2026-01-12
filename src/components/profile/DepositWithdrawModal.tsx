@@ -1,4 +1,4 @@
-import { useState, forwardRef } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, ArrowDownToLine, ArrowUpFromLine, AlertCircle, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -21,14 +21,14 @@ const PAYMENT_METHODS = [
 // UGX conversion rate
 const AC_TO_UGX = 50;
 
-const DepositWithdrawModal = forwardRef<HTMLDivElement, DepositWithdrawModalProps>(({ 
+const DepositWithdrawModal = ({ 
   isOpen, 
   onClose, 
   mode, 
   balance, 
   withdrawableBalance = 0,
   isFrozen = false 
-}, ref) => {
+}: DepositWithdrawModalProps) => {
   const [amount, setAmount] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [selectedMethod, setSelectedMethod] = useState<string | null>(null);
@@ -325,8 +325,6 @@ const DepositWithdrawModal = forwardRef<HTMLDivElement, DepositWithdrawModalProp
       )}
     </AnimatePresence>
   );
-});
-
-DepositWithdrawModal.displayName = "DepositWithdrawModal";
+};
 
 export default DepositWithdrawModal;
