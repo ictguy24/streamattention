@@ -43,9 +43,9 @@ const ProfileTab = () => {
   const isGuest = !user;
 
   // Extract profile data with extended fields
-  const bio = (profile as any)?.bio || "";
-  const websiteUrl = (profile as any)?.website_url || "";
-  const socialLinks: SocialLinks = (profile as any)?.social_links || {};
+  const bio = profile?.bio || "";
+  const websiteUrl = profile?.website_url || "";
+  const socialLinks: SocialLinks = (profile?.social_links as SocialLinks) || {};
 
   // Fetch follow counts
   useEffect(() => {

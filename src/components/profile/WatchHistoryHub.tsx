@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Play, Heart, Bookmark, MessageCircle, Clock, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useMediaSession } from "@/hooks/useMediaSession";
-import { useLikes } from "@/hooks/useLikes";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,8 +10,25 @@ import { supabase } from "@/integrations/supabase/client";
 const WatchHistoryHub = () => {
   const [expandedFolder, setExpandedFolder] = useState<string | null>("resume");
   const { user } = useAuth();
-  const { history, isLoading: historyLoading } = useMediaSession();
-  const { userLikes } = useLikes();
+  const { history, isLoadingHistory } = useMediaSession();
+
+  // Fetch user's liked posts
+  const { data: userLikedPosts = [] } = useQuery({
+    queryKey: ["user-likes-list", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      const { data, error } = await supabase
+        .from("likes")
+        .select("post_id, created_at, posts:post_id(id, title, description, thumbnail_url)")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(20);
+
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user?.id,
+  });
 
   // Fetch saved posts
   const { data: savedPosts = [] } = useQuery({
@@ -85,10 +101,11 @@ const WatchHistoryHub = () => {
       thumbnail: (h as any).posts?.thumbnail_url,
     }));
 
-  const likedItems = userLikes.slice(0, 10).map((postId, idx) => ({
-    id: postId,
-    title: `Liked content`,
-    timeAgo: "",
+  const likedItems = userLikedPosts.slice(0, 10).map((like: any) => ({
+    id: like.post_id,
+    title: like.posts?.title || like.posts?.description?.slice(0, 30) || "Liked content",
+    timeAgo: formatTimeAgo(like.created_at),
+    thumbnail: like.posts?.thumbnail_url,
   }));
 
   const savedItems = savedPosts.slice(0, 10).map((s: any) => ({

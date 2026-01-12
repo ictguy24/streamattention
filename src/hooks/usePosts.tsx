@@ -61,8 +61,8 @@ export const usePosts = (feedType: 'personalized' | 'latest' = 'personalized'): 
         if (rpcError) throw rpcError;
         result = data;
       } else {
-        // Fallback to latest posts
-        const { data, error: queryError } = await supabase
+        // Fallback to latest posts - fetch posts then profiles separately
+        const { data: postsData, error: queryError } = await supabase
           .from('posts')
           .select(`
             id,
@@ -80,8 +80,7 @@ export const usePosts = (feedType: 'personalized' | 'latest' = 'personalized'): 
             like_count,
             comment_count,
             view_count,
-            created_at,
-            profiles!inner(username, display_name, avatar_url)
+            created_at
           `)
           .eq('is_public', true)
           .order('created_at', { ascending: false })
@@ -89,12 +88,24 @@ export const usePosts = (feedType: 'personalized' | 'latest' = 'personalized'): 
         
         if (queryError) throw queryError;
         
-        result = data?.map((post: any) => ({
-          ...post,
-          username: post.profiles?.username,
-          display_name: post.profiles?.display_name,
-          avatar_url: post.profiles?.avatar_url,
-        }));
+        // Fetch profiles for each post's user_id
+        const userIds = [...new Set(postsData?.map(p => p.user_id) || [])];
+        const { data: profilesData } = await supabase
+          .from('profiles')
+          .select('id, username, display_name, avatar_url')
+          .in('id', userIds);
+        
+        const profilesMap = new Map(profilesData?.map(p => [p.id, p]) || []);
+        
+        result = postsData?.map((post: any) => {
+          const profile = profilesMap.get(post.user_id);
+          return {
+            ...post,
+            username: profile?.username || 'unknown',
+            display_name: profile?.display_name || 'Unknown User',
+            avatar_url: profile?.avatar_url || null,
+          };
+        });
       }
       
       if (reset) {
