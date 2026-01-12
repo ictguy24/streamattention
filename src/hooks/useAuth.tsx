@@ -9,6 +9,9 @@ interface Profile {
   avatar_url: string | null;
   ac_balance: number;
   tier: string;
+  bio: string | null;
+  website_url: string | null;
+  social_links: Record<string, string> | null;
   created_at: string;
   updated_at: string;
 }

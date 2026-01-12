@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, forwardRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Check, TrendingUp, Clock, Award } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -12,7 +12,7 @@ interface WithdrawFlowProps {
 
 type FlowStep = "eligibility" | "progress" | "range" | "confirm" | "success";
 
-const WithdrawFlow = ({ isOpen, onClose, withdrawableBalance, onWithdraw }: WithdrawFlowProps) => {
+const WithdrawFlow = forwardRef<HTMLDivElement, WithdrawFlowProps>(({ isOpen, onClose, withdrawableBalance, onWithdraw }, ref) => {
   const [step, setStep] = useState<FlowStep>("eligibility");
   const [progressValue, setProgressValue] = useState(0);
   const [showConfetti, setShowConfetti] = useState(false);
@@ -344,6 +344,8 @@ const WithdrawFlow = ({ isOpen, onClose, withdrawableBalance, onWithdraw }: With
       </motion.div>
     </motion.div>
   );
-};
+});
+
+WithdrawFlow.displayName = "WithdrawFlow";
 
 export default WithdrawFlow;

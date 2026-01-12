@@ -1,3 +1,4 @@
+import { forwardRef } from "react";
 import { AnimatePresence, PanInfo, motion } from "framer-motion";
 import { X, Check, Loader2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -15,7 +16,7 @@ interface NotificationSheetProps {
   onNavigateToContent?: (contentId: string) => void;
 }
 
-const NotificationSheet = ({ isOpen, onClose, onNavigateToProfile, onNavigateToContent }: NotificationSheetProps) => {
+const NotificationSheet = forwardRef<HTMLDivElement, NotificationSheetProps>(({ isOpen, onClose, onNavigateToProfile, onNavigateToContent }, ref) => {
   const { notifications, isLoading, unreadCount, markAsRead } = useNotifications();
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -222,6 +223,8 @@ const NotificationSheet = ({ isOpen, onClose, onNavigateToProfile, onNavigateToC
       )}
     </AnimatePresence>
   );
-};
+});
+
+NotificationSheet.displayName = "NotificationSheet";
 
 export default NotificationSheet;

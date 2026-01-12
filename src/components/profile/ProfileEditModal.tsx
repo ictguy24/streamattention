@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import type { Json } from "@/integrations/supabase/types";
 
 interface ProfileEditModalProps {
   isOpen: boolean;
@@ -37,9 +38,9 @@ const ProfileEditModal = ({ isOpen, onClose }: ProfileEditModalProps) => {
     if (profile) {
       setDisplayName(profile.display_name || "");
       setUsername(profile.username || "");
-      setBio((profile as any).bio || "");
-      setWebsiteUrl((profile as any).website_url || "");
-      setSocialLinks((profile as any).social_links || {});
+      setBio(profile.bio || "");
+      setWebsiteUrl(profile.website_url || "");
+      setSocialLinks((profile.social_links as SocialLinks) || {});
       setAvatarPreview(profile.avatar_url || null);
     }
   }, [profile, isOpen]);
@@ -126,7 +127,7 @@ const ProfileEditModal = ({ isOpen, onClose }: ProfileEditModalProps) => {
           avatar_url: avatarUrl,
           bio: bio || null,
           website_url: websiteUrl || null,
-          social_links: socialLinks,
+          social_links: socialLinks as unknown as Json,
         })
         .eq("id", user.id);
 
