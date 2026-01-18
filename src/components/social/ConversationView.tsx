@@ -1,38 +1,24 @@
 import { useState, useRef, useEffect } from "react";
-import { ChevronLeft, Send, Mic, Video, Image, Phone, MoreVertical, Paperclip, Square } from "lucide-react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { ChevronLeft, Send, Mic, Video, Image, Phone, MoreVertical, Paperclip, Square, Loader2 } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { useAttention } from "@/contexts/AttentionContext";
-
-interface Message {
-  id: string;
-  text?: string;
-  mediaType?: "image" | "video" | "audio" | "file";
-  mediaUrl?: string;
-  isSent: boolean;
-  timestamp: string;
-  duration?: string;
-}
+import { useMessages } from "@/hooks/useConversations";
+import { useAuth } from "@/hooks/useAuth";
 
 interface ConversationViewProps {
   chatId: string;
   chatName: string;
   isOnline: boolean;
+  avatarUrl?: string;
   onBack: () => void;
+  onACEarned?: (amount: number) => void;
 }
 
-const DEMO_MESSAGES: Message[] = [
-  { id: "1", text: "Hey! Did you see the new video I posted?", isSent: false, timestamp: "10:30 AM" },
-  { id: "2", text: "Yes! It was amazing 🔥", isSent: true, timestamp: "10:32 AM" },
-  { id: "3", text: "Thanks! I spent hours editing it", isSent: false, timestamp: "10:33 AM" },
-  { id: "4", mediaType: "audio", duration: "0:45", isSent: false, timestamp: "10:34 AM" },
-  { id: "5", text: "The transitions were so smooth. Really loved the color grading too.", isSent: true, timestamp: "10:35 AM" },
-  { id: "6", text: "Want to collab on something?", isSent: false, timestamp: "10:36 AM" },
-];
-
-const ConversationView = ({ chatId, chatName, isOnline, onBack }: ConversationViewProps) => {
+const ConversationView = ({ chatId, chatName, isOnline, avatarUrl, onBack, onACEarned }: ConversationViewProps) => {
+  const { user } = useAuth();
   const { sessionId, reportComment } = useAttention();
-  const [messages, setMessages] = useState(DEMO_MESSAGES);
+  const { messages, isLoading, sendMessage, isSending } = useMessages(chatId);
   const [newMessage, setNewMessage] = useState("");
   const [isRecordingAudio, setIsRecordingAudio] = useState(false);
   const [isRecordingVideo, setIsRecordingVideo] = useState(false);
@@ -69,59 +55,36 @@ const ConversationView = ({ chatId, chatName, isOnline, onBack }: ConversationVi
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!newMessage.trim()) return;
     
-    const message: Message = {
-      id: Date.now().toString(),
-      text: newMessage,
-      isSent: true,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    };
-    
-    setMessages(prev => [...prev, message]);
-    
-    // Report message interaction to server
-    if (sessionId) {
-      reportComment(sessionId, chatId, newMessage);
+    try {
+      await sendMessage({ content: newMessage });
+      
+      if (sessionId) {
+        reportComment(sessionId, chatId, newMessage);
+      }
+      
+      setNewMessage("");
+      onACEarned?.(3);
+    } catch (error) {
+      console.error("Failed to send message:", error);
     }
-    
-    setNewMessage("");
   };
 
-  const handleStartAudioRecording = () => {
-    setIsRecordingAudio(true);
-  };
-
-  const handleStopAudioRecording = () => {
+  const handleStopAudioRecording = async () => {
     setIsRecordingAudio(false);
-    const message: Message = {
-      id: Date.now().toString(),
-      mediaType: "audio",
-      duration: formatDuration(recordingDuration),
-      isSent: true,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    };
-    setMessages(prev => [...prev, message]);
+    await sendMessage({ content: `🎙️ Voice message (${formatDuration(recordingDuration)})` });
+    onACEarned?.(5);
   };
 
-  const handleStartVideoRecording = () => {
-    setIsRecordingVideo(true);
-  };
-
-  const handleStopVideoRecording = () => {
+  const handleStopVideoRecording = async () => {
     setIsRecordingVideo(false);
-    const message: Message = {
-      id: Date.now().toString(),
-      mediaType: "video",
-      duration: formatDuration(recordingDuration),
-      isSent: true,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    };
-    setMessages(prev => [...prev, message]);
+    await sendMessage({ content: `📹 Video message (${formatDuration(recordingDuration)})` });
+    onACEarned?.(5);
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -129,13 +92,7 @@ const ConversationView = ({ chatId, chatName, isOnline, onBack }: ConversationVi
                     : file.type.startsWith("video/") ? "video" 
                     : "file";
     
-    const message: Message = {
-      id: Date.now().toString(),
-      mediaType,
-      isSent: true,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    };
-    setMessages(prev => [...prev, message]);
+    await sendMessage({ content: `📎 Attachment: ${file.name}`, mediaType });
   };
 
   const handleCall = (type: "audio" | "video") => {
@@ -148,6 +105,7 @@ const ConversationView = ({ chatId, chatName, isOnline, onBack }: ConversationVi
       {showCallUI && (
         <div className="absolute inset-0 z-60 bg-background flex flex-col items-center justify-center">
           <Avatar className="w-24 h-24 mb-4">
+            <AvatarImage src={avatarUrl} />
             <AvatarFallback className="bg-muted/30 text-foreground text-3xl">
               {chatName.split(" ").map(n => n[0]).join("")}
             </AvatarFallback>
@@ -203,6 +161,7 @@ const ConversationView = ({ chatId, chatName, isOnline, onBack }: ConversationVi
         </button>
 
         <Avatar className="w-10 h-10">
+          <AvatarImage src={avatarUrl} />
           <AvatarFallback className="bg-muted/30 text-foreground">
             {chatName.split(" ").map(n => n[0]).join("")}
           </AvatarFallback>
@@ -234,70 +193,75 @@ const ConversationView = ({ chatId, chatName, isOnline, onBack }: ConversationVi
         </div>
       </div>
 
-      {/* Messages - Flat text blocks, NO colored backgrounds */}
+      {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
-        {messages.map((message) => (
-          <div
-            key={message.id}
-            className={cn(
-              "max-w-[80%] transition-opacity",
-              message.isSent ? "ml-auto" : "mr-auto"
-            )}
-          >
-            {/* Text Message */}
-            {message.text && (
-              <p className={cn(
-                "text-sm leading-relaxed",
-                message.isSent ? "text-foreground" : "text-foreground/90"
-              )}>
-                {message.text}
-              </p>
-            )}
-            
-            {/* Audio Message */}
-            {message.mediaType === "audio" && (
-              <div className="flex items-center gap-2 py-2">
-                <button className="p-2 rounded-full bg-muted/20 active:scale-95 transition-transform">
-                  <Mic className="w-4 h-4 text-foreground" strokeWidth={1.5} />
-                </button>
-                <div className="h-1 flex-1 bg-muted/30 rounded-full max-w-32">
-                  <div className="h-full w-1/3 bg-foreground/50 rounded-full" />
-                </div>
-                <span className="text-xs text-muted-foreground">{message.duration}</span>
-              </div>
-            )}
-
-            {/* Video Message */}
-            {message.mediaType === "video" && (
-              <div className="relative w-48 h-32 bg-muted/20 rounded-lg flex items-center justify-center">
-                <Video className="w-8 h-8 text-muted-foreground" strokeWidth={1.5} />
-                <span className="absolute bottom-2 right-2 text-[10px] text-foreground bg-background/50 px-1 rounded">
-                  {message.duration}
-                </span>
-              </div>
-            )}
-
-            {/* Image Message */}
-            {message.mediaType === "image" && (
-              <div className="w-48 h-48 bg-muted/20 rounded-lg flex items-center justify-center">
-                <Image className="w-8 h-8 text-muted-foreground" strokeWidth={1.5} />
-              </div>
-            )}
-
-            {/* File Message */}
-            {message.mediaType === "file" && (
-              <div className="flex items-center gap-2 py-2 px-3 bg-muted/10 rounded-lg">
-                <Paperclip className="w-4 h-4 text-muted-foreground" strokeWidth={1.5} />
-                <span className="text-sm text-foreground">Attachment</span>
-              </div>
-            )}
-
-            <p className="text-[10px] mt-1 text-muted-foreground">
-              {message.timestamp}
-              {message.isSent && <span className="ml-2">✓✓</span>}
-            </p>
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
           </div>
-        ))}
+        ) : messages.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground text-sm">No messages yet</p>
+            <p className="text-muted-foreground/60 text-xs mt-1">Send a message to start chatting</p>
+          </div>
+        ) : (
+          messages.map((message) => {
+            const isSent = message.sender_id === user?.id;
+            return (
+              <div
+                key={message.id}
+                className={cn(
+                  "max-w-[80%] transition-opacity",
+                  isSent ? "ml-auto" : "mr-auto"
+                )}
+              >
+                {message.content && (
+                  <p className={cn(
+                    "text-sm leading-relaxed",
+                    isSent ? "text-foreground" : "text-foreground/90"
+                  )}>
+                    {message.content}
+                  </p>
+                )}
+                
+                {message.media_type === "audio" && (
+                  <div className="flex items-center gap-2 py-2">
+                    <button className="p-2 rounded-full bg-muted/20 active:scale-95 transition-transform">
+                      <Mic className="w-4 h-4 text-foreground" strokeWidth={1.5} />
+                    </button>
+                    <div className="h-1 flex-1 bg-muted/30 rounded-full max-w-32">
+                      <div className="h-full w-1/3 bg-foreground/50 rounded-full" />
+                    </div>
+                  </div>
+                )}
+
+                {message.media_type === "video" && (
+                  <div className="relative w-48 h-32 bg-muted/20 rounded-lg flex items-center justify-center">
+                    <Video className="w-8 h-8 text-muted-foreground" strokeWidth={1.5} />
+                  </div>
+                )}
+
+                {message.media_type === "image" && (
+                  <div className="w-48 h-48 bg-muted/20 rounded-lg flex items-center justify-center">
+                    <Image className="w-8 h-8 text-muted-foreground" strokeWidth={1.5} />
+                  </div>
+                )}
+
+                {message.media_type === "file" && (
+                  <div className="flex items-center gap-2 py-2 px-3 bg-muted/10 rounded-lg">
+                    <Paperclip className="w-4 h-4 text-muted-foreground" strokeWidth={1.5} />
+                    <span className="text-sm text-foreground">Attachment</span>
+                  </div>
+                )}
+
+                <p className="text-[10px] mt-1 text-muted-foreground">
+                  {new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  {isSent && <span className="ml-2">✓✓</span>}
+                </p>
+              </div>
+            );
+          })
+        )}
         <div ref={messagesEndRef} />
       </div>
 
@@ -312,7 +276,6 @@ const ConversationView = ({ chatId, chatName, isOnline, onBack }: ConversationVi
         />
         
         <div className="flex items-center gap-2">
-          {/* Media Attach */}
           <button 
             className="p-2 rounded-lg hover:bg-muted/20 active:scale-95 transition-transform"
             onClick={() => fileInputRef.current?.click()}
@@ -320,7 +283,6 @@ const ConversationView = ({ chatId, chatName, isOnline, onBack }: ConversationVi
             <Paperclip className="w-5 h-5 text-muted-foreground" strokeWidth={1.5} />
           </button>
           
-          {/* Image/Gallery */}
           <button 
             className="p-2 rounded-lg hover:bg-muted/20 active:scale-95 transition-transform"
             onClick={() => fileInputRef.current?.click()}
@@ -328,7 +290,6 @@ const ConversationView = ({ chatId, chatName, isOnline, onBack }: ConversationVi
             <Image className="w-5 h-5 text-muted-foreground" strokeWidth={1.5} />
           </button>
 
-          {/* Input */}
           <div className="flex-1 flex items-center gap-2 px-4 py-2 rounded-lg bg-muted/10">
             <input
               ref={inputRef}
@@ -341,28 +302,30 @@ const ConversationView = ({ chatId, chatName, isOnline, onBack }: ConversationVi
             />
           </div>
 
-          {/* Action Buttons */}
           {newMessage.trim() ? (
             <button
               className="p-2.5 rounded-lg bg-foreground text-background active:scale-95 transition-transform"
               onClick={handleSend}
+              disabled={isSending}
             >
-              <Send className="w-5 h-5" strokeWidth={1.5} />
+              {isSending ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <Send className="w-5 h-5" strokeWidth={1.5} />
+              )}
             </button>
           ) : (
             <>
-              {/* Video Record */}
               <button
                 className="p-2.5 rounded-lg bg-muted/10 text-muted-foreground active:scale-95 transition-transform"
-                onClick={handleStartVideoRecording}
+                onClick={() => setIsRecordingVideo(true)}
               >
                 <Video className="w-5 h-5" strokeWidth={1.5} />
               </button>
               
-              {/* Audio Record */}
               <button
                 className="p-2.5 rounded-lg bg-muted/10 text-muted-foreground active:scale-95 transition-transform"
-                onClick={handleStartAudioRecording}
+                onClick={() => setIsRecordingAudio(true)}
               >
                 <Mic className="w-5 h-5" strokeWidth={1.5} />
               </button>

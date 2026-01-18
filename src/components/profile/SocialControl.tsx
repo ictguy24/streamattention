@@ -1,37 +1,21 @@
-import { useState } from "react";
-import { ChevronLeft, UserMinus, Ban, VolumeX, Volume2 } from "lucide-react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { useState, useEffect } from "react";
+import { UserMinus, Volume2 } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface User {
   id: string;
   username: string;
   displayName: string;
+  avatar_url?: string;
   isFollowing: boolean;
   isMuted?: boolean;
   isBlocked?: boolean;
 }
-
-const DEMO_FOLLOWERS: User[] = [
-  { id: "1", username: "alex_rivera", displayName: "Alex Rivera", isFollowing: true },
-  { id: "2", username: "sarah_chen", displayName: "Sarah Chen", isFollowing: false },
-  { id: "3", username: "mike_j", displayName: "Mike Johnson", isFollowing: true },
-  { id: "4", username: "emma_wilson", displayName: "Emma Wilson", isFollowing: false },
-];
-
-const DEMO_FOLLOWING: User[] = [
-  { id: "1", username: "creator_vibes", displayName: "Luna Stars", isFollowing: true },
-  { id: "2", username: "tech_insights", displayName: "Dev Patel", isFollowing: true },
-  { id: "3", username: "foodie_delights", displayName: "Food Creator", isFollowing: true },
-];
-
-const DEMO_BLOCKED: User[] = [
-  { id: "1", username: "spam_account", displayName: "Spam User", isFollowing: false, isBlocked: true },
-];
-
-const DEMO_MUTED: User[] = [
-  { id: "1", username: "loud_poster", displayName: "Frequent Poster", isFollowing: true, isMuted: true },
-];
 
 type ListType = "followers" | "following" | "blocked" | "muted";
 
@@ -41,34 +25,215 @@ interface SocialControlProps {
 }
 
 const SocialControl = ({ initialList = "followers", onNavigateToProfile }: SocialControlProps) => {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [activeList, setActiveList] = useState<ListType>(initialList);
-  const [followers, setFollowers] = useState(DEMO_FOLLOWERS);
-  const [following, setFollowing] = useState(DEMO_FOLLOWING);
-  const [blocked, setBlocked] = useState(DEMO_BLOCKED);
-  const [muted, setMuted] = useState(DEMO_MUTED);
+
+  // Fetch followers
+  const { data: followers = [], isLoading: loadingFollowers } = useQuery({
+    queryKey: ["followers", user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      
+      const { data, error } = await supabase
+        .from("follows")
+        .select("follower_id, created_at")
+        .eq("following_id", user.id);
+      
+      if (error) throw error;
+      
+      // Get profiles for followers
+      const followerIds = data.map(f => f.follower_id);
+      if (followerIds.length === 0) return [];
+      
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, username, display_name, avatar_url")
+        .in("id", followerIds);
+      
+      // Check if we're following them back
+      const { data: followingData } = await supabase
+        .from("follows")
+        .select("following_id")
+        .eq("follower_id", user.id)
+        .in("following_id", followerIds);
+      
+      const followingSet = new Set(followingData?.map(f => f.following_id) || []);
+      
+      return (profiles || []).map(p => ({
+        id: p.id,
+        username: p.username || "user",
+        displayName: p.display_name || p.username || "User",
+        avatar_url: p.avatar_url,
+        isFollowing: followingSet.has(p.id),
+      }));
+    },
+    enabled: !!user,
+  });
+
+  // Fetch following
+  const { data: following = [], isLoading: loadingFollowing } = useQuery({
+    queryKey: ["following", user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      
+      const { data, error } = await supabase
+        .from("follows")
+        .select("following_id, created_at")
+        .eq("follower_id", user.id);
+      
+      if (error) throw error;
+      
+      const followingIds = data.map(f => f.following_id);
+      if (followingIds.length === 0) return [];
+      
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, username, display_name, avatar_url")
+        .in("id", followingIds);
+      
+      return (profiles || []).map(p => ({
+        id: p.id,
+        username: p.username || "user",
+        displayName: p.display_name || p.username || "User",
+        avatar_url: p.avatar_url,
+        isFollowing: true,
+      }));
+    },
+    enabled: !!user,
+  });
+
+  // Fetch blocked users
+  const { data: blocked = [], isLoading: loadingBlocked } = useQuery({
+    queryKey: ["blocked", user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      
+      const { data, error } = await supabase
+        .from("user_blocks")
+        .select("blocked_id, created_at")
+        .eq("blocker_id", user.id)
+        .eq("block_type", "block");
+      
+      if (error) throw error;
+      
+      const blockedIds = data.map(b => b.blocked_id);
+      if (blockedIds.length === 0) return [];
+      
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, username, display_name, avatar_url")
+        .in("id", blockedIds);
+      
+      return (profiles || []).map(p => ({
+        id: p.id,
+        username: p.username || "user",
+        displayName: p.display_name || p.username || "User",
+        avatar_url: p.avatar_url,
+        isFollowing: false,
+        isBlocked: true,
+      }));
+    },
+    enabled: !!user,
+  });
+
+  // Fetch muted users
+  const { data: muted = [], isLoading: loadingMuted } = useQuery({
+    queryKey: ["muted", user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      
+      const { data, error } = await supabase
+        .from("user_blocks")
+        .select("blocked_id, created_at")
+        .eq("blocker_id", user.id)
+        .eq("block_type", "mute");
+      
+      if (error) throw error;
+      
+      const mutedIds = data.map(m => m.blocked_id);
+      if (mutedIds.length === 0) return [];
+      
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, username, display_name, avatar_url")
+        .in("id", mutedIds);
+      
+      return (profiles || []).map(p => ({
+        id: p.id,
+        username: p.username || "user",
+        displayName: p.display_name || p.username || "User",
+        avatar_url: p.avatar_url,
+        isFollowing: false,
+        isMuted: true,
+      }));
+    },
+    enabled: !!user,
+  });
+
+  // Follow mutation
+  const followMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      if (!user) throw new Error("Not authenticated");
+      
+      await supabase
+        .from("follows")
+        .insert({ follower_id: user.id, following_id: userId });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["followers"] });
+      queryClient.invalidateQueries({ queryKey: ["following"] });
+    },
+  });
+
+  // Unfollow mutation
+  const unfollowMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      if (!user) throw new Error("Not authenticated");
+      
+      await supabase
+        .from("follows")
+        .delete()
+        .eq("follower_id", user.id)
+        .eq("following_id", userId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["followers"] });
+      queryClient.invalidateQueries({ queryKey: ["following"] });
+    },
+  });
+
+  // Unblock mutation
+  const unblockMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      if (!user) throw new Error("Not authenticated");
+      
+      await supabase
+        .from("user_blocks")
+        .delete()
+        .eq("blocker_id", user.id)
+        .eq("blocked_id", userId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["blocked"] });
+      queryClient.invalidateQueries({ queryKey: ["muted"] });
+    },
+  });
 
   const handleFollow = (userId: string) => {
-    setFollowers(prev =>
-      prev.map(u => u.id === userId ? { ...u, isFollowing: true } : u)
-    );
+    followMutation.mutate(userId);
   };
 
-  const handleUnfollow = (userId: string, list: "followers" | "following") => {
-    if (list === "followers") {
-      setFollowers(prev =>
-        prev.map(u => u.id === userId ? { ...u, isFollowing: false } : u)
-      );
-    } else {
-      setFollowing(prev => prev.filter(u => u.id !== userId));
-    }
+  const handleUnfollow = (userId: string) => {
+    unfollowMutation.mutate(userId);
   };
 
   const handleUnblock = (userId: string) => {
-    setBlocked(prev => prev.filter(u => u.id !== userId));
+    unblockMutation.mutate(userId);
   };
 
   const handleUnmute = (userId: string) => {
-    setMuted(prev => prev.filter(u => u.id !== userId));
+    unblockMutation.mutate(userId);
   };
 
   const lists: { id: ListType; label: string; count: number }[] = [
@@ -78,9 +243,26 @@ const SocialControl = ({ initialList = "followers", onNavigateToProfile }: Socia
     { id: "muted", label: "Muted", count: muted.length },
   ];
 
+  const isLoading = activeList === "followers" ? loadingFollowers 
+    : activeList === "following" ? loadingFollowing
+    : activeList === "blocked" ? loadingBlocked
+    : loadingMuted;
+
   const renderUserList = (users: User[], listType: ListType) => (
     <div className="space-y-1">
-      {users.length === 0 ? (
+      {isLoading ? (
+        <div className="space-y-2">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="flex items-center gap-3 p-3">
+              <Skeleton className="w-10 h-10 rounded-full" />
+              <div className="flex-1">
+                <Skeleton className="w-24 h-4 mb-1" />
+                <Skeleton className="w-16 h-3" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : users.length === 0 ? (
         <p className="text-center text-muted-foreground text-sm py-8">
           No users in this list
         </p>
@@ -95,6 +277,7 @@ const SocialControl = ({ initialList = "followers", onNavigateToProfile }: Socia
               onClick={() => onNavigateToProfile?.(user.username)}
             >
               <Avatar className="w-10 h-10">
+                <AvatarImage src={user.avatar_url} />
                 <AvatarFallback className="bg-muted/30 text-foreground">
                   {user.displayName[0]}
                 </AvatarFallback>
@@ -121,7 +304,7 @@ const SocialControl = ({ initialList = "followers", onNavigateToProfile }: Socia
                     : "bg-foreground text-background"
                 )}
                 onClick={() => user.isFollowing 
-                  ? handleUnfollow(user.id, "followers") 
+                  ? handleUnfollow(user.id) 
                   : handleFollow(user.id)
                 }
               >
@@ -132,7 +315,7 @@ const SocialControl = ({ initialList = "followers", onNavigateToProfile }: Socia
             {listType === "following" && (
               <button
                 className="p-2 rounded-lg bg-muted/20 text-muted-foreground hover:text-destructive hover:bg-destructive/10 active:scale-95 transition-all"
-                onClick={() => handleUnfollow(user.id, "following")}
+                onClick={() => handleUnfollow(user.id)}
               >
                 <UserMinus className="w-4 h-4" strokeWidth={1.5} />
               </button>
