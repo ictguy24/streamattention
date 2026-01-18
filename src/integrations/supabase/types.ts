@@ -481,6 +481,7 @@ export type Database = {
           cover_image_url: string | null
           created_at: string | null
           description: string | null
+          destinations: string[] | null
           duration_ms: number | null
           id: string
           is_public: boolean | null
@@ -504,6 +505,7 @@ export type Database = {
           cover_image_url?: string | null
           created_at?: string | null
           description?: string | null
+          destinations?: string[] | null
           duration_ms?: number | null
           id?: string
           is_public?: boolean | null
@@ -527,6 +529,7 @@ export type Database = {
           cover_image_url?: string | null
           created_at?: string | null
           description?: string | null
+          destinations?: string[] | null
           duration_ms?: number | null
           id?: string
           is_public?: boolean | null
@@ -922,6 +925,30 @@ export type Database = {
           },
         ]
       }
+      user_blocks: {
+        Row: {
+          block_type: string
+          blocked_id: string
+          blocker_id: string
+          created_at: string | null
+          id: string
+        }
+        Insert: {
+          block_type?: string
+          blocked_id: string
+          blocker_id: string
+          created_at?: string | null
+          id?: string
+        }
+        Update: {
+          block_type?: string
+          blocked_id?: string
+          blocker_id?: string
+          created_at?: string | null
+          id?: string
+        }
+        Relationships: []
+      }
       user_interests: {
         Row: {
           created_at: string | null
@@ -1158,6 +1185,10 @@ export type Database = {
       }
       get_interaction_band: {
         Args: { p_type: Database["public"]["Enums"]["interaction_type"] }
+        Returns: string
+      }
+      get_or_create_conversation: {
+        Args: { p_other_user_id: string; p_user_id: string }
         Returns: string
       }
       get_personalized_feed: {

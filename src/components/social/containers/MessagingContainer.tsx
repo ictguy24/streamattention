@@ -6,21 +6,11 @@ import {
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
-import { useConversations } from "@/hooks/useConversations";
+import { useConversations, useMessages } from "@/hooks/useConversations";
 import { useAuth } from "@/hooks/useAuth";
 import { useAttention } from "@/contexts/AttentionContext";
 
-interface Message {
-  id: string;
-  text?: string;
-  mediaType?: "image" | "video" | "audio" | "file";
-  mediaUrl?: string;
-  isSent: boolean;
-  timestamp: string;
-  duration?: string;
-}
-
-interface Conversation {
+interface DisplayConversation {
   id: string;
   name: string;
   lastMessage: string;
@@ -37,11 +27,11 @@ interface MessagingContainerProps {
 const MessagingContainer = ({ onACEarned }: MessagingContainerProps) => {
   const { user } = useAuth();
   const { conversations, isLoading } = useConversations();
-  const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
+  const [selectedConversation, setSelectedConversation] = useState<DisplayConversation | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
 
   // Transform conversations to our format
-  const displayConversations: Conversation[] = conversations.length > 0 
+  const displayConversations: DisplayConversation[] = conversations.length > 0 
     ? conversations.map(c => {
         const participant = c.participants?.[0];
         return {
@@ -63,7 +53,10 @@ const MessagingContainer = ({ onACEarned }: MessagingContainerProps) => {
   if (selectedConversation) {
     return (
       <ConversationView
-        conversation={selectedConversation}
+        conversationId={selectedConversation.id}
+        conversationName={selectedConversation.name}
+        avatarUrl={selectedConversation.avatar_url}
+        isOnline={selectedConversation.online}
         onBack={() => setSelectedConversation(null)}
         onACEarned={onACEarned}
       />
@@ -110,7 +103,7 @@ const MessagingContainer = ({ onACEarned }: MessagingContainerProps) => {
           <div className="flex flex-col items-center justify-center py-12 px-8">
             <MessageCircle className="w-12 h-12 text-muted-foreground mb-3" strokeWidth={1.5} />
             <p className="text-muted-foreground text-sm text-center">No conversations yet</p>
-            <p className="text-muted-foreground/60 text-xs text-center mt-1">Start a conversation with someone</p>
+            <p className="text-muted-foreground/60 text-xs text-center mt-1">Start a conversation with someone you follow</p>
           </div>
         ) : (
           filteredConversations.map((conversation, index) => (
@@ -174,21 +167,25 @@ const MessagingContainer = ({ onACEarned }: MessagingContainerProps) => {
 // =================== CONVERSATION VIEW ===================
 
 interface ConversationViewProps {
-  conversation: Conversation;
+  conversationId: string;
+  conversationName: string;
+  avatarUrl?: string;
+  isOnline: boolean;
   onBack: () => void;
   onACEarned?: (amount: number) => void;
 }
 
-const DEMO_MESSAGES: Message[] = [
-  { id: "1", text: "Hey! Did you see the new video I posted?", isSent: false, timestamp: "10:30 AM" },
-  { id: "2", text: "Yes! It was amazing 🔥", isSent: true, timestamp: "10:32 AM" },
-  { id: "3", text: "Thanks! I spent hours editing it", isSent: false, timestamp: "10:33 AM" },
-  { id: "4", text: "The transitions were so smooth.", isSent: true, timestamp: "10:35 AM" },
-];
-
-const ConversationView = ({ conversation, onBack, onACEarned }: ConversationViewProps) => {
+const ConversationView = ({ 
+  conversationId, 
+  conversationName, 
+  avatarUrl,
+  isOnline, 
+  onBack, 
+  onACEarned 
+}: ConversationViewProps) => {
+  const { user } = useAuth();
   const { sessionId, reportComment } = useAttention();
-  const [messages, setMessages] = useState(DEMO_MESSAGES);
+  const { messages, isLoading, sendMessage, isSending } = useMessages(conversationId);
   const [newMessage, setNewMessage] = useState("");
   const [isRecordingAudio, setIsRecordingAudio] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
@@ -220,36 +217,27 @@ const ConversationView = ({ conversation, onBack, onACEarned }: ConversationView
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!newMessage.trim()) return;
     
-    const message: Message = {
-      id: Date.now().toString(),
-      text: newMessage,
-      isSent: true,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    };
-    
-    setMessages(prev => [...prev, message]);
-    
-    if (sessionId) {
-      reportComment(sessionId, conversation.id, newMessage);
+    try {
+      await sendMessage({ content: newMessage });
+      
+      if (sessionId) {
+        reportComment(sessionId, conversationId, newMessage);
+      }
+      
+      setNewMessage("");
+      onACEarned?.(3);
+    } catch (error) {
+      console.error("Failed to send message:", error);
     }
-    
-    setNewMessage("");
-    onACEarned?.(3);
   };
 
-  const handleStopRecording = () => {
+  const handleStopRecording = async () => {
     setIsRecordingAudio(false);
-    const message: Message = {
-      id: Date.now().toString(),
-      mediaType: "audio",
-      duration: formatDuration(recordingDuration),
-      isSent: true,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    };
-    setMessages(prev => [...prev, message]);
+    // In a real app, we'd upload the audio file here
+    await sendMessage({ content: `🎙️ Voice message (${formatDuration(recordingDuration)})` });
     onACEarned?.(5);
   };
 
@@ -289,16 +277,16 @@ const ConversationView = ({ conversation, onBack, onACEarned }: ConversationView
         </button>
 
         <Avatar className="w-10 h-10">
-          <AvatarImage src={conversation.avatar_url} />
+          <AvatarImage src={avatarUrl} />
           <AvatarFallback className="bg-muted/30 text-foreground">
-            {conversation.name.split(" ").map(n => n[0]).join("")}
+            {conversationName.split(" ").map(n => n[0]).join("")}
           </AvatarFallback>
         </Avatar>
 
         <div className="flex-1">
-          <p className="font-medium text-foreground">{conversation.name}</p>
+          <p className="font-medium text-foreground">{conversationName}</p>
           <p className="text-xs text-muted-foreground">
-            {conversation.online ? "Online" : "Last seen recently"}
+            {isOnline ? "Online" : "Last seen recently"}
           </p>
         </div>
 
@@ -317,41 +305,54 @@ const ConversationView = ({ conversation, onBack, onACEarned }: ConversationView
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
-        {messages.map((message) => (
-          <div
-            key={message.id}
-            className={cn(
-              "max-w-[80%] transition-opacity",
-              message.isSent ? "ml-auto" : "mr-auto"
-            )}
-          >
-            {message.text && (
-              <p className={cn(
-                "text-sm leading-relaxed",
-                message.isSent ? "text-foreground" : "text-foreground/90"
-              )}>
-                {message.text}
-              </p>
-            )}
-            
-            {message.mediaType === "audio" && (
-              <div className="flex items-center gap-2 py-2">
-                <button className="p-2 rounded-full bg-muted/20 active:scale-95 transition-transform">
-                  <Mic className="w-4 h-4 text-foreground" strokeWidth={1.5} />
-                </button>
-                <div className="h-1 flex-1 bg-muted/30 rounded-full max-w-32">
-                  <div className="h-full w-1/3 bg-foreground/50 rounded-full" />
-                </div>
-                <span className="text-xs text-muted-foreground">{message.duration}</span>
-              </div>
-            )}
-
-            <p className="text-[10px] mt-1 text-muted-foreground">
-              {message.timestamp}
-              {message.isSent && <span className="ml-2">✓✓</span>}
-            </p>
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
           </div>
-        ))}
+        ) : messages.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground text-sm">No messages yet</p>
+            <p className="text-muted-foreground/60 text-xs mt-1">Send a message to start chatting</p>
+          </div>
+        ) : (
+          messages.map((message) => {
+            const isSent = message.sender_id === user?.id;
+            return (
+              <div
+                key={message.id}
+                className={cn(
+                  "max-w-[80%] transition-opacity",
+                  isSent ? "ml-auto" : "mr-auto"
+                )}
+              >
+                {message.content && (
+                  <p className={cn(
+                    "text-sm leading-relaxed",
+                    isSent ? "text-foreground" : "text-foreground/90"
+                  )}>
+                    {message.content}
+                  </p>
+                )}
+                
+                {message.media_type === "audio" && (
+                  <div className="flex items-center gap-2 py-2">
+                    <button className="p-2 rounded-full bg-muted/20 active:scale-95 transition-transform">
+                      <Mic className="w-4 h-4 text-foreground" strokeWidth={1.5} />
+                    </button>
+                    <div className="h-1 flex-1 bg-muted/30 rounded-full max-w-32">
+                      <div className="h-full w-1/3 bg-foreground/50 rounded-full" />
+                    </div>
+                  </div>
+                )}
+
+                <p className="text-[10px] mt-1 text-muted-foreground">
+                  {formatMessageTime(message.created_at)}
+                  {isSent && <span className="ml-2">✓✓</span>}
+                </p>
+              </div>
+            );
+          })
+        )}
         <div ref={messagesEndRef} />
       </div>
 
@@ -391,8 +392,13 @@ const ConversationView = ({ conversation, onBack, onACEarned }: ConversationView
             <button
               className="p-2.5 rounded-lg bg-foreground text-background active:scale-95 transition-transform"
               onClick={handleSend}
+              disabled={isSending}
             >
-              <Send className="w-5 h-5" strokeWidth={1.5} />
+              {isSending ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <Send className="w-5 h-5" strokeWidth={1.5} />
+              )}
             </button>
           ) : (
             <button
@@ -408,7 +414,7 @@ const ConversationView = ({ conversation, onBack, onACEarned }: ConversationView
   );
 };
 
-// Helper function
+// Helper functions
 function formatTimeAgo(date: string): string {
   try {
     const now = new Date();
@@ -422,6 +428,14 @@ function formatTimeAgo(date: string): string {
     if (diffHours < 24) return `${diffHours}h`;
     const diffDays = Math.floor(diffHours / 24);
     return `${diffDays}d`;
+  } catch {
+    return '';
+  }
+}
+
+function formatMessageTime(date: string): string {
+  try {
+    return new Date(date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   } catch {
     return '';
   }
