@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Edit3, LogIn, UserPlus, LogOut, Instagram, Twitter, Youtube, Link as LinkIcon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import AnimatedAvatar from "../profile/AnimatedAvatar";
+import Avatar from "@/features/avatar/Avatar";
 import WalletPanel from "../profile/WalletPanel";
 import ActivitySnapshot from "../profile/ActivitySnapshot";
 import WatchHistoryHub from "../profile/WatchHistoryHub";
@@ -12,6 +12,7 @@ import SocialControl from "../profile/SocialControl";
 import ParticipationRings from "../profile/ParticipationRings";
 import FollowersList from "../profile/FollowersList";
 import ProfileEditModal from "../profile/ProfileEditModal";
+import BoosterStore from "@/features/boosters/BoosterStore";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { useAttention } from "@/contexts/AttentionContext";
@@ -31,7 +32,7 @@ interface SocialLinks {
 const ProfileTab = () => {
   const navigate = useNavigate();
   const { user, profile, signOut } = useAuth();
-  const { balance } = useAttention();
+  const { ups, acBalance } = useAttention();
   const [activeSection, setActiveSection] = useState<ProfileSection>("overview");
   const [isLive, setIsLive] = useState(false);
   const [showFollowersList, setShowFollowersList] = useState(false);
@@ -65,9 +66,9 @@ const ProfileTab = () => {
   }, [user]);
 
   // Derive account type and participation score
-  const hasContent = balance > 500;
+  const hasContent = acBalance > 500;
   const accountType: AccountType = isLive ? "creator" : hasContent ? "both" : "user";
-  const participationScore = Math.min(Math.floor(balance / 100), 100);
+  const participationScore = Math.min(Math.floor(acBalance / 100), 100);
 
   const sections: { id: ProfileSection; label: string }[] = [
     { id: "overview", label: "Overview" },
@@ -103,13 +104,13 @@ const ProfileTab = () => {
               className="relative z-10 active:scale-95 transition-transform"
               onClick={() => !isGuest && setShowEditModal(true)}
             >
-              <AnimatedAvatar 
-                size="lg" 
-                isOnline={true} 
-                isLive={isLive}
-                avatarUrl={profile?.avatar_url}
-              />
+              <Avatar size="lg" />
             </button>
+            
+            {/* UPS Badge */}
+            <div className="absolute -top-1 -left-1 z-20 px-1.5 py-0.5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold">
+              {ups.toFixed(1)}
+            </div>
             {/* Account type badge */}
             <div className={cn(
               "absolute -bottom-1 -right-1 z-20 px-1.5 py-0.5 rounded-full text-[8px] font-medium uppercase tracking-wider",
@@ -260,19 +261,36 @@ const ProfileTab = () => {
           </div>
         )}
 
+        {/* UPS + AC Display */}
+        {!isGuest && (
+          <div className="mt-4 p-3 rounded-xl bg-muted/30 border border-border/30">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs text-muted-foreground">UPS Score</span>
+              <span className="text-sm font-bold text-foreground">{ups.toFixed(2)}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-muted-foreground">AC Balance</span>
+              <span className="text-sm font-bold text-foreground">{acBalance.toLocaleString()}</span>
+            </div>
+          </div>
+        )}
+
         {/* Go Live Button - Only for authenticated users */}
         {!isGuest && (
-          <button
-            className={cn(
-              "mt-4 w-full py-2 rounded-xl font-medium text-xs transition-colors active:scale-[0.98]",
-              isLive 
-                ? "bg-destructive text-destructive-foreground" 
-                : "bg-muted/30 text-foreground border border-border/50"
-            )}
-            onClick={() => setIsLive(!isLive)}
-          >
-            {isLive ? "End Live" : "Go Live"}
-          </button>
+          <div className="mt-4 flex gap-2">
+            <button
+              className={cn(
+                "flex-1 py-2 rounded-xl font-medium text-xs transition-colors active:scale-[0.98]",
+                isLive 
+                  ? "bg-destructive text-destructive-foreground" 
+                  : "bg-muted/30 text-foreground border border-border/50"
+              )}
+              onClick={() => setIsLive(!isLive)}
+            >
+              {isLive ? "End Live" : "Go Live"}
+            </button>
+            <BoosterStore />
+          </div>
         )}
       </div>
 
