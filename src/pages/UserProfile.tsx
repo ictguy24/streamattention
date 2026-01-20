@@ -1,4 +1,3 @@
-import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ChevronLeft, Loader2, UserPlus, UserCheck, MessageCircle } from "lucide-react";
@@ -8,13 +7,21 @@ import { useAuth } from "@/hooks/useAuth";
 import { usePresence } from "@/hooks/usePresence";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+// Type for public profile data (from profiles_public view)
+interface PublicProfile {
+  id: string;
+  username: string | null;
+  display_name: string | null;
+  avatar_url: string | null;
+  bio: string | null;
+}
+
 interface UserProfileData {
   id: string;
   username: string | null;
   display_name: string | null;
   avatar_url: string | null;
   bio: string | null;
-  tier: string;
   followerCount: number;
   followingCount: number;
   postCount: number;
@@ -27,19 +34,22 @@ const UserProfile = () => {
   const { isUserOnline } = usePresence();
   const queryClient = useQueryClient();
 
-  // Fetch profile data
+  // Fetch profile data using the secure public view
   const { data: profileData, isLoading } = useQuery({
     queryKey: ["user-profile", userId],
     queryFn: async (): Promise<UserProfileData | null> => {
       if (!userId) return null;
 
-      const { data: profile, error } = await supabase
-        .from("profiles")
-        .select("*")
+      // Use profiles_public view - only exposes safe fields (no financial/activity data)
+      const { data, error } = await supabase
+        .from("profiles_public" as any)
+        .select("id, username, display_name, avatar_url, bio")
         .eq("id", userId)
         .single();
 
       if (error) throw error;
+      
+      const profile = data as unknown as PublicProfile;
 
       // Get follower/following counts
       const [{ count: followerCount }, { count: followingCount }, { count: postCount }] = await Promise.all([
@@ -54,7 +64,6 @@ const UserProfile = () => {
         display_name: profile.display_name,
         avatar_url: profile.avatar_url,
         bio: profile.bio,
-        tier: profile.tier,
         followerCount: followerCount || 0,
         followingCount: followingCount || 0,
         postCount: postCount || 0,
@@ -175,7 +184,7 @@ const UserProfile = () => {
               </AvatarFallback>
             </Avatar>
             {isOnline && (
-              <div className="absolute bottom-1 right-1 w-5 h-5 rounded-full bg-green-500 border-3 border-background" />
+              <div className="absolute bottom-1 right-1 w-5 h-5 rounded-full bg-accent border-3 border-background" />
             )}
           </div>
 
@@ -189,7 +198,7 @@ const UserProfile = () => {
 
           {/* Online Status */}
           {isOnline && (
-            <span className="text-xs text-green-500 font-medium mb-3">Active now</span>
+            <span className="text-xs text-accent font-medium mb-3">Active now</span>
           )}
 
           {/* Bio */}
