@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import VideoFeed from "../stream/VideoFeed";
+import CompanionsTab from "./CompanionsTab";
 import FeedToggle from "../stream/FeedToggle";
 
 type FeedType = "companions" | "stream";
@@ -12,6 +13,10 @@ interface StreamTabProps {
 
 const StreamTab = ({ isFullscreen = false, onSwipeRight }: StreamTabProps) => {
   const [activeTab, setActiveTab] = useState<FeedType>("stream");
+
+  const handleSwipeToCompanions = () => {
+    setActiveTab("companions");
+  };
 
   return (
     <motion.div
@@ -27,8 +32,38 @@ const StreamTab = ({ isFullscreen = false, onSwipeRight }: StreamTabProps) => {
         </div>
       )}
 
-      {/* Video Feed */}
-      <VideoFeed isFullscreen={isFullscreen} onSwipeRight={onSwipeRight} />
+      {/* Video Feed - Show Companions or Stream based on activeTab */}
+      <AnimatePresence mode="wait">
+        {activeTab === "companions" ? (
+          <motion.div
+            key="companions"
+            className="h-full"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.2 }}
+          >
+            <CompanionsTab 
+              isFullscreen={isFullscreen} 
+              onSwipeLeft={() => setActiveTab("stream")} 
+            />
+          </motion.div>
+        ) : (
+          <motion.div
+            key="stream"
+            className="h-full"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 20 }}
+            transition={{ duration: 0.2 }}
+          >
+            <VideoFeed 
+              isFullscreen={isFullscreen} 
+              onSwipeRight={handleSwipeToCompanions} 
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 };

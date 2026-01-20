@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Video, Camera, Sparkles, CheckCircle } from "lucide-react";
+import { Video, Camera, CheckCircle } from "lucide-react";
 import MediaUploader from "../create/MediaUploader";
 import VideoRecorder from "../create/VideoRecorder";
 import MediaEditor, { EditedMediaOutput } from "../create/MediaEditor";
@@ -136,7 +136,9 @@ const CreateTab = () => {
 
             <div className="mt-auto pt-6">
               <div className="glass-card rounded-xl p-4 flex items-start gap-3">
-                <Sparkles className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+                <div className="w-8 h-8 rounded-full bg-gradient-neon flex items-center justify-center shrink-0">
+                  <span className="text-xs font-bold text-primary-foreground">AC</span>
+                </div>
                 <div>
                   <p className="font-medium text-foreground">Earn while you create</p>
                   <p className="text-sm text-muted-foreground">Get Attention Credits when others watch and engage with your content</p>

@@ -48,18 +48,25 @@ const ProfileTab = () => {
   const websiteUrl = profile?.website_url || "";
   const socialLinks: SocialLinks = (profile?.social_links as SocialLinks) || {};
 
-  // Fetch follow counts
+  const [totalViews, setTotalViews] = useState(0);
+
+  // Fetch follow counts and total views
   useEffect(() => {
     if (!user) return;
     
     const fetchCounts = async () => {
-      const [followers, following] = await Promise.all([
+      const [followers, following, viewsData] = await Promise.all([
         supabase.from("follows").select("id", { count: "exact" }).eq("following_id", user.id),
-        supabase.from("follows").select("id", { count: "exact" }).eq("follower_id", user.id)
+        supabase.from("follows").select("id", { count: "exact" }).eq("follower_id", user.id),
+        supabase.from("posts").select("view_count").eq("user_id", user.id)
       ]);
       
       setFollowerCount(followers.count || 0);
       setFollowingCount(following.count || 0);
+      
+      // Calculate total views across all content
+      const views = viewsData.data?.reduce((sum, p) => sum + (p.view_count || 0), 0) || 0;
+      setTotalViews(views);
     };
     
     fetchCounts();
@@ -216,8 +223,10 @@ const ProfileTab = () => {
                   <span className="text-[10px] text-muted-foreground">Followers</span>
                 </button>
                 <div className="text-center">
-                  <span className="block text-sm font-semibold text-foreground">{participationScore}</span>
-                  <span className="text-[10px] text-muted-foreground">Score</span>
+                  <span className="block text-sm font-semibold text-foreground">
+                    {totalViews >= 1000 ? `${(totalViews / 1000).toFixed(1)}K` : totalViews}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground">Views</span>
                 </div>
               </div>
             )}

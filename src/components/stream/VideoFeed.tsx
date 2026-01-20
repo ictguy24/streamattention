@@ -97,6 +97,7 @@ export default function VideoFeed({ isFullscreen, onSwipeRight }: VideoFeedProps
     <div 
       ref={containerRef}
       className="h-full w-full relative overflow-hidden bg-background"
+      style={{ overscrollBehavior: 'contain', touchAction: 'pan-y' }}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
@@ -115,6 +116,7 @@ export default function VideoFeed({ isFullscreen, onSwipeRight }: VideoFeedProps
               url: currentPost.media_url || "",
               poster: currentPost.thumbnail_url || currentPost.cover_image_url || undefined,
               username: currentPost.username || "user",
+              avatarUrl: currentPost.avatar_url,
               description: currentPost.description || currentPost.title || "",
               likes: currentPost.like_count || 0,
               comments: currentPost.comment_count || 0,
@@ -126,6 +128,7 @@ export default function VideoFeed({ isFullscreen, onSwipeRight }: VideoFeedProps
             }}
             isActive={true}
             isFullscreen={isFullscreen}
+            onSwipeRight={onSwipeRight}
           />
         </motion.div>
       </AnimatePresence>
