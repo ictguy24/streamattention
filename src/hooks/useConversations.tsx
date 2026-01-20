@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 
@@ -112,6 +113,31 @@ export const useConversations = () => {
     enabled: !!user,
   });
 
+  // Realtime subscription for conversations
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel("conversations-realtime")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "messages",
+        },
+        (payload) => {
+          // Invalidate conversations to update last message and unread counts
+          queryClient.invalidateQueries({ queryKey: ["conversations", user.id] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, queryClient]);
+
   return {
     conversations,
     isLoading,
@@ -154,6 +180,62 @@ export const useMessages = (conversationId: string | null) => {
     enabled: !!conversationId,
   });
 
+  // Realtime subscription for messages in this conversation
+  useEffect(() => {
+    if (!conversationId || !user) return;
+
+    const channel = supabase
+      .channel(`messages-${conversationId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "messages",
+          filter: `conversation_id=eq.${conversationId}`,
+        },
+        (payload) => {
+          // Add new message to cache immediately
+          queryClient.setQueryData(
+            ["messages", conversationId],
+            (old: Message[] = []) => {
+              const newMessage = payload.new as any;
+              // Check if message already exists
+              if (old.some(m => m.id === newMessage.id)) return old;
+              return [...old, {
+                id: newMessage.id,
+                conversation_id: newMessage.conversation_id,
+                sender_id: newMessage.sender_id,
+                content: newMessage.content,
+                media_url: newMessage.media_url,
+                media_type: newMessage.media_type,
+                created_at: newMessage.created_at,
+                read_at: newMessage.read_at,
+                sender: undefined, // Will be populated on next refetch
+              }];
+            }
+          );
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "messages",
+          filter: `conversation_id=eq.${conversationId}`,
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["messages", conversationId] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [conversationId, user, queryClient]);
+
   const sendMessageMutation = useMutation({
     mutationFn: async ({ content, mediaUrl, mediaType }: { 
       content?: string; 
@@ -185,10 +267,23 @@ export const useMessages = (conversationId: string | null) => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["messages", conversationId] });
       queryClient.invalidateQueries({ queryKey: ["conversations"] });
     },
   });
+
+  // Mark messages as read
+  const markAsRead = useCallback(async () => {
+    if (!conversationId || !user) return;
+
+    await supabase
+      .from("messages")
+      .update({ read_at: new Date().toISOString() })
+      .eq("conversation_id", conversationId)
+      .neq("sender_id", user.id)
+      .is("read_at", null);
+
+    queryClient.invalidateQueries({ queryKey: ["conversations", user.id] });
+  }, [conversationId, user, queryClient]);
 
   return {
     messages,
@@ -196,5 +291,6 @@ export const useMessages = (conversationId: string | null) => {
     error,
     sendMessage: sendMessageMutation.mutateAsync,
     isSending: sendMessageMutation.isPending,
+    markAsRead,
   };
 };

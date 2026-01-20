@@ -9,6 +9,7 @@ import { AttentionProvider } from "@/contexts/AttentionContext";
 import Index from "./pages/Index";
 import Install from "./pages/Install";
 import Auth from "./pages/Auth";
+import UserProfile from "./pages/UserProfile";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +27,8 @@ const App = () => (
                 <Route path="/" element={<Index />} />
                 <Route path="/install" element={<Install />} />
                 <Route path="/auth" element={<Auth />} />
+                <Route path="/user/:userId" element={<UserProfile />} />
+                <Route path="/chat/:conversationId" element={<Index />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>

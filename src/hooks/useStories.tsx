@@ -94,9 +94,29 @@ export const useStories = () => {
   });
 
   const createStoryMutation = useMutation({
-    mutationFn: async ({ mediaUrl, mediaType }: { mediaUrl: string; mediaType: string }) => {
+    mutationFn: async ({ mediaFile, mediaType }: { mediaFile: File; mediaType: string }) => {
       if (!user) throw new Error("Not authenticated");
 
+      // Upload file to storage
+      const fileExt = mediaFile.name.split('.').pop() || 'jpg';
+      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from("posts")
+        .upload(`stories/${fileName}`, mediaFile, {
+          cacheControl: "3600",
+          upsert: false,
+        });
+
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage
+        .from("posts")
+        .getPublicUrl(`stories/${fileName}`);
+
+      const mediaUrl = urlData.publicUrl;
+
+      // Create story record
       const { data, error } = await supabase
         .from("stories")
         .insert({
