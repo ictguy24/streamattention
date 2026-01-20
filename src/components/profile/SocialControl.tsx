@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { UserMinus, Volume2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
@@ -6,6 +6,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
+
+// Type for public profile data (from profiles_public view)
+interface PublicProfile {
+  id: string;
+  username: string | null;
+  display_name: string | null;
+  avatar_url: string | null;
+}
 
 interface User {
   id: string;
@@ -23,6 +31,24 @@ interface SocialControlProps {
   initialList?: ListType;
   onNavigateToProfile?: (username: string) => void;
 }
+
+// Helper to fetch public profiles securely
+const fetchPublicProfiles = async (userIds: string[]): Promise<PublicProfile[]> => {
+  if (userIds.length === 0) return [];
+  
+  // Query the secure view that only exposes non-sensitive fields
+  const { data, error } = await supabase
+    .from("profiles_public" as any)
+    .select("id, username, display_name, avatar_url")
+    .in("id", userIds);
+  
+  if (error) {
+    console.error("Error fetching public profiles:", error);
+    return [];
+  }
+  
+  return (data as unknown as PublicProfile[]) || [];
+};
 
 const SocialControl = ({ initialList = "followers", onNavigateToProfile }: SocialControlProps) => {
   const { user } = useAuth();
@@ -42,14 +68,11 @@ const SocialControl = ({ initialList = "followers", onNavigateToProfile }: Socia
       
       if (error) throw error;
       
-      // Get profiles for followers
       const followerIds = data.map(f => f.follower_id);
       if (followerIds.length === 0) return [];
       
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("id, username, display_name, avatar_url")
-        .in("id", followerIds);
+      // Use secure public profiles view
+      const profiles = await fetchPublicProfiles(followerIds);
       
       // Check if we're following them back
       const { data: followingData } = await supabase
@@ -60,11 +83,11 @@ const SocialControl = ({ initialList = "followers", onNavigateToProfile }: Socia
       
       const followingSet = new Set(followingData?.map(f => f.following_id) || []);
       
-      return (profiles || []).map(p => ({
+      return profiles.map(p => ({
         id: p.id,
         username: p.username || "user",
         displayName: p.display_name || p.username || "User",
-        avatar_url: p.avatar_url,
+        avatar_url: p.avatar_url || undefined,
         isFollowing: followingSet.has(p.id),
       }));
     },
@@ -87,16 +110,14 @@ const SocialControl = ({ initialList = "followers", onNavigateToProfile }: Socia
       const followingIds = data.map(f => f.following_id);
       if (followingIds.length === 0) return [];
       
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("id, username, display_name, avatar_url")
-        .in("id", followingIds);
+      // Use secure public profiles view
+      const profiles = await fetchPublicProfiles(followingIds);
       
-      return (profiles || []).map(p => ({
+      return profiles.map(p => ({
         id: p.id,
         username: p.username || "user",
         displayName: p.display_name || p.username || "User",
-        avatar_url: p.avatar_url,
+        avatar_url: p.avatar_url || undefined,
         isFollowing: true,
       }));
     },
@@ -120,16 +141,14 @@ const SocialControl = ({ initialList = "followers", onNavigateToProfile }: Socia
       const blockedIds = data.map(b => b.blocked_id);
       if (blockedIds.length === 0) return [];
       
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("id, username, display_name, avatar_url")
-        .in("id", blockedIds);
+      // Use secure public profiles view
+      const profiles = await fetchPublicProfiles(blockedIds);
       
-      return (profiles || []).map(p => ({
+      return profiles.map(p => ({
         id: p.id,
         username: p.username || "user",
         displayName: p.display_name || p.username || "User",
-        avatar_url: p.avatar_url,
+        avatar_url: p.avatar_url || undefined,
         isFollowing: false,
         isBlocked: true,
       }));
@@ -154,16 +173,14 @@ const SocialControl = ({ initialList = "followers", onNavigateToProfile }: Socia
       const mutedIds = data.map(m => m.blocked_id);
       if (mutedIds.length === 0) return [];
       
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("id, username, display_name, avatar_url")
-        .in("id", mutedIds);
+      // Use secure public profiles view
+      const profiles = await fetchPublicProfiles(mutedIds);
       
-      return (profiles || []).map(p => ({
+      return profiles.map(p => ({
         id: p.id,
         username: p.username || "user",
         displayName: p.display_name || p.username || "User",
-        avatar_url: p.avatar_url,
+        avatar_url: p.avatar_url || undefined,
         isFollowing: false,
         isMuted: true,
       }));

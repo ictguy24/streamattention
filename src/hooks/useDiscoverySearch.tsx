@@ -1,6 +1,14 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
+// Type for public profile data (from profiles_public view)
+interface PublicProfile {
+  id: string;
+  username: string | null;
+  display_name: string | null;
+  avatar_url: string | null;
+}
+
 interface SearchUser {
   id: string;
   username: string | null;
@@ -54,9 +62,9 @@ export const useDiscoverySearch = (): UseDiscoverySearchReturn => {
     try {
       const searchTerm = `%${searchQuery.toLowerCase()}%`;
 
-      // Search users
+      // Search users using secure public view - only exposes safe fields
       const { data: usersData } = await supabase
-        .from('profiles')
+        .from('profiles_public' as any)
         .select('id, username, display_name, avatar_url')
         .or(`username.ilike.${searchTerm},display_name.ilike.${searchTerm}`)
         .limit(10);
@@ -84,15 +92,16 @@ export const useDiscoverySearch = (): UseDiscoverySearchReturn => {
         .or(`title.ilike.${searchTerm},description.ilike.${searchTerm}`)
         .limit(10);
 
-      // Get usernames for posts
+      // Get usernames for posts using secure view
       if (postsData?.length) {
         const userIds = [...new Set(postsData.map(p => p.user_id))];
         const { data: profiles } = await supabase
-          .from('profiles')
+          .from('profiles_public' as any)
           .select('id, username')
           .in('id', userIds);
 
-        const profileMap = new Map(profiles?.map(p => [p.id, p.username]) || []);
+        const typedProfiles = (profiles as unknown as { id: string; username: string | null }[]) || [];
+        const profileMap = new Map(typedProfiles.map(p => [p.id, p.username]));
 
         setPosts(postsData.map(p => ({
           id: p.id,
@@ -106,7 +115,7 @@ export const useDiscoverySearch = (): UseDiscoverySearchReturn => {
         setPosts([]);
       }
 
-      setUsers(usersData || []);
+      setUsers((usersData as unknown as SearchUser[]) || []);
       setHashtags(hashtagsData || []);
     } catch (error) {
       console.error('Search error:', error);
