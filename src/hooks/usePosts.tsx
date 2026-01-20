@@ -88,14 +88,16 @@ export const usePosts = (feedType: 'personalized' | 'latest' = 'personalized'): 
         
         if (queryError) throw queryError;
         
-        // Fetch profiles for each post's user_id
+        // Fetch profiles from profiles_public view for each post's user_id
         const userIds = [...new Set(postsData?.map(p => p.user_id) || [])];
-        const { data: profilesData } = await supabase
-          .from('profiles')
-          .select('id, username, display_name, avatar_url')
-          .in('id', userIds);
         
-        const profilesMap = new Map(profilesData?.map(p => [p.id, p]) || []);
+        // Use profiles_public view - cast to work around TypeScript until types regenerate
+        const { data: profilesData } = await supabase
+          .from('profiles_public')
+          .select('id, username, display_name, avatar_url')
+          .in('id', userIds) as { data: { id: string; username: string | null; display_name: string | null; avatar_url: string | null }[] | null };
+        
+        const profilesMap = new Map((profilesData || []).map(p => [p.id, p]));
         
         result = postsData?.map((post: any) => {
           const profile = profilesMap.get(post.user_id);

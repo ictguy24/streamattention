@@ -6,16 +6,51 @@ interface LiveIndicatorProps {
   isUserLive?: boolean;
   onClick?: () => void;
   className?: string;
+  size?: "small" | "normal";
 }
 
 const LiveIndicator = ({ 
   hasActiveSessions = false, 
   isUserLive = false, 
   onClick,
-  className 
+  className,
+  size = "normal"
 }: LiveIndicatorProps) => {
   const isActive = isUserLive || hasActiveSessions;
 
+  // Small TikTok-style button
+  if (size === "small") {
+    return (
+      <motion.button
+        className={cn(
+          "relative flex items-center gap-1 px-2 py-1 rounded-md transition-all",
+          isActive 
+            ? "bg-destructive" 
+            : "bg-muted/30 border border-border/30",
+          className
+        )}
+        whileTap={{ scale: 0.9 }}
+        onClick={onClick}
+      >
+        {/* Pulsing dot */}
+        {isActive && (
+          <motion.div
+            className="w-1.5 h-1.5 rounded-full bg-destructive-foreground"
+            animate={{ scale: [1, 1.3, 1], opacity: [1, 0.7, 1] }}
+            transition={{ duration: 1, repeat: Infinity }}
+          />
+        )}
+        <span className={cn(
+          "text-[10px] font-bold uppercase tracking-wide",
+          isActive ? "text-destructive-foreground" : "text-muted-foreground"
+        )}>
+          Live
+        </span>
+      </motion.button>
+    );
+  }
+
+  // Normal size button
   return (
     <motion.button
       className={cn(

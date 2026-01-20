@@ -37,6 +37,7 @@ const CompanionsTab = ({ isFullscreen = false, onSwipeLeft }: CompanionsTabProps
         url: post.media_url || "",
         poster: post.thumbnail_url || post.cover_image_url,
         username: post.username || "user",
+        avatarUrl: post.avatar_url,
         description: post.description || "",
         likes: post.like_count || 0,
         comments: post.comment_count || 0,
@@ -100,13 +101,18 @@ const CompanionsTab = ({ isFullscreen = false, onSwipeLeft }: CompanionsTabProps
 
   if (posts.length === 0) {
     return (
-      <div className="h-full flex items-center justify-center px-8">
-        <div className="text-center">
-          <Users className="w-12 h-12 text-muted-foreground mx-auto mb-3" strokeWidth={1.5} />
-          <p className="text-muted-foreground text-sm">
-            Follow creators to see their content here
-          </p>
-        </div>
+      <div className="h-full flex flex-col items-center justify-center px-8">
+        <Users className="w-12 h-12 text-muted-foreground mb-3" strokeWidth={1.5} />
+        <p className="text-foreground font-medium mb-1">No feed yet</p>
+        <p className="text-muted-foreground text-sm text-center mb-4">
+          Follow creators to see their content here
+        </p>
+        <button 
+          className="px-4 py-2 rounded-lg bg-foreground text-background text-sm font-medium active:scale-95 transition-transform"
+          onClick={() => {/* Could open search sheet or navigate */}}
+        >
+          Add Friends
+        </button>
       </div>
     );
   }
@@ -115,6 +121,7 @@ const CompanionsTab = ({ isFullscreen = false, onSwipeLeft }: CompanionsTabProps
     <div
       ref={containerRef}
       className="h-full w-full overflow-y-auto snap-y snap-mandatory no-scrollbar"
+      style={{ overscrollBehavior: 'contain', scrollSnapStop: 'always' }}
     >
       {posts.map((video, index) => (
         <motion.div

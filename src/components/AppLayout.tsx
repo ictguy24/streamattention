@@ -114,6 +114,7 @@ const AppLayout = () => {
                 hasActiveSessions={hasActiveLiveSessions}
                 isUserLive={isUserLive}
                 onClick={handleLiveClick}
+                size="small"
               />
             </div>
 

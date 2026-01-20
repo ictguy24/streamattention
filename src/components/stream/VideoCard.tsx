@@ -21,6 +21,7 @@ interface VideoCardProps {
     url: string;
     poster?: string;
     username: string;
+    avatarUrl?: string | null;
     description: string;
     likes: number;
     comments: number;
@@ -42,6 +43,7 @@ const PLAYBACK_SPEEDS = [0.75, 1, 1.25, 1.5];
 
 const VideoCard = ({ video, isActive, isFullscreen = false, onSwipeRight }: VideoCardProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const musicRef = useRef<HTMLAudioElement>(null);
   const progressRef = useRef<HTMLDivElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
@@ -108,11 +110,27 @@ const VideoCard = ({ video, isActive, isFullscreen = false, onSwipeRight }: Vide
   }, [sessionId, video.id, reportVideoWatch]);
 
   const hashtags = video.hashtags || ["fyp", "trending", "viral"];
-  const audioName = video.audioName || "Original Sound";
+  const audioName = video.audioName || video.musicTitle || "Original Sound";
   const artistName = video.artistName || video.username;
+
+  // Handle music playback
+  useEffect(() => {
+    if (!musicRef.current || !video.musicUrl) return;
+    
+    if (isActive && isPlaying) {
+      musicRef.current.volume = video.musicVolume || 0.5;
+      musicRef.current.currentTime = videoRef.current?.currentTime || 0;
+      musicRef.current.play().catch(() => {});
+    } else {
+      musicRef.current.pause();
+    }
+  }, [isActive, isPlaying, video.musicUrl, video.musicVolume]);
 
   useEffect(() => {
     if (!videoRef.current) return;
+
+    // Set video volume based on originalVolume setting
+    videoRef.current.volume = video.originalVolume || 1;
 
     if (isActive) {
       videoRef.current.play().catch(() => {});
@@ -128,7 +146,7 @@ const VideoCard = ({ video, isActive, isFullscreen = false, onSwipeRight }: Vide
     return () => {
       if (restartTimeoutRef.current) clearTimeout(restartTimeoutRef.current);
     };
-  }, [isActive, video.id, reportWatchProgress]);
+  }, [isActive, video.id, reportWatchProgress, video.originalVolume]);
 
   const handleTimeUpdate = useCallback(() => {
     if (!videoRef.current || isSeeking || isDragging) return;
@@ -263,6 +281,11 @@ const VideoCard = ({ video, isActive, isFullscreen = false, onSwipeRight }: Vide
           <div className="absolute bottom-12 left-3 right-16 z-10">
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
               <div className="flex items-center gap-2 mb-1.5">
+                {video.avatarUrl && (
+                  <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-foreground/20">
+                    <img src={video.avatarUrl} alt={video.username} className="w-full h-full object-cover" />
+                  </div>
+                )}
                 <p className="font-semibold text-sm text-foreground">@{video.username}</p>
                 <FollowButton username={video.username} />
               </div>
@@ -302,6 +325,11 @@ const VideoCard = ({ video, isActive, isFullscreen = false, onSwipeRight }: Vide
             </motion.button>
           </div>
         </>
+      )}
+
+      {/* Background Music Audio Element */}
+      {video.musicUrl && (
+        <audio ref={musicRef} src={video.musicUrl} loop preload="auto" />
       )}
 
       <CommentSheet isOpen={showComments} onClose={() => setShowComments(false)} videoId={video.id} />
