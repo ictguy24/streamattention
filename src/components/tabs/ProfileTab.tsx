@@ -19,7 +19,7 @@ import { useAttention } from "@/contexts/AttentionContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-type ProfileSection = "overview" | "history" | "analytics" | "content" | "social" | "settings";
+type ProfileSection = "overview" | "history" | "content" | "social" | "settings";
 type AccountType = "user" | "creator" | "both";
 
 interface SocialLinks {
@@ -73,7 +73,6 @@ const ProfileTab = () => {
   const sections: { id: ProfileSection; label: string }[] = [
     { id: "overview", label: "Overview" },
     { id: "history", label: "History" },
-    { id: "analytics", label: "Analytics" },
     { id: "content", label: "Content" },
     { id: "social", label: "Social" },
     { id: "settings", label: "Settings" },
@@ -321,7 +320,6 @@ const ProfileTab = () => {
       <div className="mt-2">
         {activeSection === "overview" && <ActivitySnapshot />}
         {activeSection === "history" && <WatchHistoryHub />}
-        {activeSection === "analytics" && <PerformanceDashboard />}
         {activeSection === "content" && <MediaGrid />}
         {activeSection === "social" && <SocialControl />}
         {activeSection === "settings" && <SettingsPanel />}
