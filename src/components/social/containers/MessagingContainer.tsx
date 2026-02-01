@@ -9,6 +9,8 @@ import { cn } from "@/lib/utils";
 import { useConversations, useMessages } from "@/hooks/useConversations";
 import { useAuth } from "@/hooks/useAuth";
 import { useAttention } from "@/contexts/AttentionContext";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 interface DisplayConversation {
   id: string;
@@ -51,10 +53,14 @@ const MessagingContainer = ({ onACEarned }: MessagingContainerProps) => {
   );
 
   if (selectedConversation) {
+    // Get recipient ID from the conversation participants
+    const recipientId = conversations.find(c => c.id === selectedConversation.id)?.participants?.[0]?.user_id;
+    
     return (
       <ConversationView
         conversationId={selectedConversation.id}
         conversationName={selectedConversation.name}
+        recipientId={recipientId}
         avatarUrl={selectedConversation.avatar_url}
         isOnline={selectedConversation.online}
         onBack={() => setSelectedConversation(null)}
@@ -169,6 +175,7 @@ const MessagingContainer = ({ onACEarned }: MessagingContainerProps) => {
 interface ConversationViewProps {
   conversationId: string;
   conversationName: string;
+  recipientId?: string;
   avatarUrl?: string;
   isOnline: boolean;
   onBack: () => void;
@@ -178,6 +185,7 @@ interface ConversationViewProps {
 const ConversationView = ({ 
   conversationId, 
   conversationName, 
+  recipientId,
   avatarUrl,
   isOnline, 
   onBack, 
@@ -192,6 +200,32 @@ const ConversationView = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Check mutual follow status for call features
+  const { data: isMutualFollow } = useQuery({
+    queryKey: ['mutual-follow', user?.id, recipientId],
+    queryFn: async () => {
+      if (!user?.id || !recipientId) return false;
+      
+      const [{ data: iFollow }, { data: theyFollow }] = await Promise.all([
+        supabase
+          .from('follows')
+          .select('id')
+          .eq('follower_id', user.id)
+          .eq('following_id', recipientId)
+          .maybeSingle(),
+        supabase
+          .from('follows')
+          .select('id')
+          .eq('follower_id', recipientId)
+          .eq('following_id', user.id)
+          .maybeSingle()
+      ]);
+      
+      return !!(iFollow && theyFollow);
+    },
+    enabled: !!user?.id && !!recipientId,
+  });
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -291,10 +325,24 @@ const ConversationView = ({
         </div>
 
         <div className="flex items-center gap-1">
-          <button className="p-2 rounded-lg hover:bg-muted/20 active:scale-95 transition-transform">
+          <button 
+            className={cn(
+              "p-2 rounded-lg transition-transform",
+              isMutualFollow ? "hover:bg-muted/20 active:scale-95" : "opacity-30 cursor-not-allowed"
+            )}
+            disabled={!isMutualFollow}
+            title={!isMutualFollow ? "Follow each other to call" : "Voice call"}
+          >
             <Phone className="w-5 h-5 text-muted-foreground" strokeWidth={1.5} />
           </button>
-          <button className="p-2 rounded-lg hover:bg-muted/20 active:scale-95 transition-transform">
+          <button 
+            className={cn(
+              "p-2 rounded-lg transition-transform",
+              isMutualFollow ? "hover:bg-muted/20 active:scale-95" : "opacity-30 cursor-not-allowed"
+            )}
+            disabled={!isMutualFollow}
+            title={!isMutualFollow ? "Follow each other to video call" : "Video call"}
+          >
             <Video className="w-5 h-5 text-muted-foreground" strokeWidth={1.5} />
           </button>
           <button className="p-2 rounded-lg hover:bg-muted/20 active:scale-95 transition-transform">

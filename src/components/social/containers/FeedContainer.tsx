@@ -19,6 +19,7 @@ export type LayoutType = 'vertical' | 'grid' | 'masonry';
 
 interface FeedContainerProps {
   contentType: ContentType;
+  destination?: string;
   layout?: LayoutType;
   columns?: number;
   features?: {
@@ -34,6 +35,7 @@ interface FeedContainerProps {
 
 const FeedContainer = ({
   contentType,
+  destination,
   layout = 'vertical',
   columns = 3,
   features = { compose: true, media: true },
@@ -43,8 +45,16 @@ const FeedContainer = ({
 }: FeedContainerProps) => {
   const { user } = useAuth();
   const { sessionId, reportLike, reportSave } = useAttention();
-  const { posts, isLoading } = usePosts();
+  const { posts: allPosts, isLoading } = usePosts();
   const { createPost, isUploading } = useCreatePost();
+  
+  // Filter posts by destination if provided
+  const posts = destination 
+    ? allPosts.filter(post => {
+        const postDestinations = (post as any).destinations || ['stream'];
+        return Array.isArray(postDestinations) && postDestinations.includes(destination);
+      })
+    : allPosts;
   
   // State
   const [showCompose, setShowCompose] = useState(false);

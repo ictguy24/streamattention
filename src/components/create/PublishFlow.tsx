@@ -21,8 +21,9 @@ interface PublishData {
 
 const DESTINATIONS = [
   { id: "stream", name: "Stream", icon: Play, description: "Video feed" },
-  { id: "moments", name: "Moments", icon: ImageIcon, description: "Photo/video posts" },
-  { id: "snap", name: "Snap Zone", icon: Sparkles, description: "24h stories" },
+  { id: "threads", name: "Threads", icon: Send, description: "Text discussions" },
+  { id: "fuzz", name: "Fuzz", icon: ImageIcon, description: "Visual moments" },
+  { id: "gallery", name: "Gallery", icon: Sparkles, description: "24h stories" },
 ];
 
 const VISIBILITY_OPTIONS = [
