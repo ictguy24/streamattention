@@ -61,6 +61,7 @@ const CreateTab = () => {
       originalVolume: editedMedia?.originalVolume,
       hashtags: data.hashtags,
       isPublic: data.visibility === 'public',
+      destinations: data.destination,
     });
 
     if (result.success) {

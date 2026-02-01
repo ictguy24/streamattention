@@ -188,6 +188,7 @@ export interface CreatePostData {
   originalVolume?: number;
   hashtags?: string[];
   isPublic?: boolean;
+  destinations?: string[];
 }
 
 export const useCreatePost = () => {
@@ -304,6 +305,7 @@ export const useCreatePost = () => {
           original_volume: data.originalVolume ?? 1.0,
           music_source: data.musicFile ? 'upload' : data.musicLibraryId ? 'library' : null,
           is_public: data.isPublic ?? true,
+          destinations: data.destinations || ['stream'],
         })
         .select()
         .single();

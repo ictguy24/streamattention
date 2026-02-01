@@ -14,12 +14,14 @@ import { formatDistanceToNow } from "date-fns";
 interface StoriesContainerProps {
   mode?: 'stories' | 'memories' | 'gallery';
   showVault?: boolean;
+  destination?: string;
   onACEarned?: (amount: number) => void;
 }
 
 const StoriesContainer = ({ 
   mode = 'stories',
   showVault = false,
+  destination,
   onACEarned,
 }: StoriesContainerProps) => {
   const { user } = useAuth();
