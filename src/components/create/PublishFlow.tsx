@@ -35,7 +35,7 @@ const VISIBILITY_OPTIONS = [
 const PublishFlow = ({ media, onPublish, onClose, isUploading = false, uploadProgress = 0 }: PublishFlowProps) => {
   const coverInputRef = useRef<HTMLInputElement>(null);
   const [caption, setCaption] = useState("");
-  const [selectedDestinations, setSelectedDestinations] = useState<string[]>(["moments"]);
+  const [selectedDestinations, setSelectedDestinations] = useState<string[]>(["stream"]);
   const [visibility, setVisibility] = useState<"public" | "followers" | "private">("public");
   const [showVisibilityPicker, setShowVisibilityPicker] = useState(false);
   const [hashtagInput, setHashtagInput] = useState("");

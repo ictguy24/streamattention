@@ -39,6 +39,7 @@ serve(async (req) => {
     
     // Allow cron calls with correct secret or service role
     const isAuthorized = authHeader?.includes(Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '') ||
+                         req.headers.get('x-cron-secret') === cronSecret ||
                          authHeader?.includes(cronSecret || 'no-secret');
     
     if (!isAuthorized && cronSecret) {

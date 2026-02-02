@@ -33,7 +33,13 @@ interface UsePostsReturn {
   loadMore: () => Promise<void>;
 }
 
-export const usePosts = (feedType: 'personalized' | 'latest' = 'personalized'): UsePostsReturn => {
+interface UsePostsOptions {
+  feedType?: 'personalized' | 'latest';
+  destination?: string;
+}
+
+export const usePosts = (options: UsePostsOptions = {}): UsePostsReturn => {
+  const { feedType = 'personalized', destination } = options;
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
