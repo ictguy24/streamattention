@@ -1,202 +1,119 @@
 
-# Fix Plan - Content Visibility and Missing Features
+# Fix: "Hook requires authorization token" Login Error
 
-## Issues Identified
+## Root Cause Analysis
 
-### 1. Critical: Posts Missing `destinations` Field in Response
-**Root Cause**: The `Post` interface in `usePosts.tsx` doesn't include `destinations`. Additionally:
-- The fallback query doesn't fetch `destinations` column
-- The RPC functions (`get_personalized_feed`, `get_followed_posts`) don't return `destinations`
+The error `"Hook requires authorization token"` is a **Supabase backend configuration issue**, not a frontend code problem. 
 
-This means when `FeedContainer` tries to filter by destination (`post.destinations.includes(destination)`), it always falls back to `['stream']` because the field is undefined.
+### What's Happening
+When a user tries to sign in, Supabase Auth triggers a custom hook (likely a database function) that requires elevated permissions. The hook is failing because:
+1. There's a custom Auth Hook configured in Supabase (like a pre-sign-in hook or custom password verification)
+2. The hook function requires SECURITY DEFINER privileges or service role access
+3. The hook is misconfigured and not receiving proper authorization
 
-**Fix**:
-1. Update the `Post` interface to include `destinations: string[]`
-2. Update the fallback query to fetch `destinations`
-3. Update both RPC functions to return `destinations`
+### Evidence
+From the network logs:
+```
+POST /auth/v1/token?grant_type=password
+Status: 500
+Response: {"code":"unexpected_failure","message":"Hook requires authorization token"}
+```
 
-### 2. PublishFlow Default Destination is Wrong
-**Root Cause**: In `PublishFlow.tsx`, the default selected destination is `["moments"]` which is NOT a valid destination (valid ones are: stream, threads, fuzz, gallery).
+This is a server-side 500 error from Supabase Auth, not a client-side issue.
 
-**Fix**: Change default from `["moments"]` to `["stream"]`
+---
 
-### 3. useConversations Joins on `profiles` Instead of `profiles_public`
-**Root Cause**: The `useConversations` hook tries to join with `profiles` table which has restrictive RLS. It should use `profiles_public` view.
+## Solution
 
-**Fix**: Update the query to use `profiles_public` for fetching participant info.
+### Option 1: Disable the Problematic Auth Hook (Recommended)
 
-### 4. useMessages Joins on `profiles` (sender info)
-**Root Cause**: Same issue - joins with `profiles` which fails due to RLS.
+The project likely has an Auth Hook configured that's causing this issue. We need to disable it or fix its configuration.
 
-**Fix**: Fetch sender info from `profiles_public` view.
+**Steps:**
+1. Check if there's a custom Auth Hook configuration in the Supabase project settings
+2. The hook may be configured in the Auth settings as a "Custom Access Token Hook" or similar
+3. Disable the hook temporarily to restore login functionality
+
+### Option 2: Fix the Hook Authorization
+
+If the hook is needed, ensure it has proper authorization:
+
+**Database Function Fix:**
+```sql
+-- Ensure the trigger function uses SECURITY DEFINER
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER  -- This is critical
+SET search_path = public
+AS $$
+BEGIN
+  INSERT INTO public.profiles (id, username, display_name)
+  VALUES (
+    new.id,
+    new.raw_user_meta_data ->> 'username',
+    COALESCE(new.raw_user_meta_data ->> 'display_name', new.raw_user_meta_data ->> 'username')
+  );
+  RETURN new;
+END;
+$$;
+```
 
 ---
 
 ## Implementation Plan
 
-### Phase 1: Database Migration - Update RPC Functions
+### Phase 1: Investigate Auth Hooks
+Check the Supabase project for any custom Auth Hooks that may have been configured:
+- Navigate to Authentication > Hooks in the Supabase dashboard
+- Look for any enabled hooks (Custom Access Token, MFA Verification, etc.)
 
-Update both RPC functions to include `destinations` in return:
+### Phase 2: Disable or Fix the Hook
+Two paths depending on findings:
 
-```sql
--- Update get_personalized_feed to include destinations
-CREATE OR REPLACE FUNCTION public.get_personalized_feed(
-  p_user_id uuid, p_limit integer DEFAULT 20, p_offset integer DEFAULT 0
-)
-RETURNS TABLE (
-  post_id uuid, user_id uuid, username text, display_name text, avatar_url text,
-  content_type text, title text, description text, media_url text, thumbnail_url text,
-  cover_image_url text, music_url text, music_volume double precision,
-  original_volume double precision, music_title text, like_count integer,
-  comment_count integer, view_count integer, created_at timestamptz,
-  relevance_score double precision,
-  destinations text[]  -- ADD THIS
-) ...
+**Path A - If External HTTP Hook Found:**
+- Disable the hook temporarily
+- Verify login works
+- Re-configure with proper authorization header
 
--- Update get_followed_posts to include destinations
-CREATE OR REPLACE FUNCTION public.get_followed_posts(...)
-RETURNS TABLE (
-  ...
-  destinations text[]  -- ADD THIS
-) ...
-```
+**Path B - If Database Trigger Issue:**
+- Ensure `handle_new_user` function has `SECURITY DEFINER`
+- Verify the trigger is properly attached to `auth.users`
 
-### Phase 2: Update usePosts.tsx
-
-1. Add `destinations` to Post interface:
-```typescript
-export interface Post {
-  // ... existing fields
-  destinations: string[];
-}
-```
-
-2. Update fallback query to fetch destinations:
-```typescript
-const { data: postsData } = await supabase
-  .from('posts')
-  .select(`
-    id, user_id, content_type, title, description, media_url,
-    thumbnail_url, cover_image_url, music_url, music_volume,
-    original_volume, music_title, like_count, comment_count,
-    view_count, created_at,
-    destinations  // ADD THIS
-  `)
-```
-
-3. Map destinations in result:
-```typescript
-result = postsData?.map((post) => ({
-  ...post,
-  destinations: post.destinations || ['stream'],
-  // ... other fields
-}));
-```
-
-### Phase 3: Fix PublishFlow Default Destination
-
-In `src/components/create/PublishFlow.tsx`:
-```typescript
-// Change from:
-const [selectedDestinations, setSelectedDestinations] = useState<string[]>(["moments"]);
-
-// To:
-const [selectedDestinations, setSelectedDestinations] = useState<string[]>(["stream"]);
-```
-
-### Phase 4: Fix useConversations Profile Fetching
-
-Update `src/hooks/useConversations.tsx` to use `profiles_public`:
-
-```typescript
-// In conversation participants query, fetch from profiles_public separately
-const { data: participants } = await supabase
-  .from("conversation_participants")
-  .select("user_id")
-  .eq("conversation_id", conv.id);
-
-// Fetch profile info from profiles_public view
-const userIds = participants.map(p => p.user_id).filter(id => id !== user.id);
-const { data: profiles } = await supabase
-  .from("profiles_public")
-  .select("id, username, avatar_url")
-  .in("id", userIds);
-```
-
-### Phase 5: Fix useMessages Sender Info
-
-Update message fetching to use `profiles_public`:
-
-```typescript
-// Fetch messages first
-const { data: messagesData } = await supabase
-  .from("messages")
-  .select("*")
-  .eq("conversation_id", conversationId)
-  .order("created_at", { ascending: true });
-
-// Then fetch sender profiles from profiles_public
-const senderIds = [...new Set(messagesData.map(m => m.sender_id))];
-const { data: profiles } = await supabase
-  .from("profiles_public")
-  .select("id, username, avatar_url")
-  .in("id", senderIds);
-
-// Map profiles to messages
-const profilesMap = new Map(profiles.map(p => [p.id, p]));
-return messagesData.map(msg => ({
-  ...msg,
-  sender: profilesMap.get(msg.sender_id),
-}));
-```
-
-### Phase 6: Fix FeedContainer Filter
-
-Update `src/components/social/containers/FeedContainer.tsx` to properly type and access destinations:
-
-```typescript
-// The filter should work once Post includes destinations:
-const posts = destination 
-  ? allPosts.filter(post => {
-      const postDestinations = post.destinations || ['stream'];
-      return postDestinations.includes(destination);
-    })
-  : allPosts;
-```
+### Phase 3: Verify Fix
+- Test login with existing credentials
+- Test signup with new account
+- Confirm profile creation works
 
 ---
 
 ## Files to Modify
 
-| File | Changes |
-|------|---------|
-| **Database Migration** | Update `get_personalized_feed` and `get_followed_posts` to return `destinations` |
-| `src/hooks/usePosts.tsx` | Add `destinations` to Post interface; update fallback query to fetch it |
-| `src/components/create/PublishFlow.tsx` | Change default destination from `["moments"]` to `["stream"]` |
-| `src/hooks/useConversations.tsx` | Use `profiles_public` view instead of `profiles` join |
-| `src/components/social/containers/FeedContainer.tsx` | Remove `as any` cast since Post will include destinations |
+| Component | Action |
+|-----------|--------|
+| **Supabase Auth Settings** | Disable or reconfigure the problematic auth hook |
+| **Database Migration** | Ensure `handle_new_user` function has correct permissions |
 
 ---
 
-## Expected Outcomes
+## Expected Outcome
 
-1. **Logged-in users see content** - RPC returns proper data with destinations
-2. **Posts appear in correct feeds** - Destination filtering works properly
-3. **New posts default to Stream** - Instead of invalid "moments" destination
-4. **Messaging works** - Conversation and message participant info loads correctly
-5. **SocialTab modes show filtered content** - Threads, Fuzz, Gallery each show only their content
+After this fix:
+1. Users can sign in without the "Hook requires authorization token" error
+2. New user registration creates profiles correctly
+3. Auth flow works as expected
 
 ---
 
-## Technical Notes
+## Important Note
 
-### Why Posts Weren't Appearing
-The flow was:
-1. User logs in → `usePosts` calls `get_personalized_feed` RPC
-2. RPC returns posts WITHOUT `destinations` field
-3. `FeedContainer` tries to filter: `post.destinations.includes('threads')`
-4. Since `post.destinations` is undefined, it falls back to `['stream']`
-5. For modes like ThreadsMode with `destination="threads"`, filter returns empty
+This issue is in the **Supabase backend configuration**, not in the frontend code. The Auth.tsx and useAuth.tsx files are correctly implemented. The fix requires:
 
-### RLS on profiles
-The `profiles` table has `USING (auth.uid() = id)` which only allows users to see their own profile. The `profiles_public` view exists specifically for cross-user profile lookups with limited fields.
+1. Accessing the Lovable Cloud backend dashboard to check Auth Hook settings
+2. Potentially running a database migration to fix function permissions
+
+You can access the backend settings here:
+
+<lov-actions>
+<lov-open-backend>View Cloud Dashboard</lov-open-backend>
+</lov-actions>
