@@ -51,8 +51,8 @@ const FeedContainer = ({
   // Filter posts by destination if provided
   const posts = destination 
     ? allPosts.filter(post => {
-        const postDestinations = (post as any).destinations || ['stream'];
-        return Array.isArray(postDestinations) && postDestinations.includes(destination);
+        const postDestinations = post.destinations || ['stream'];
+        return postDestinations.includes(destination);
       })
     : allPosts;
   

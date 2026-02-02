@@ -1194,6 +1194,7 @@ export type Database = {
           cover_image_url: string
           created_at: string
           description: string
+          destinations: string[]
           display_name: string
           like_count: number
           media_url: string
@@ -1226,6 +1227,7 @@ export type Database = {
           cover_image_url: string
           created_at: string
           description: string
+          destinations: string[]
           display_name: string
           like_count: number
           media_url: string

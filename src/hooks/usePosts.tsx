@@ -22,6 +22,7 @@ export interface Post {
   view_count: number;
   created_at: string;
   relevance_score?: number;
+  destinations: string[];
 }
 
 interface UsePostsReturn {
@@ -80,7 +81,8 @@ export const usePosts = (feedType: 'personalized' | 'latest' = 'personalized'): 
             like_count,
             comment_count,
             view_count,
-            created_at
+            created_at,
+            destinations
           `)
           .eq('is_public', true)
           .order('created_at', { ascending: false })
@@ -106,6 +108,7 @@ export const usePosts = (feedType: 'personalized' | 'latest' = 'personalized'): 
             username: profile?.username || 'unknown',
             display_name: profile?.display_name || 'Unknown User',
             avatar_url: profile?.avatar_url || null,
+            destinations: post.destinations || ['stream'],
           };
         });
       }
