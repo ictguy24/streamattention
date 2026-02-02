@@ -67,13 +67,24 @@ export const useConversations = () => {
       // Get participants for each conversation
       const conversationsWithDetails = await Promise.all(
         (convData || []).map(async (conv) => {
-          const { data: participants } = await supabase
+          // Get participant user IDs
+          const { data: participantsData } = await supabase
             .from("conversation_participants")
-            .select(`
-              user_id,
-              profiles:user_id (username, avatar_url)
-            `)
+            .select("user_id")
             .eq("conversation_id", conv.id);
+
+          // Filter out current user and get other participant IDs
+          const otherUserIds = (participantsData || [])
+            .map(p => p.user_id)
+            .filter(id => id !== user.id);
+
+          // Fetch profiles from profiles_public view
+          const { data: profilesData } = await supabase
+            .from("profiles_public")
+            .select("id, username, avatar_url")
+            .in("id", otherUserIds);
+
+          const profilesMap = new Map((profilesData || []).map(p => [p.id, p]));
 
           // Get last message
           const { data: messages } = await supabase
@@ -95,13 +106,14 @@ export const useConversations = () => {
             id: conv.id,
             created_at: conv.created_at,
             updated_at: conv.updated_at,
-            participants: (participants || [])
-              .filter((p: any) => p.user_id !== user.id)
-              .map((p: any) => ({
-                user_id: p.user_id,
-                username: p.profiles?.username,
-                avatar_url: p.profiles?.avatar_url,
-              })),
+            participants: otherUserIds.map(uid => {
+              const profile = profilesMap.get(uid);
+              return {
+                user_id: uid,
+                username: profile?.username || undefined,
+                avatar_url: profile?.avatar_url || undefined,
+              };
+            }),
             lastMessage: messages?.[0] || null,
             unreadCount: unreadCount || 0,
           };
@@ -154,18 +166,27 @@ export const useMessages = (conversationId: string | null) => {
     queryFn: async () => {
       if (!conversationId) return [];
 
-      const { data, error } = await supabase
+      // Fetch messages first
+      const { data: messagesData, error: msgError } = await supabase
         .from("messages")
-        .select(`
-          *,
-          sender:sender_id (username, avatar_url)
-        `)
+        .select("*")
         .eq("conversation_id", conversationId)
         .order("created_at", { ascending: true });
 
-      if (error) throw error;
+      if (msgError) throw msgError;
 
-      return (data || []).map((msg: any) => ({
+      // Get unique sender IDs
+      const senderIds = [...new Set((messagesData || []).map(m => m.sender_id))];
+
+      // Fetch sender profiles from profiles_public
+      const { data: profilesData } = await supabase
+        .from("profiles_public")
+        .select("id, username, avatar_url")
+        .in("id", senderIds);
+
+      const profilesMap = new Map((profilesData || []).map(p => [p.id, p]));
+
+      return (messagesData || []).map((msg) => ({
         id: msg.id,
         conversation_id: msg.conversation_id,
         sender_id: msg.sender_id,
@@ -174,7 +195,7 @@ export const useMessages = (conversationId: string | null) => {
         media_type: msg.media_type,
         created_at: msg.created_at,
         read_at: msg.read_at,
-        sender: msg.sender,
+        sender: profilesMap.get(msg.sender_id) || undefined,
       }));
     },
     enabled: !!conversationId,
