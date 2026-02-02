@@ -14,3 +14,9 @@ verify_jwt = true
 
 [functions.decay-cron]
 verify_jwt = false
+
+[params]
+jwt_exp = 3600
+anon_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp4cWplbGJoYWhvZ25tcmJnangiLCJyb2xlIjoiYW5vbiIsImV4cCI6MTcxMzM1ODk1N30.lOMSKaHV9nHlW6PwQ5E0LQ8K3gO3gZfjF47oJ1m881A"
+service_role_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp4cWplbGJoYWhvZ25tcmJnangiLCJyb2xlIjoic2VydmljZV9yb2xlIiwiZXhwIjoxNzEzMzU4OTU3fQ.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+cron_secret = "your-super-secret-cron-key-here"
