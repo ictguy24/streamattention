@@ -117,3 +117,4 @@ You can access the backend settings here:
 <lov-actions>
 <lov-open-backend>View Cloud Dashboard</lov-open-backend>
 </lov-actions>
+Also fix bucket issue i tried uploading but it says no bucket yet I created it in supabase & is called Attention Storage 
