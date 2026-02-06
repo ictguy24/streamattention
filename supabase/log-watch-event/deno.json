@@ -1,0 +1,6 @@
+{
+  "importMap": "./import_map.json",
+  "tasks": {
+    "dev": "deno run -A --watch=static/,index.ts supabase/functions/log-watch-event/index.ts"
+  }
+}
