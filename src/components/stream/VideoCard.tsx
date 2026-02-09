@@ -18,6 +18,7 @@ import { EnergyIcon } from "../social/InteractionIcons";
 interface VideoCardProps {
   video: {
     id: string;
+    userId: string;
     url: string;
     poster?: string;
     username: string;
@@ -286,8 +287,8 @@ const VideoCard = ({ video, isActive, isFullscreen = false, onSwipeRight }: Vide
                     <img src={video.avatarUrl} alt={video.username} className="w-full h-full object-cover" />
                   </div>
                 )}
-                <p className="font-semibold text-sm text-foreground">@{video.username}</p>
-                <FollowButton username={video.username} />
+                <p className="font-semibold text-sm text-foreground">{video.username}</p>
+                <FollowButton userId={video.userId} />
               </div>
               <p className="text-xs text-foreground/90 line-clamp-2 mb-1.5">{video.description}</p>
               <div className="flex flex-wrap gap-1 mb-1.5">

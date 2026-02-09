@@ -220,7 +220,7 @@ const StoriesContainer = ({
                       </div>
 
                       <div className="flex-1 min-w-0">
-                        <p className="font-medium text-foreground text-sm">@{story.username || 'user'}</p>
+                        <p className="font-medium text-foreground text-sm">{story.username || 'user'}</p>
                         <div className="flex items-center gap-3 mt-1">
                           <span className="text-[10px] text-muted-foreground">{formatTimeAgo(story.created_at)}</span>
                           <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
