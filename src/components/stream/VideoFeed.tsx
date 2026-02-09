@@ -113,6 +113,7 @@ export default function VideoFeed({ isFullscreen, onSwipeRight }: VideoFeedProps
           <VideoCard
             video={{
               id: currentPost.id,
+              userId: currentPost.user_id,
               url: currentPost.media_url || "",
               poster: currentPost.thumbnail_url || currentPost.cover_image_url || undefined,
               username: currentPost.username || "user",

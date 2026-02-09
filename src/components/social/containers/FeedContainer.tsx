@@ -452,7 +452,7 @@ const GridItem = ({ post, index, isLiked, isSaved, isExpanded, onToggleLike, onT
       )}
 
       <motion.div className="absolute bottom-0 left-0 right-0 p-2">
-        <p className="text-[10px] text-foreground font-medium truncate">@{post.username || 'user'}</p>
+        <p className="text-[10px] text-foreground font-medium truncate">{post.username || 'user'}</p>
       </motion.div>
 
       <AnimatePresence>
@@ -519,7 +519,7 @@ const MasonryItem = ({ post, isLiked, isSaved, onToggleLike, onToggleSave, onCom
                 {(post.username || 'U')[0].toUpperCase()}
               </AvatarFallback>
             </Avatar>
-            <span className="text-xs font-medium text-foreground">@{post.username || 'user'}</span>
+            <span className="text-xs font-medium text-foreground">{post.username || 'user'}</span>
           </div>
           <span className="text-[10px] text-muted-foreground">{formatTimeAgo(post.created_at || '')}</span>
         </div>
@@ -586,7 +586,7 @@ const VerticalItem = ({ post, index, isLiked, isSaved, onToggleLike, onToggleSav
           <div className="flex items-center justify-between mb-1">
             <div className="flex items-center gap-1.5">
               <span className="font-medium text-foreground">{post.display_name || post.username || 'User'}</span>
-              <span className="text-muted-foreground text-sm">@{post.username || 'user'}</span>
+              <span className="text-muted-foreground text-sm">{post.username || 'user'}</span>
               <span className="text-muted-foreground text-sm">·</span>
               <span className="text-muted-foreground text-sm">{formatTimeAgo(post.created_at || '')}</span>
             </div>
