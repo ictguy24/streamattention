@@ -198,7 +198,10 @@ const NotificationSheet = forwardRef<HTMLDivElement, NotificationSheetProps>(({ 
                       <div className="shrink-0">
                         <button
                           className="px-3 py-1.5 rounded-lg bg-foreground text-background text-xs font-medium active:scale-95 transition-transform"
-                          onClick={() => followMutation.mutate(notification.actor_id!)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            followMutation.mutate(notification.actor_id!);
+                          }}
                           disabled={followMutation.isPending}
                         >
                           {followMutation.isPending ? (

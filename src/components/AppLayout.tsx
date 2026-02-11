@@ -9,10 +9,10 @@ import SocialTab from "./tabs/SocialTab";
 import CreateTab from "./tabs/CreateTab";
 import LiveTab from "./tabs/LiveTab";
 import ProfileTab from "./tabs/ProfileTab";
-import CompanionsTab from "./tabs/CompanionsTab";
 import BottomNav from "./BottomNav";
 import NotificationSheet from "./stream/NotificationSheet";
 import DiscoverySearchSheet from "./search/DiscoverySearchSheet";
+import FeedToggle from "./stream/FeedToggle";
 import { useGestures } from "@/hooks/useGestures";
 import { useAttention } from "@/contexts/AttentionContext";
 import { useNotifications } from "@/hooks/useNotifications";
@@ -31,6 +31,7 @@ const AppLayout = () => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [streamSubTab, setStreamSubTab] = useState<"companions" | "stream">("stream");
   
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -69,7 +70,8 @@ const AppLayout = () => {
         return (
           <StreamTab 
             isFullscreen={isFullscreen}
-            onSwipeRight={() => {}}
+            activeSubTab={streamSubTab}
+            onSubTabChange={setStreamSubTab}
           />
         );
       case "social":
@@ -81,7 +83,7 @@ const AppLayout = () => {
       case "profile":
         return <ProfileTab />;
       default:
-        return <StreamTab isFullscreen={isFullscreen} />;
+        return <StreamTab isFullscreen={isFullscreen} activeSubTab={streamSubTab} onSubTabChange={setStreamSubTab} />;
     }
   };
 
@@ -98,7 +100,7 @@ const AppLayout = () => {
     <div 
       ref={containerRef}
       className="min-h-screen bg-background overflow-hidden"
-      {...gestureProps}
+      {...(activeTab === "stream" ? gestureProps : {})}
     >
       {/* Top Header - Hidden in fullscreen */}
       {!isFullscreen && activeTab !== "create" && activeTab !== "live" && (
@@ -117,6 +119,11 @@ const AppLayout = () => {
                 size="small"
               />
             </div>
+
+            {/* Center: Feed Toggle (Stream tab only) */}
+            {activeTab === "stream" && (
+              <FeedToggle activeTab={streamSubTab} onTabChange={setStreamSubTab} />
+            )}
 
             {/* Right: Search + Notification Icon */}
             <div className="flex items-center gap-1">
