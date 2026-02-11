@@ -318,12 +318,6 @@ const VideoCard = ({ video, isActive, isFullscreen = false, onSwipeRight }: Vide
             <div className="flex flex-col items-center gap-0.5">
               <AnimatedCollectIcon isActive={isSaved} onClick={handleSave} className="drop-shadow-lg" />
             </div>
-            <motion.button className="mt-1" whileTap={{ scale: 0.85 }} onClick={toggleMute}>
-              {isMuted ? <VolumeX className="w-5 h-5 text-foreground/70 drop-shadow-lg" /> : <Volume2 className="w-5 h-5 text-foreground drop-shadow-lg" />}
-            </motion.button>
-            <motion.button className="mt-0.5 px-1.5 py-0.5 rounded-full bg-background/30 backdrop-blur-sm" whileTap={{ scale: 0.9 }} onClick={cycleSpeed}>
-              <span className="text-[10px] text-foreground font-medium">{playbackSpeed}x</span>
-            </motion.button>
           </div>
         </>
       )}

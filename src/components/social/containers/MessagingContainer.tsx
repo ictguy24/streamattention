@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Search, Edit, ChevronLeft, Send, Mic, Video, Image, Phone, 
-  MoreVertical, Paperclip, Square, Loader2, MessageCircle
+  MoreVertical, Paperclip, Square, Loader2, MessageCircle, X
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
@@ -25,6 +25,134 @@ interface DisplayConversation {
 interface MessagingContainerProps {
   onACEarned?: (amount: number) => void;
 }
+
+// =================== NEW MESSAGE BUTTON ===================
+
+interface NewMessageButtonProps {
+  userId?: string;
+  onConversationCreated: (conv: DisplayConversation) => void;
+}
+
+const NewMessageButton = ({ userId, onConversationCreated }: NewMessageButtonProps) => {
+  const [showPicker, setShowPicker] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isCreating, setIsCreating] = useState(false);
+
+  const { data: searchResults = [], isLoading: isSearching } = useQuery({
+    queryKey: ["user-search-msg", searchQuery],
+    queryFn: async () => {
+      if (!searchQuery.trim() || searchQuery.length < 2) return [];
+      const { data } = await supabase
+        .from("profiles_public")
+        .select("id, username, display_name, avatar_url")
+        .or(`username.ilike.%${searchQuery}%,display_name.ilike.%${searchQuery}%`)
+        .neq("id", userId || "")
+        .limit(10);
+      return data || [];
+    },
+    enabled: showPicker && searchQuery.length >= 2,
+  });
+
+  const handleSelectUser = async (selectedUser: any) => {
+    if (!userId || isCreating) return;
+    setIsCreating(true);
+    try {
+      const { data } = await supabase.rpc("get_or_create_conversation", {
+        p_user_id: userId,
+        p_other_user_id: selectedUser.id,
+      });
+      if (data) {
+        onConversationCreated({
+          id: data,
+          name: selectedUser.username || selectedUser.display_name || "User",
+          lastMessage: "",
+          time: "",
+          unread: 0,
+          online: false,
+          avatar_url: selectedUser.avatar_url,
+        });
+        setShowPicker(false);
+        setSearchQuery("");
+      }
+    } catch (err) {
+      console.error("Failed to create conversation:", err);
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  return (
+    <>
+      <motion.button
+        className="mx-4 mb-4 flex items-center justify-center gap-2 py-3 rounded-lg bg-muted/20 text-foreground active:scale-[0.98] transition-transform"
+        whileTap={{ scale: 0.98 }}
+        onClick={() => setShowPicker(true)}
+      >
+        <Edit className="w-4 h-4" strokeWidth={1.5} />
+        <span className="text-sm font-medium">New Message</span>
+      </motion.button>
+
+      <AnimatePresence>
+        {showPicker && (
+          <motion.div
+            className="fixed inset-0 z-50 bg-background flex flex-col"
+            initial={{ y: "100%" }}
+            animate={{ y: 0 }}
+            exit={{ y: "100%" }}
+            transition={{ duration: 0.25 }}
+          >
+            <div className="flex items-center gap-3 px-4 py-3 border-b border-border/20">
+              <button onClick={() => { setShowPicker(false); setSearchQuery(""); }} className="p-2 -ml-2">
+                <X className="w-5 h-5 text-foreground" />
+              </button>
+              <h3 className="font-semibold text-foreground">New Message</h3>
+            </div>
+            <div className="px-4 py-3">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <input
+                  autoFocus
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search by username..."
+                  className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-muted/20 text-sm placeholder:text-muted-foreground focus:outline-none"
+                />
+              </div>
+            </div>
+            <div className="flex-1 overflow-y-auto">
+              {isSearching ? (
+                <div className="flex justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
+              ) : searchResults.length === 0 && searchQuery.length >= 2 ? (
+                <p className="text-center text-muted-foreground text-sm py-8">No users found</p>
+              ) : (
+                searchResults.map((u: any) => (
+                  <button
+                    key={u.id}
+                    className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/10 active:scale-[0.99] transition-all"
+                    onClick={() => handleSelectUser(u)}
+                    disabled={isCreating}
+                  >
+                    <Avatar className="w-10 h-10">
+                      <AvatarImage src={u.avatar_url} />
+                      <AvatarFallback className="bg-muted/30 text-foreground">{(u.username || "U")[0].toUpperCase()}</AvatarFallback>
+                    </Avatar>
+                    <div className="text-left">
+                      <p className="text-sm font-medium text-foreground">{u.display_name || u.username}</p>
+                      {u.username && <p className="text-xs text-muted-foreground">@{u.username}</p>}
+                    </div>
+                  </button>
+                ))
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
+  );
+};
+
+// =================== MESSAGING CONTAINER ===================
 
 const MessagingContainer = ({ onACEarned }: MessagingContainerProps) => {
   const { user } = useAuth();
@@ -91,13 +219,10 @@ const MessagingContainer = ({ onACEarned }: MessagingContainerProps) => {
       </div>
 
       {/* New Message Button */}
-      <motion.button
-        className="mx-4 mb-4 flex items-center justify-center gap-2 py-3 rounded-lg bg-muted/20 text-foreground active:scale-[0.98] transition-transform"
-        whileTap={{ scale: 0.98 }}
-      >
-        <Edit className="w-4 h-4" strokeWidth={1.5} />
-        <span className="text-sm font-medium">New Message</span>
-      </motion.button>
+      <NewMessageButton 
+        userId={user?.id}
+        onConversationCreated={(conv) => setSelectedConversation(conv)}
+      />
 
       {/* Conversation List */}
       <div className="flex-1 overflow-y-auto">
