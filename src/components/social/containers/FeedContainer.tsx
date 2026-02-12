@@ -6,7 +6,6 @@ import {
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
-import { useVirtualizer } from "@tanstack/react-virtual";
 import { usePosts, useCreatePost } from "@/hooks/usePosts";
 import { useAuth } from "@/hooks/useAuth";
 import { useAttention } from "@/contexts/AttentionContext";
@@ -68,14 +67,6 @@ const FeedContainer = ({
   // Refs
   const parentRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Virtualizer for performance
-  const rowVirtualizer = useVirtualizer({
-    count: posts.length,
-    getScrollElement: () => parentRef.current,
-    estimateSize: () => layout === 'grid' ? 150 : 300,
-    overscan: 5,
-  });
 
   // Handlers
   const toggleLike = useCallback((id: string) => {
