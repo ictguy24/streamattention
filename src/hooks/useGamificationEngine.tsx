@@ -104,10 +104,13 @@ export const useGamificationEngine = (): GamificationState => {
       if (error) throw error;
       
       // Map the data to flatten the achievement
-      return (data || []).map((ua: any) => ({
-        ...ua,
-        achievement: ua.achievement as Achievement,
-      })) as UserAchievement[];
+      return (data || []).map((ua: unknown) => {
+        const userAchievement = ua as { achievement?: Achievement };
+        return {
+          ...ua,
+          achievement: userAchievement.achievement as Achievement,
+        };
+      }) as UserAchievement[];
     },
     enabled: !!user?.id,
   });

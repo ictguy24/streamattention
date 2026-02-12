@@ -210,21 +210,24 @@ export const useMediaSession = (): UseMediaSessionReturn => {
 
       if (error) throw error;
 
-      return (data || []).map((item: any) => ({
-        id: item.id,
-        post_id: item.post_id,
-        watch_duration_ms: item.watch_duration_ms,
-        completed: item.completed,
-        watched_at: item.watched_at,
-        post: item.posts ? {
-          title: item.posts.title,
-          description: item.posts.description,
-          thumbnail_url: item.posts.thumbnail_url,
-          media_url: item.posts.media_url,
-          username: item.posts.profiles?.username,
-          avatar_url: item.posts.profiles?.avatar_url,
-        } : undefined,
-      }));
+      return (data || []).map((item: unknown) => {
+        const historyItem = item as { id: string; post_id: string; watch_duration_ms?: number; completed?: boolean; watched_at: string; posts?: { title?: string; description?: string; thumbnail_url?: string; media_url?: string; profiles?: { username?: string; avatar_url?: string } } };
+        return {
+          id: historyItem.id,
+          post_id: historyItem.post_id,
+          watch_duration_ms: historyItem.watch_duration_ms,
+          completed: historyItem.completed,
+          watched_at: historyItem.watched_at,
+          post: historyItem.posts ? {
+            title: historyItem.posts.title,
+            description: historyItem.posts.description,
+            thumbnail_url: historyItem.posts.thumbnail_url,
+            media_url: historyItem.posts.media_url,
+            username: historyItem.posts.profiles?.username,
+            avatar_url: historyItem.posts.profiles?.avatar_url,
+          } : undefined,
+        };
+      });
     },
     enabled: !!user,
   });

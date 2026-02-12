@@ -7,6 +7,14 @@ import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
+type WatchHistoryItem = {
+  id: string;
+  title: string;
+  progress?: number;
+  timeAgo: string;
+  thumbnail?: string;
+};
+
 const WatchHistoryHub = () => {
   const [expandedFolder, setExpandedFolder] = useState<string | null>("resume");
   const { user } = useAuth();
@@ -83,46 +91,61 @@ const WatchHistoryHub = () => {
   const resumeItems = history
     .filter(h => !h.completed && (h.watch_duration_ms || 0) > 0)
     .slice(0, 10)
-    .map(h => ({
-      id: h.id,
-      title: (h as any).posts?.title || (h as any).posts?.description?.slice(0, 30) || "Video",
-      progress: Math.min(((h.watch_duration_ms || 0) / 60000) * 100, 99),
-      timeAgo: formatTimeAgo(h.watched_at),
-      thumbnail: (h as any).posts?.thumbnail_url,
-    }));
+    .map((h: unknown) => {
+      const historyItem = h as { id: string; watch_duration_ms?: number; watched_at: string; posts?: { title?: string; description?: string; thumbnail_url?: string } };
+      return {
+        id: historyItem.id,
+        title: historyItem.posts?.title || historyItem.posts?.description?.slice(0, 30) || "Video",
+        progress: Math.min(((historyItem.watch_duration_ms || 0) / 60000) * 100, 99),
+        timeAgo: formatTimeAgo(historyItem.watched_at),
+        thumbnail: historyItem.posts?.thumbnail_url,
+      };
+    });
 
   const watchedItems = history
     .filter(h => h.completed)
     .slice(0, 10)
-    .map(h => ({
-      id: h.id,
-      title: (h as any).posts?.title || "Video",
-      timeAgo: formatTimeAgo(h.watched_at),
-      thumbnail: (h as any).posts?.thumbnail_url,
-    }));
+    .map((h: unknown) => {
+      const historyItem = h as { id: string; watched_at: string; posts?: { title?: string; thumbnail_url?: string } };
+      return {
+        id: historyItem.id,
+        title: historyItem.posts?.title || "Video",
+        timeAgo: formatTimeAgo(historyItem.watched_at),
+        thumbnail: historyItem.posts?.thumbnail_url,
+      };
+    });
 
-  const likedItems = userLikedPosts.slice(0, 10).map((like: any) => ({
-    id: like.post_id,
-    title: like.posts?.title || like.posts?.description?.slice(0, 30) || "Liked content",
-    timeAgo: formatTimeAgo(like.created_at),
-    thumbnail: like.posts?.thumbnail_url,
-  }));
+  const likedItems = userLikedPosts.slice(0, 10).map((like: unknown) => {
+    const likeItem = like as { post_id: string; created_at: string; posts?: { title?: string; description?: string; thumbnail_url?: string } };
+    return {
+      id: likeItem.post_id,
+      title: likeItem.posts?.title || likeItem.posts?.description?.slice(0, 30) || "Liked content",
+      timeAgo: formatTimeAgo(likeItem.created_at),
+      thumbnail: likeItem.posts?.thumbnail_url,
+    };
+  });
 
-  const savedItems = savedPosts.slice(0, 10).map((s: any) => ({
-    id: s.post_id,
-    title: s.posts?.title || s.posts?.description?.slice(0, 30) || "Saved",
-    timeAgo: formatTimeAgo(s.created_at),
-    thumbnail: s.posts?.thumbnail_url,
-  }));
+  const savedItems = savedPosts.slice(0, 10).map((s: unknown) => {
+    const savedItem = s as { post_id: string; created_at: string; posts?: { title?: string; description?: string; thumbnail_url?: string } };
+    return {
+      id: savedItem.post_id,
+      title: savedItem.posts?.title || savedItem.posts?.description?.slice(0, 30) || "Saved",
+      timeAgo: formatTimeAgo(savedItem.created_at),
+      thumbnail: savedItem.posts?.thumbnail_url,
+    };
+  });
 
-  const commentedItems = commentedPosts.slice(0, 10).map((c: any) => ({
-    id: c.post_id,
-    title: c.posts?.title || c.posts?.description?.slice(0, 30) || "Post",
-    timeAgo: formatTimeAgo(c.created_at),
-    thumbnail: c.posts?.thumbnail_url,
-  }));
+  const commentedItems = commentedPosts.slice(0, 10).map((c: unknown) => {
+    const commentItem = c as { post_id: string; created_at: string; posts?: { title?: string; description?: string; thumbnail_url?: string } };
+    return {
+      id: commentItem.post_id,
+      title: commentItem.posts?.title || commentItem.posts?.description?.slice(0, 30) || "Post",
+      timeAgo: formatTimeAgo(commentItem.created_at),
+      thumbnail: commentItem.posts?.thumbnail_url,
+    };
+  });
 
-  const folders = [
+  const folders: { id: string; icon: React.ComponentType<{ className?: string }>; label: string; color: string; items: WatchHistoryItem[] }[] = [
     { id: "resume", icon: Clock, label: "Resume Watching", color: "text-yellow-400", items: resumeItems },
     { id: "watched", icon: Play, label: "Watched", color: "text-blue-400", items: watchedItems },
     { id: "liked", icon: Heart, label: "Liked", color: "text-destructive", items: likedItems },
@@ -194,8 +217,8 @@ const WatchHistoryHub = () => {
                       >
                         {/* Thumbnail */}
                         <div className="w-16 h-10 rounded-lg bg-muted/50 flex items-center justify-center shrink-0 overflow-hidden">
-                          {(item as any).thumbnail ? (
-                            <img src={(item as any).thumbnail} alt="" className="w-full h-full object-cover" />
+                          {item.thumbnail ? (
+                            <img src={item.thumbnail} alt="" className="w-full h-full object-cover" />
                           ) : (
                             <Play className="w-4 h-4 text-muted-foreground" />
                           )}
@@ -204,11 +227,11 @@ const WatchHistoryHub = () => {
                         <div className="flex-1 min-w-0">
                           <p className="text-sm text-foreground truncate">{item.title}</p>
                           {item.timeAgo && <p className="text-xs text-muted-foreground">{item.timeAgo}</p>}
-                          {(item as any).progress !== undefined && (item as any).progress < 100 && (
+                          {item.progress !== undefined && item.progress < 100 && (
                             <div className="mt-1 h-1 rounded-full bg-muted/50 overflow-hidden">
                               <div 
                                 className="h-full bg-primary rounded-full" 
-                                style={{ width: `${(item as any).progress}%` }} 
+                                style={{ width: `${item.progress}%` }} 
                               />
                             </div>
                           )}

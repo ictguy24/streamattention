@@ -53,7 +53,7 @@ const NewMessageButton = ({ userId, onConversationCreated }: NewMessageButtonPro
     enabled: showPicker && searchQuery.length >= 2,
   });
 
-  const handleSelectUser = async (selectedUser: any) => {
+  const handleSelectUser = async (selectedUser: { id: string }) => {
     if (!userId || isCreating) return;
     setIsCreating(true);
     try {
@@ -126,7 +126,7 @@ const NewMessageButton = ({ userId, onConversationCreated }: NewMessageButtonPro
               ) : searchResults.length === 0 && searchQuery.length >= 2 ? (
                 <p className="text-center text-muted-foreground text-sm py-8">No users found</p>
               ) : (
-                searchResults.map((u: any) => (
+                searchResults.map((u: { id: string; username?: string; display_name?: string; avatar_url?: string }) => (
                   <button
                     key={u.id}
                     className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/10 active:scale-[0.99] transition-all"

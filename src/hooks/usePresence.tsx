@@ -39,7 +39,7 @@ export const usePresence = (): UsePresenceReturn => {
         const users: PresenceUser[] = [];
         
         Object.values(state).forEach((presences) => {
-          presences.forEach((presence: any) => {
+          presences.forEach((presence: PresenceUser) => {
             if (presence.user_id && presence.user_id !== user.id) {
               users.push({
                 user_id: presence.user_id,
@@ -77,7 +77,7 @@ export const usePresence = (): UsePresenceReturn => {
     };
   }, [user, profile?.username, profile?.avatar_url]);
 
-  const onlineUserIds = new Set(onlineUsers.map(u => u.user_id));
+  const onlineUserIds = useMemo(() => new Set(onlineUsers.map(u => u.user_id)), [onlineUsers]);
 
   const isUserOnline = useCallback((userId: string): boolean => {
     return onlineUserIds.has(userId);

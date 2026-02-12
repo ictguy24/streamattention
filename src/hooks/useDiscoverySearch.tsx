@@ -67,7 +67,7 @@ export const useDiscoverySearch = (): UseDiscoverySearchReturn => {
       // Search users, hashtags, posts, sounds in parallel
       const [usersRes, hashtagsRes, postsRes, soundsRes] = await Promise.all([
         supabase
-          .from('profiles_public' as any)
+          .from<{ id: string; username: string; display_name: string; avatar_url: string }>('profiles_public')
           .select('id, username, display_name, avatar_url')
           .or(`username.ilike.${searchTerm},display_name.ilike.${searchTerm}`)
           .limit(10),
@@ -94,7 +94,7 @@ export const useDiscoverySearch = (): UseDiscoverySearchReturn => {
       if (postsRes.data?.length) {
         const userIds = [...new Set(postsRes.data.map(p => p.user_id))];
         const { data: profiles } = await supabase
-          .from('profiles_public' as any)
+          .from<{ id: string; username: string | null }>('profiles_public')
           .select('id, username')
           .in('id', userIds);
 

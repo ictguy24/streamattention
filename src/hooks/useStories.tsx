@@ -54,12 +54,13 @@ export const useStories = () => {
       }
 
       // Group stories by user
-      const groupedByUser = data.reduce((acc: Record<string, Story[]>, story: any) => {
-        const userId = story.user_id;
+      const groupedByUser = data.reduce((acc: Record<string, Story[]>, story: unknown) => {
+        const storyItem = story as { user_id: string; id: string };
+        const userId = storyItem.user_id;
         if (!acc[userId]) acc[userId] = [];
         acc[userId].push({
-          id: story.id,
-          user_id: story.user_id,
+          id: storyItem.id,
+          user_id: storyItem.user_id,
           media_url: story.media_url,
           media_type: story.media_type,
           view_count: story.view_count,

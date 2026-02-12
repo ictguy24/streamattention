@@ -38,7 +38,7 @@ const fetchPublicProfiles = async (userIds: string[]): Promise<PublicProfile[]> 
   
   // Query the secure view that only exposes non-sensitive fields
   const { data, error } = await supabase
-    .from("profiles_public" as any)
+    .from<PublicProfile>("profiles_public")
     .select("id, username, display_name, avatar_url")
     .in("id", userIds);
   

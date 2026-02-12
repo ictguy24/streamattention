@@ -21,7 +21,7 @@ const NotificationSheet = forwardRef<HTMLDivElement, NotificationSheetProps>(({ 
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  const handleDragEnd = (_: any, info: PanInfo) => {
+  const handleDragEnd = (_: unknown, info: PanInfo) => {
     if (info.velocity.y > 500 || info.offset.y > 200) {
       onClose();
     }

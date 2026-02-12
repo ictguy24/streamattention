@@ -157,7 +157,7 @@ const MediaEditor = ({ media, onSave, onClose }: MediaEditorProps) => {
     }
   };
 
-  const selectLibraryTrack = (track: any) => {
+  const selectLibraryTrack = (track: { id: string; title: string; preview_url?: string; audio_url?: string }) => {
     setMusicLibraryId(track.id);
     setMusicFile(null);
     setMusicTitle(track.title);

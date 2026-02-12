@@ -42,7 +42,7 @@ const UserProfile = () => {
 
       // Use profiles_public view - only exposes safe fields (no financial/activity data)
       const { data, error } = await supabase
-        .from("profiles_public" as any)
+        .from<UserProfileData>("profiles_public")
         .select("id, username, display_name, avatar_url, bio")
         .eq("id", userId)
         .single();

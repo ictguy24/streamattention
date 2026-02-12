@@ -36,7 +36,7 @@ export const useComments = (postId: string | null) => {
       // Step 2: Fetch profiles from public view
       const userIds = [...new Set(commentsData.map(c => c.user_id))];
       const { data: profiles } = await supabase
-        .from("profiles_public" as any)
+        .from<{ id: string; username: string | null; avatar_url: string | null }>("profiles_public")
         .select("id, username, avatar_url")
         .in("id", userIds);
 

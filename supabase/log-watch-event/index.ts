@@ -44,7 +44,7 @@ Deno.serve(async (req: Request) => {
         completed: Boolean(body.completed)
       });
     } else if (Array.isArray(body.events)) {
-      events = body.events.map((e: any) => ({
+      events = body.events.map((e: { mediaId?: unknown; watchedSeconds?: unknown; completed?: unknown }) => ({
         mediaId: String(e.mediaId),
         watchedSeconds: Number(e.watchedSeconds),
         completed: Boolean(e.completed)

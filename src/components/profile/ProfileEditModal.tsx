@@ -136,9 +136,10 @@ const ProfileEditModal = ({ isOpen, onClose }: ProfileEditModalProps) => {
       await refreshProfile?.();
       toast.success("Profile updated successfully");
       onClose();
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error updating profile:", error);
-      toast.error(error.message || "Failed to update profile");
+      const message = error instanceof Error ? error.message : "Failed to update profile";
+      toast.error(message);
     } finally {
       setIsLoading(false);
     }

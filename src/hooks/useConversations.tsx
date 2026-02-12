@@ -220,7 +220,7 @@ export const useMessages = (conversationId: string | null) => {
           queryClient.setQueryData(
             ["messages", conversationId],
             (old: Message[] = []) => {
-              const newMessage = payload.new as any;
+              const newMessage = payload.new as unknown as Message;
               // Check if message already exists
               if (old.some(m => m.id === newMessage.id)) return old;
               return [...old, {

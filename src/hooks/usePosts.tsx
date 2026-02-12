@@ -101,14 +101,15 @@ export const usePosts = (feedType: 'personalized' | 'latest' = 'personalized'): 
         
         const profilesMap = new Map((profilesData || []).map(p => [p.id, p]));
         
-        result = postsData?.map((post: any) => {
-          const profile = profilesMap.get(post.user_id);
+        result = postsData?.map((post: unknown) => {
+          const postItem = post as { user_id: string; destinations?: string[] };
+          const profile = profilesMap.get(postItem.user_id);
           return {
-            ...post,
+            ...postItem,
             username: profile?.username || 'unknown',
             display_name: profile?.display_name || 'Unknown User',
             avatar_url: profile?.avatar_url || null,
-            destinations: post.destinations || ['stream'],
+            destinations: postItem.destinations || ['stream'],
           };
         });
       }
@@ -372,7 +373,7 @@ export const useCreatePost = () => {
 };
 
 export const useMusicLibrary = () => {
-  const [tracks, setTracks] = useState<any[]>([]);
+  const [tracks, setTracks] = useState<{ id: string; title: string; preview_url?: string; audio_url?: string }[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {

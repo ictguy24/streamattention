@@ -17,6 +17,19 @@ import CommentsPanel from "../CommentsPanel";
 export type ContentType = 'thread' | 'pulse' | 'post' | 'moment' | 'fuzz';
 export type LayoutType = 'vertical' | 'grid' | 'masonry';
 
+export interface Post {
+  id: string;
+  user_id: string;
+  content?: string;
+  media_url?: string;
+  media_type?: string;
+  thumbnail_url?: string;
+  title?: string;
+  description?: string;
+  created_at: string;
+  [key: string]: unknown;
+}
+
 interface FeedContainerProps {
   contentType: ContentType;
   destination?: string;
@@ -413,7 +426,7 @@ const ComposeModal = ({
 
 // Grid item for Fuzz layout
 interface GridItemProps {
-  post: any;
+  post: Post;
   index: number;
   isLiked: boolean;
   isSaved: boolean;
@@ -488,7 +501,7 @@ const GridItem = ({ post, index, isLiked, isSaved, isExpanded, onToggleLike, onT
 
 // Masonry item for Posts layout
 interface MasonryItemProps {
-  post: any;
+  post: Post;
   isLiked: boolean;
   isSaved: boolean;
   onToggleLike: () => void;
@@ -548,7 +561,7 @@ const MasonryItem = ({ post, isLiked, isSaved, onToggleLike, onToggleSave, onCom
 
 // Vertical item for Threads/Pulse layout
 interface VerticalItemProps {
-  post: any;
+  post: Post;
   index: number;
   isLiked: boolean;
   isSaved: boolean;

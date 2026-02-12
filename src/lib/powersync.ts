@@ -10,6 +10,9 @@ export const db = new PowerSyncDatabase({
 });
 
 // Optional: Kysely for type-safe queries
-export const kysely = new Kysely<any>({
+// Using Record<string, unknown> for flexible type
+type Database = Record<string, unknown>;
+
+export const kysely = new Kysely<Database>({
   dialect: new PowerSyncKyselyDatabase(db),
 });

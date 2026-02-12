@@ -24,7 +24,7 @@ const CommentSheet = ({ isOpen, onClose, videoId, onACEarned }: CommentSheetProp
   const inputRef = useRef<HTMLInputElement>(null);
   const charCount = newComment.length;
 
-  const handleDragEnd = (_: any, info: PanInfo) => {
+  const handleDragEnd = (_: unknown, info: PanInfo) => {
     if (info.velocity.y > 500 || info.offset.y > 200) {
       onClose();
     }
@@ -33,7 +33,7 @@ const CommentSheet = ({ isOpen, onClose, videoId, onACEarned }: CommentSheetProp
     }
   };
 
-  const handleHorizontalSwipe = (_: any, info: PanInfo) => {
+  const handleHorizontalSwipe = (_: unknown, info: PanInfo) => {
     if (info.velocity.x < -500 || info.offset.x < -150) {
       onClose();
     }

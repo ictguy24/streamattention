@@ -32,7 +32,7 @@ const CompanionsTab = ({ isFullscreen = false, onSwipeLeft }: CompanionsTabProps
 
       if (error) throw error;
 
-      return (data || []).map((post: any) => ({
+      return (data || []).map((post: { post_id: string; user_id: string; media_url?: string; thumbnail_url?: string; cover_image_url?: string; username?: string }) => ({
         id: post.post_id,
         userId: post.user_id,
         url: post.media_url || "",
