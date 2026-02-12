@@ -9,6 +9,17 @@ export default defineConfig(({ mode }) => ({
     host: "::",
     port: 8080,
   },
+  // Map NEXT_PUBLIC_ env vars to VITE_ equivalents for Supabase integration compatibility
+  envPrefix: ["VITE_", "NEXT_PUBLIC_"],
+  define: {
+    // Ensure Supabase env vars are available at build time even if only NEXT_PUBLIC_ versions exist
+    ...(process.env.NEXT_PUBLIC_SUPABASE_URL && !process.env.VITE_SUPABASE_URL
+      ? { 'import.meta.env.VITE_SUPABASE_URL': JSON.stringify(process.env.NEXT_PUBLIC_SUPABASE_URL) }
+      : {}),
+    ...(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY && !process.env.VITE_SUPABASE_ANON_KEY
+      ? { 'import.meta.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) }
+      : {}),
+  },
   plugins: [
     react(),
     mode === "development" && componentTagger(),

@@ -121,7 +121,7 @@ export const useSession = (): UseSessionReturn => {
     const handleUnload = () => {
       if (sessionId) {
         // Use sendBeacon for reliable delivery
-        const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/manage-session`;
+        const url = `${import.meta.env.VITE_SUPABASE_URL || import.meta.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/manage-session`;
         navigator.sendBeacon(url, JSON.stringify({
           action: 'end',
           device_hash: deviceHashRef.current,
