@@ -1,19 +1,21 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Play, Volume2, VolumeX, RotateCcw } from "lucide-react";
+import { Play } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAttention } from "@/contexts/AttentionContext";
 import { useGestures } from "@/hooks/useGestures";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import CommentSheet from "../social/CommentSheet";
 import FollowButton from "./FollowButton";
 import AudioRow from "./AudioRow";
 import { 
-  AnimatedEnergyIcon, 
+  AnimatedHeartIcon, 
   AnimatedDiscussIcon, 
   AnimatedBroadcastIcon, 
-  AnimatedCollectIcon 
+  AnimatedBookmarkIcon,
+  AnimatedAmplifyIcon 
 } from "../icons/AnimatedIcons";
-import { EnergyIcon } from "../social/InteractionIcons";
 
 interface VideoCardProps {
   video: {
@@ -40,40 +42,45 @@ interface VideoCardProps {
   onSwipeRight?: () => void;
 }
 
-const PLAYBACK_SPEEDS = [0.75, 1, 1.25, 1.5];
-
 const VideoCard = ({ video, isActive, isFullscreen = false, onSwipeRight }: VideoCardProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const musicRef = useRef<HTMLAudioElement>(null);
   const progressRef = useRef<HTMLDivElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
   const [progress, setProgress] = useState(0);
   const [isLiked, setIsLiked] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
+  const [isReposted, setIsReposted] = useState(false);
   const [showComments, setShowComments] = useState(false);
-  const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [isSeeking, setIsSeeking] = useState(false);
-  const [showRestartButton, setShowRestartButton] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [showDoubleTapHeart, setShowDoubleTapHeart] = useState(false);
-  const restartTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [isMutualFollow, setIsMutualFollow] = useState(false);
   const watchStartRef = useRef<number>(0);
   const lastReportedTimeRef = useRef<number>(0);
 
-  // Use Attention context for server-side reporting
+  const { user } = useAuth();
   const { sessionId, reportVideoWatch, reportLike, reportSave } = useAttention();
 
-  // Tap handling
   const tapTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const tapCountRef = useRef(0);
+
+  // Check mutual follow
+  useEffect(() => {
+    if (!user?.id || !video.userId || user.id === video.userId) return;
+    supabase
+      .from("follows")
+      .select("id")
+      .eq("follower_id", video.userId)
+      .eq("following_id", user.id)
+      .maybeSingle()
+      .then(({ data }) => setIsMutualFollow(!!data));
+  }, [user?.id, video.userId]);
 
   const handleDoubleTap = useCallback(() => {
     if (!isLiked) {
       setIsLiked(true);
-      if (sessionId) {
-        reportLike(sessionId, video.id);
-      }
+      if (sessionId) reportLike(sessionId, video.id);
     }
     setShowDoubleTapHeart(true);
     setTimeout(() => setShowDoubleTapHeart(false), 600);
@@ -81,12 +88,9 @@ const VideoCard = ({ video, isActive, isFullscreen = false, onSwipeRight }: Vide
 
   const handleVideoTap = useCallback(() => {
     tapCountRef.current += 1;
-    
     if (tapCountRef.current === 1) {
       tapTimeoutRef.current = setTimeout(() => {
-        if (tapCountRef.current === 1) {
-          togglePlay();
-        }
+        if (tapCountRef.current === 1) togglePlay();
         tapCountRef.current = 0;
       }, 250);
     } else if (tapCountRef.current === 2) {
@@ -96,9 +100,7 @@ const VideoCard = ({ video, isActive, isFullscreen = false, onSwipeRight }: Vide
     }
   }, [handleDoubleTap]);
 
-  const { gestureProps } = useGestures({
-    onSwipeRight: onSwipeRight,
-  });
+  const { gestureProps } = useGestures({ onSwipeRight });
 
   const reportWatchProgress = useCallback(() => {
     if (!videoRef.current || !sessionId) return;
@@ -114,10 +116,8 @@ const VideoCard = ({ video, isActive, isFullscreen = false, onSwipeRight }: Vide
   const audioName = video.audioName || video.musicTitle || "Original Sound";
   const artistName = video.artistName || video.username;
 
-  // Handle music playback
   useEffect(() => {
     if (!musicRef.current || !video.musicUrl) return;
-    
     if (isActive && isPlaying) {
       musicRef.current.volume = video.musicVolume || 0.5;
       musicRef.current.currentTime = videoRef.current?.currentTime || 0;
@@ -129,10 +129,7 @@ const VideoCard = ({ video, isActive, isFullscreen = false, onSwipeRight }: Vide
 
   useEffect(() => {
     if (!videoRef.current) return;
-
-    // Set video volume based on originalVolume setting
     videoRef.current.volume = video.originalVolume || 1;
-
     if (isActive) {
       videoRef.current.play().catch(() => {});
       setIsPlaying(true);
@@ -143,10 +140,6 @@ const VideoCard = ({ video, isActive, isFullscreen = false, onSwipeRight }: Vide
       videoRef.current.pause();
       setIsPlaying(false);
     }
-
-    return () => {
-      if (restartTimeoutRef.current) clearTimeout(restartTimeoutRef.current);
-    };
   }, [isActive, video.id, reportWatchProgress, video.originalVolume]);
 
   const handleTimeUpdate = useCallback(() => {
@@ -178,45 +171,20 @@ const VideoCard = ({ video, isActive, isFullscreen = false, onSwipeRight }: Vide
     setIsPlaying(!isPlaying);
   };
 
-  const toggleMute = () => {
-    if (!videoRef.current) return;
-    videoRef.current.muted = !isMuted;
-    setIsMuted(!isMuted);
-  };
-
-  const handleRestart = () => {
-    if (!videoRef.current) return;
-    videoRef.current.currentTime = 0;
-    lastReportedTimeRef.current = 0;
-    setShowRestartButton(false);
-  };
-
-  const cycleSpeed = () => {
-    const currentIndex = PLAYBACK_SPEEDS.indexOf(playbackSpeed);
-    const nextIndex = (currentIndex + 1) % PLAYBACK_SPEEDS.length;
-    const newSpeed = PLAYBACK_SPEEDS[nextIndex];
-    setPlaybackSpeed(newSpeed);
-    if (videoRef.current) {
-      videoRef.current.playbackRate = newSpeed;
-    }
-  };
-
   const handleLike = () => {
-    if (!isLiked && sessionId) {
-      reportLike(sessionId, video.id);
-    }
+    if (!isLiked && sessionId) reportLike(sessionId, video.id);
     setIsLiked(!isLiked);
   };
 
   const handleSave = () => {
-    if (!isSaved && sessionId) {
-      reportSave(sessionId, video.id);
-    }
+    if (!isSaved && sessionId) reportSave(sessionId, video.id);
     setIsSaved(!isSaved);
   };
 
-  const handleShare = () => {
-    // Share interaction would be reported here
+  const handleShare = () => {};
+
+  const handleRepost = () => {
+    setIsReposted(!isReposted);
   };
 
   return (
@@ -227,12 +195,12 @@ const VideoCard = ({ video, isActive, isFullscreen = false, onSwipeRight }: Vide
         poster={video.poster}
         className="absolute inset-0 w-full h-full object-cover"
         loop
-        muted={isMuted}
         playsInline
         onTimeUpdate={handleTimeUpdate}
         onClick={handleVideoTap}
       />
 
+      {/* Double-tap heart overlay */}
       <AnimatePresence>
         {showDoubleTapHeart && (
           <motion.div
@@ -242,7 +210,9 @@ const VideoCard = ({ video, isActive, isFullscreen = false, onSwipeRight }: Vide
             exit={{ opacity: 0, scale: 0.5 }}
             transition={{ duration: 0.3 }}
           >
-            <EnergyIcon className="w-24 h-24 text-amber-400" isActive={true} strokeWidth={2} />
+            <svg viewBox="0 0 24 24" className="w-24 h-24" fill="#ef4444" stroke="#ef4444" strokeWidth={1}>
+              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+            </svg>
           </motion.div>
         )}
       </AnimatePresence>
@@ -253,42 +223,38 @@ const VideoCard = ({ video, isActive, isFullscreen = false, onSwipeRight }: Vide
 
           <AnimatePresence>
             {!isPlaying && (
-              <motion.div
-                className="absolute inset-0 flex items-center justify-center"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-              >
-                <motion.div
-                  className="p-3 rounded-full bg-background/20 backdrop-blur-sm"
-                  initial={{ scale: 0.8 }}
-                  animate={{ scale: 1 }}
-                  whileTap={{ scale: 0.9 }}
-                >
+              <motion.div className="absolute inset-0 flex items-center justify-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                <motion.div className="p-3 rounded-full bg-background/20 backdrop-blur-sm" initial={{ scale: 0.8 }} animate={{ scale: 1 }} whileTap={{ scale: 0.9 }}>
                   <Play className="w-8 h-8 text-foreground" fill="currentColor" />
                 </motion.div>
               </motion.div>
             )}
           </AnimatePresence>
 
-          <div 
-            ref={progressRef}
-            className="absolute bottom-0 left-0 right-0 h-0.5 bg-muted/20 cursor-pointer z-20"
-            onClick={handleProgressBarClick}
-          >
+          {/* Progress bar */}
+          <div ref={progressRef} className="absolute bottom-0 left-0 right-0 h-0.5 bg-muted/20 cursor-pointer z-20" onClick={handleProgressBarClick}>
             <motion.div className="h-full bg-foreground/60" style={{ width: `${progress}%` }} />
           </div>
 
+          {/* Bottom-left: user info */}
           <div className="absolute bottom-12 left-3 right-16 z-10">
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-              <div className="flex items-center gap-2 mb-1.5">
+              <div className="flex items-center gap-2 mb-1">
                 {video.avatarUrl && (
                   <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-foreground/20">
                     <img src={video.avatarUrl} alt={video.username} className="w-full h-full object-cover" />
                   </div>
                 )}
-                <p className="font-semibold text-sm text-foreground">{video.username}</p>
-                <FollowButton userId={video.userId} />
+                <div>
+                  <p className="font-semibold text-sm text-foreground">{video.username}</p>
+                  {isMutualFollow && (
+                    <span className="text-[9px] font-bold text-primary uppercase tracking-wider">Buddy</span>
+                  )}
+                </div>
+              </div>
+              {/* Follow button below username */}
+              <div className="mb-1.5">
+                <FollowButton userId={video.userId} size="sm" />
               </div>
               <p className="text-xs text-foreground/90 line-clamp-2 mb-1.5">{video.description}</p>
               <div className="flex flex-wrap gap-1 mb-1.5">
@@ -302,9 +268,10 @@ const VideoCard = ({ video, isActive, isFullscreen = false, onSwipeRight }: Vide
             </motion.div>
           </div>
 
+          {/* Right-side actions: Heart, Comment, Share, Repost, Save */}
           <div className="absolute right-2 bottom-28 flex flex-col items-center gap-4 z-10">
             <div className="flex flex-col items-center gap-0.5">
-              <AnimatedEnergyIcon isActive={isLiked} onClick={handleLike} className="drop-shadow-lg" />
+              <AnimatedHeartIcon isActive={isLiked} onClick={handleLike} className="drop-shadow-lg" />
               <span className="text-[10px] text-foreground/80 font-medium">{(video.likes + (isLiked ? 1 : 0)).toLocaleString()}</span>
             </div>
             <div className="flex flex-col items-center gap-0.5">
@@ -313,20 +280,20 @@ const VideoCard = ({ video, isActive, isFullscreen = false, onSwipeRight }: Vide
             </div>
             <div className="flex flex-col items-center gap-0.5">
               <AnimatedBroadcastIcon isActive={false} onClick={handleShare} className="drop-shadow-lg" />
-              <span className="text-[10px] text-foreground/80 font-medium">{video.shares.toLocaleString()}</span>
+              <span className="text-[10px] text-foreground/80 font-medium">Share</span>
             </div>
             <div className="flex flex-col items-center gap-0.5">
-              <AnimatedCollectIcon isActive={isSaved} onClick={handleSave} className="drop-shadow-lg" />
+              <AnimatedAmplifyIcon isActive={isReposted} onClick={handleRepost} className="drop-shadow-lg" />
+              <span className="text-[10px] text-foreground/80 font-medium">Repost</span>
+            </div>
+            <div className="flex flex-col items-center gap-0.5">
+              <AnimatedBookmarkIcon isActive={isSaved} onClick={handleSave} className="drop-shadow-lg" />
             </div>
           </div>
         </>
       )}
 
-      {/* Background Music Audio Element */}
-      {video.musicUrl && (
-        <audio ref={musicRef} src={video.musicUrl} loop preload="auto" />
-      )}
-
+      {video.musicUrl && <audio ref={musicRef} src={video.musicUrl} loop preload="auto" />}
       <CommentSheet isOpen={showComments} onClose={() => setShowComments(false)} videoId={video.id} />
     </div>
   );

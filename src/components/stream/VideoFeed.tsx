@@ -134,24 +134,7 @@ export default function VideoFeed({ isFullscreen, onSwipeRight }: VideoFeedProps
         </motion.div>
       </AnimatePresence>
 
-      {/* Video position indicator */}
-      {!isFullscreen && posts.length > 1 && (
-        <div className="absolute right-2 top-1/2 -translate-y-1/2 flex flex-col gap-1 z-20">
-          {posts.slice(Math.max(0, currentIndex - 2), currentIndex + 3).map((_, i) => {
-            const actualIndex = Math.max(0, currentIndex - 2) + i;
-            return (
-              <div
-                key={actualIndex}
-                className={`w-1 rounded-full transition-all ${
-                  actualIndex === currentIndex
-                    ? "h-4 bg-foreground"
-                    : "h-1.5 bg-foreground/30"
-                }`}
-              />
-            );
-          })}
-        </div>
-      )}
+      {/* Video position indicator removed */}
 
       {/* Loading more indicator */}
       {isLoading && posts.length > 0 && (
