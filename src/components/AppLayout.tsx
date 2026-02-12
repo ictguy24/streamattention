@@ -106,17 +106,11 @@ const AppLayout = () => {
       {!isFullscreen && activeTab !== "create" && activeTab !== "live" && (
         <header className="fixed top-0 left-0 right-0 z-40 safe-area-top">
           <div className="flex items-center justify-between px-3 py-2">
-            {/* Left: AC Counter + Live */}
+            {/* Left: AC Counter */}
             <div className="flex items-center gap-2">
               <ACCounter 
                 balance={balance} 
                 multiplier={multiplier > 1 ? Math.round(multiplier * 10) / 10 : undefined} 
-              />
-              <LiveIndicator
-                hasActiveSessions={hasActiveLiveSessions}
-                isUserLive={isUserLive}
-                onClick={handleLiveClick}
-                size="small"
               />
             </div>
 
@@ -125,8 +119,24 @@ const AppLayout = () => {
               <FeedToggle activeTab={streamSubTab} onTabChange={setStreamSubTab} />
             )}
 
-            {/* Right: Search + Notification Icon */}
+            {/* Right: Live icon + Search + Notification */}
             <div className="flex items-center gap-1">
+              {/* Live icon - no background, just SVG */}
+              <motion.button
+                className="relative p-2"
+                whileTap={{ scale: 0.9 }}
+                onClick={handleLiveClick}
+              >
+                <svg viewBox="0 0 24 24" className="w-4 h-4 text-foreground/70" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M4.5 6.5a10 10 0 0 1 15 0" />
+                  <path d="M7 9a6 6 0 0 1 10 0" />
+                  <path d="M9.5 11.5a3 3 0 0 1 5 0" />
+                  <circle cx="12" cy="14" r="1.5" fill="currentColor" stroke="none" />
+                </svg>
+                {hasActiveLiveSessions && (
+                  <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-destructive" />
+                )}
+              </motion.button>
               <motion.button
                 className="relative p-2"
                 whileTap={{ scale: 0.9 }}

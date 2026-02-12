@@ -23,26 +23,35 @@ export const useComments = (postId: string | null) => {
     queryFn: async () => {
       if (!postId) return [];
       
-      const { data, error } = await supabase
+      // Step 1: Fetch comments
+      const { data: commentsData, error: commentsError } = await supabase
         .from("comments")
-        .select(`
-          *,
-          profiles:user_id (username, avatar_url)
-        `)
+        .select("*")
         .eq("post_id", postId)
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
+      if (commentsError) throw commentsError;
+      if (!commentsData?.length) return [];
 
-      return (data || []).map((comment: any) => ({
+      // Step 2: Fetch profiles from public view
+      const userIds = [...new Set(commentsData.map(c => c.user_id))];
+      const { data: profiles } = await supabase
+        .from("profiles_public" as any)
+        .select("id, username, avatar_url")
+        .in("id", userIds);
+
+      const typedProfiles = (profiles as unknown as { id: string; username: string | null; avatar_url: string | null }[]) || [];
+      const profileMap = new Map(typedProfiles.map(p => [p.id, p]));
+
+      return commentsData.map((comment) => ({
         id: comment.id,
         post_id: comment.post_id,
         user_id: comment.user_id,
         parent_id: comment.parent_id,
         content: comment.content,
         created_at: comment.created_at,
-        username: comment.profiles?.username || "user",
-        avatar_url: comment.profiles?.avatar_url,
+        username: profileMap.get(comment.user_id)?.username || "user",
+        avatar_url: profileMap.get(comment.user_id)?.avatar_url || undefined,
       }));
     },
     enabled: !!postId,
