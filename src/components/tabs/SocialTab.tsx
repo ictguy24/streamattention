@@ -1,18 +1,20 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { ChatIcon, ThreadsIcon, FuzzIcon, GalleryIcon } from "../social/SocialIcons";
+import { ChatIcon, ThreadsIcon, FuzzIcon, GalleryIcon, PulseIcon } from "../social/SocialIcons";
 import ChatMode from "../social/ChatMode";
 import ThreadsMode from "../social/ThreadsMode";
 import FuzzMode from "../social/FuzzMode";
 import GalleryMode from "../social/GalleryMode";
+import PulseMode from "../social/PulseMode";
 
-type SocialMode = "chat" | "threads" | "fuzz" | "gallery";
+type SocialMode = "chat" | "threads" | "fuzz" | "gallery" | "pulse";
 
 const modes = [
   { id: "chat" as const, Icon: ChatIcon, label: "Chat" },
   { id: "threads" as const, Icon: ThreadsIcon, label: "Threads" },
   { id: "fuzz" as const, Icon: FuzzIcon, label: "Fuzz" },
   { id: "gallery" as const, Icon: GalleryIcon, label: "Gallery" },
+  { id: "pulse" as const, Icon: PulseIcon, label: "Pulse" },
 ];
 
 const SocialTab = () => {
@@ -28,6 +30,8 @@ const SocialTab = () => {
         return <FuzzMode />;
       case "gallery":
         return <GalleryMode />;
+      case "pulse":
+        return <PulseMode />;
       default:
         return <ChatMode />;
     }
