@@ -112,7 +112,10 @@ const ProfileTab = () => {
                 {isGuest ? "Guest User" : displayName}
               </h2>
               {!isGuest && (
-                <button className="p-1 rounded-full hover:bg-muted/50 active:scale-95 transition-transform">
+                <button 
+                  className="p-1 rounded-full hover:bg-muted/50 active:scale-95 transition-transform"
+                  onClick={() => setActiveSection("settings")}
+                >
                   <Edit3 className="w-3 h-3 text-muted-foreground" />
                 </button>
               )}

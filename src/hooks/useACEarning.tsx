@@ -7,8 +7,8 @@ interface ACEarningConfig {
 }
 
 const DEFAULT_CONFIG: ACEarningConfig = {
-  baseRatePerSecond: 0.5,
-  bufferTime: 0.8,
+  baseRatePerSecond: 0.05, // Reduced from 0.5 to make earning more reasonable
+  bufferTime: 3, // Increased from 0.8 to prevent rapid swiping
   speedModifiers: {
     0.75: 1.05, // +5% AC
     1: 1, // baseline

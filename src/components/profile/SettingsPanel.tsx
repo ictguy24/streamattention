@@ -23,6 +23,7 @@ import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { useSubscription, Tier } from "@/hooks/useSubscription";
 import { toast } from "sonner";
+import EditProfile from "./EditProfile";
 
 type SettingsSection = "main" | "account" | "security" | "wallet" | "tier" | "privacy" | "notifications" | "data" | "appearance";
 
@@ -175,23 +176,7 @@ const SettingsPanel = () => {
         )}
 
         {activeSection === "account" && (
-          <div className="space-y-4">
-            <div className="p-4 rounded-xl bg-muted/10">
-              <p className="text-sm text-muted-foreground mb-1">Username</p>
-              <p className="font-medium text-foreground">@your_username</p>
-            </div>
-            <div className="p-4 rounded-xl bg-muted/10">
-              <p className="text-sm text-muted-foreground mb-1">Email</p>
-              <p className="font-medium text-foreground">user@example.com</p>
-            </div>
-            <div className="p-4 rounded-xl bg-muted/10">
-              <p className="text-sm text-muted-foreground mb-1">Display Name</p>
-              <p className="font-medium text-foreground">Your Name</p>
-            </div>
-            <button className="w-full py-3 rounded-xl bg-foreground/10 text-foreground font-medium active:scale-[0.98] transition-transform">
-              Edit Profile
-            </button>
-          </div>
+          <EditProfile />
         )}
 
         {activeSection === "security" && (
