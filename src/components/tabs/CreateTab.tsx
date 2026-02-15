@@ -24,6 +24,15 @@ const CreateTab = () => {
   const [media, setMedia] = useState<MediaState | null>(null);
   const [editedMedia, setEditedMedia] = useState<EditedMediaOutput | null>(null);
 
+  // Persistence: Check for unfinished drafts on mount (simple example)
+  useEffect(() => {
+    const savedDraft = localStorage.getItem('create_draft_hint');
+    if (savedDraft) {
+      // We could prompt the user to resume
+      console.log("Draft hint found");
+    }
+  }, []);
+
   const handleMediaSelect = (file: File, type: "image" | "video") => {
     const url = URL.createObjectURL(file);
     setMedia({ file, blob: null, type, url });
@@ -102,50 +111,77 @@ const CreateTab = () => {
         {step === "select" && (
           <motion.div
             key="select"
-            className="flex-1 flex flex-col px-6 py-4"
+            className="flex-1 flex flex-col px-6 py-6"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
           >
-            <div className="text-center mb-8">
+            {/* Studio Header */}
+            <div className="relative mb-10 text-center">
               <motion.div
-                className="w-20 h-20 rounded-full bg-gradient-neon mx-auto mb-4 flex items-center justify-center neon-glow"
-                animate={{ boxShadow: ["0 0 20px hsl(185 100% 50% / 0.5)", "0 0 40px hsl(185 100% 50% / 0.8)", "0 0 20px hsl(185 100% 50% / 0.5)"] }}
-                transition={{ duration: 2, repeat: Infinity }}
+                className="absolute -top-10 left-1/2 -translate-x-1/2 w-40 h-40 bg-primary/10 rounded-full blur-3xl -z-10"
+                animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }}
+                transition={{ duration: 4, repeat: Infinity }}
+              />
+              <h1 className="text-3xl font-black text-foreground tracking-tighter mb-2 italic">STUDIO_MODE</h1>
+              <div className="flex items-center justify-center gap-2">
+                <span className="h-px w-8 bg-primary/50" />
+                <p className="text-[10px] text-primary font-bold uppercase tracking-widest">Create & Earn AC</p>
+                <span className="h-px w-8 bg-primary/50" />
+              </div>
+            </div>
+
+            {/* Main Creative Options */}
+            <div className="grid grid-cols-1 gap-4 mb-8">
+              {/* Record Live Card */}
+              <motion.button
+                className="group relative overflow-hidden rounded-3xl p-6 bg-gradient-to-br from-secondary/20 to-transparent border border-white/10 hover:border-secondary/50 transition-all text-left"
+                whileHover={{ scale: 1.02, y: -2 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => setStep("record")}
               >
-                <Video className="w-10 h-10 text-primary-foreground" />
-              </motion.div>
-              <h2 className="text-2xl font-bold text-foreground mb-2">Create Content</h2>
-              <p className="text-muted-foreground">Share your moments and earn AC</p>
+                <div className="absolute top-0 right-0 w-32 h-32 bg-secondary/10 rounded-full blur-3xl -z-10 group-hover:bg-secondary/20 transition-colors" />
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-12 h-12 rounded-2xl bg-secondary/20 flex items-center justify-center border border-secondary/30">
+                    <Camera className="w-6 h-6 text-secondary" />
+                  </div>
+                  <div className="px-2 py-0.5 rounded-full bg-secondary/10 border border-secondary/20 text-[8px] font-bold text-secondary uppercase">Recommended</div>
+                </div>
+                <h3 className="text-xl font-bold text-foreground mb-1">Capture Moment</h3>
+                <p className="text-xs text-muted-foreground">High-quality video recorder with filters</p>
+              </motion.button>
+
+              {/* Upload Card */}
+              <div className="grid grid-cols-2 gap-4">
+                <MediaUploader onMediaSelect={handleMediaSelect} variant="compact" />
+
+                <motion.button
+                  className="group relative overflow-hidden rounded-3xl p-5 bg-white/5 border border-white/10 hover:border-primary/50 transition-all text-left"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20 mb-3">
+                    <Sparkles className="w-5 h-5 text-primary" />
+                  </div>
+                  <h3 className="text-sm font-bold text-foreground mb-1">AI Create</h3>
+                  <p className="text-[10px] text-muted-foreground">Generate from text</p>
+                </motion.button>
+              </div>
             </div>
 
-            <MediaUploader onMediaSelect={handleMediaSelect} />
-
-            <div className="flex items-center gap-4 my-6">
-              <div className="flex-1 h-px bg-border" />
-              <span className="text-sm text-muted-foreground">or</span>
-              <div className="flex-1 h-px bg-border" />
-            </div>
-
-            <motion.button
-              className="w-full py-4 rounded-2xl bg-secondary/10 border border-secondary/30 flex items-center justify-center gap-3"
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => setStep("record")}
-            >
-              <Camera className="w-6 h-6 text-secondary" />
-              <span className="font-semibold text-secondary">Record Video</span>
-            </motion.button>
-
-            <div className="mt-auto pt-6">
-              <div className="glass-card rounded-xl p-4 flex items-start gap-3">
-                <div className="w-8 h-8 rounded-full bg-gradient-neon flex items-center justify-center shrink-0">
-                  <span className="text-xs font-bold text-primary-foreground">AC</span>
+            {/* Activity Hint */}
+            <div className="mt-auto">
+              <div className="glass-card rounded-2xl p-4 flex items-center gap-4 bg-primary/5 border-primary/20">
+                <div className="flex -space-x-2">
+                  {[1, 2, 3].map(i => (
+                    <div key={i} className="w-8 h-8 rounded-full border-2 border-background overflow-hidden">
+                      <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${i * 123}`} alt="" />
+                    </div>
+                  ))}
                 </div>
-                <div>
-                  <p className="font-medium text-foreground">Earn while you create</p>
-                  <p className="text-sm text-muted-foreground">Get Attention Credits when others watch and engage with your content</p>
-                </div>
+                <p className="text-[10px] text-muted-foreground">
+                  <span className="text-primary font-bold">1.2K creators</span> are live right now earning AC.
+                </p>
               </div>
             </div>
           </motion.div>

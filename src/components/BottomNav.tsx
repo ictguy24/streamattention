@@ -40,20 +40,33 @@ const BottomNav = ({ activeTab, onTabChange }: BottomNavProps) => {
               {tab.isCenter ? (
                 <motion.div
                   className={cn(
-                    "relative p-3 sm:p-3.5 rounded-full transition-all",
+                    "relative p-4 sm:p-4.5 rounded-[1.5rem] transition-all overflow-hidden",
                     isActive
-                      ? "bg-primary shadow-lg shadow-primary/30"
-                      : "bg-foreground/10"
+                      ? "bg-gradient-neon shadow-[0_0_20px_rgba(0,229,255,0.5)]"
+                      : "bg-white/10 backdrop-blur-md border border-white/10"
                   )}
-                  whileHover={{ scale: 1.05 }}
+                  whileHover={{ scale: 1.1, rotate: 5 }}
+                  whileTap={{ scale: 0.9, rotate: -5 }}
                 >
+                  {/* Internal Glow Effect */}
+                  <div className="absolute inset-0 bg-gradient-to-tr from-white/20 to-transparent opacity-50" />
+
                   <tab.Icon
                     className={cn(
-                      "w-4 h-4 sm:w-5 sm:h-5 transition-colors",
-                      isActive ? "text-primary-foreground" : "text-foreground"
+                      "w-5 h-5 sm:w-6 sm:h-6 relative z-10 transition-colors",
+                      isActive ? "text-primary-foreground" : "text-white"
                     )}
                     filled={isActive}
                   />
+
+                  {/* Animated border/shimmer */}
+                  {isActive && (
+                    <motion.div
+                      className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
+                      animate={{ x: ['-100%', '100%'] }}
+                      transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+                    />
+                  )}
                 </motion.div>
               ) : (
                 <>

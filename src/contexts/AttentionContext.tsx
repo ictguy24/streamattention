@@ -38,7 +38,9 @@ export function AttentionProvider({ children }: { children: React.ReactNode }) {
   const { reportVideoWatch: reportVideoBackend, reportLike: reportLikeBackend, reportSave: reportSaveBackend, reportComment: reportCommentBackend } = useInteraction();
 
   const [ups, setUPS] = useState(getUPS());
-  const [localBalanceIncrement, setLocalBalanceIncrement] = useState(0);
+  const [localBalanceIncrement, setLocalBalanceIncrement] = useState(() => {
+    return Number(localStorage.getItem('local_ac_increment')) || 0;
+  });
   const [isBalanceLoading, setIsBalanceLoading] = useState(false);
 
   // Source of truth for balance is the profile
@@ -50,14 +52,21 @@ export function AttentionProvider({ children }: { children: React.ReactNode }) {
 
   // Sync profile balance periodically or when local increments get too high
   useEffect(() => {
+    // Persist local increment
+    localStorage.setItem('local_ac_increment', localBalanceIncrement.toString());
+
     if (localBalanceIncrement > 0) {
       const timer = setTimeout(() => {
         refreshProfile?.();
-        setLocalBalanceIncrement(0);
+        // Only reset if we actually synced (profile might not be available yet)
+        if (profile) {
+          setLocalBalanceIncrement(0);
+          localStorage.setItem('local_ac_increment', '0');
+        }
       }, 5000);
       return () => clearTimeout(timer);
     }
-  }, [localBalanceIncrement, refreshProfile]);
+  }, [localBalanceIncrement, refreshProfile, profile]);
 
   // Listen for real-time wallet changes (if ac_balance moves to wallet)
   useEffect(() => {
