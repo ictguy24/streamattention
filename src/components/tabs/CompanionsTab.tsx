@@ -102,17 +102,20 @@ const CompanionsTab = ({ isFullscreen = false, onSwipeLeft }: CompanionsTabProps
 
   if (posts.length === 0) {
     return (
-      <div className="h-full flex flex-col items-center justify-center px-8">
-        <Users className="w-12 h-12 text-muted-foreground mb-3" strokeWidth={1.5} />
-        <p className="text-foreground font-medium mb-1">No feed yet</p>
-        <p className="text-muted-foreground text-sm text-center mb-4">
-          Follow creators to see their content here
-        </p>
-        <button 
-          className="px-4 py-2 rounded-lg bg-foreground text-background text-sm font-medium active:scale-95 transition-transform"
+      <div className="h-full flex flex-col items-center justify-center bg-background px-8 text-center">
+        <div className="relative mb-8">
+          <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center animate-pulse">
+            <Users className="w-10 h-10 text-primary opacity-20" />
+          </div>
+          <div className="absolute inset-0 border-2 border-primary/20 rounded-full animate-ping" />
+        </div>
+        <h2 className="text-xl font-black text-foreground uppercase tracking-tight mb-2">Feed is empty</h2>
+        <p className="text-sm text-muted-foreground mb-8 max-w-[240px]">Follow your favorite creators to see their latest moments here.</p>
+        <button
+          className="px-8 py-3 rounded-2xl bg-primary text-primary-foreground font-black uppercase tracking-tighter shadow-lg shadow-primary/20 active:scale-95 transition-transform"
           onClick={() => {/* Could open search sheet or navigate */}}
         >
-          Add Friends
+          Discover Creators
         </button>
       </div>
     );

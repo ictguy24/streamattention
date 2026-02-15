@@ -104,10 +104,10 @@ const AppLayout = () => {
     >
       {/* Top Header - Glassmorphism HUD */}
       {!isFullscreen && activeTab !== "create" && activeTab !== "live" && (
-        <header className="fixed top-0 left-0 right-0 z-40 safe-area-top">
-          <div className="mx-4 mt-2 px-4 py-2 rounded-2xl bg-background/40 backdrop-blur-xl border border-white/10 flex items-center justify-between shadow-2xl shadow-black/20">
+        <header className="fixed top-0 left-0 right-0 z-40 safe-area-top pointer-events-none">
+          <div className="mx-auto mt-2 px-3 sm:px-4 py-2 w-[94%] max-w-lg rounded-2xl bg-background/40 backdrop-blur-xl border border-white/10 flex items-center justify-between shadow-2xl shadow-black/20 pointer-events-auto transition-all">
             {/* Left: AC Counter with Neon Glow */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 shrink-0">
               <ACCounter
                 balance={balance}
                 multiplier={multiplier > 1 ? Math.round(multiplier * 10) / 10 : undefined}
@@ -115,42 +115,44 @@ const AppLayout = () => {
             </div>
 
             {/* Center: Feed Toggle (Stream tab only) */}
-            {activeTab === "stream" && (
-              <FeedToggle activeTab={streamSubTab} onTabChange={setStreamSubTab} />
-            )}
+            <div className="flex-1 flex justify-center px-2">
+              {activeTab === "stream" && (
+                <FeedToggle activeTab={streamSubTab} onTabChange={setStreamSubTab} />
+              )}
+            </div>
 
             {/* Right: Actions */}
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
               <motion.button
-                className="relative p-2 rounded-full hover:bg-white/5"
+                className="relative p-1.5 sm:p-2 rounded-full hover:bg-white/5 active:scale-90"
                 whileTap={{ scale: 0.9 }}
                 onClick={handleLiveClick}
               >
-                <svg viewBox="0 0 24 24" className="w-4 h-4 text-foreground/70" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                <svg viewBox="0 0 24 24" className="w-4 h-4 sm:w-5 sm:h-5 text-foreground/70" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
                   <path d="M4.5 6.5a10 10 0 0 1 15 0" />
                   <path d="M7 9a6 6 0 0 1 10 0" />
                   <path d="M9.5 11.5a3 3 0 0 1 5 0" />
                   <circle cx="12" cy="14" r="1.5" fill="currentColor" stroke="none" />
                 </svg>
                 {hasActiveLiveSessions && (
-                  <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-destructive" />
+                  <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-destructive animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.5)]" />
                 )}
               </motion.button>
               <motion.button
-                className="relative p-2"
+                className="relative p-1.5 sm:p-2 rounded-full hover:bg-white/5 active:scale-90"
                 whileTap={{ scale: 0.9 }}
                 onClick={() => setShowSearch(true)}
               >
-                <Search className="w-4 h-4 text-foreground/70" />
+                <Search className="w-4 h-4 sm:w-5 sm:h-5 text-foreground/70" />
               </motion.button>
               <motion.button
-                className="relative p-2"
+                className="relative p-1.5 sm:p-2 rounded-full hover:bg-white/5 active:scale-90"
                 whileTap={{ scale: 0.9 }}
                 onClick={() => setShowNotifications(true)}
               >
-                <Bell className="w-4 h-4 text-foreground/70" />
+                <Bell className="w-4 h-4 sm:w-5 sm:h-5 text-foreground/70" />
                 {unreadCount > 0 && (
-                  <span className="absolute top-1 right-1 min-w-[14px] h-[14px] flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[9px] font-bold px-0.5">
+                  <span className="absolute top-1 right-1 min-w-[14px] h-[14px] flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[8px] font-black px-0.5 shadow-[0_0_8px_rgba(239,68,68,0.5)]">
                     {unreadCount > 99 ? "99+" : unreadCount}
                   </span>
                 )}
@@ -182,13 +184,13 @@ const AppLayout = () => {
         </AnimatePresence>
       </main>
 
-      {/* Bottom Navigation - Hidden during create/live modes */}
-      {activeTab !== "create" && activeTab !== "live" && !isFullscreen && (
+      {/* Bottom Navigation - Hidden during create/fullscreen modes */}
+      {activeTab !== "create" && !isFullscreen && (
         <BottomNav activeTab={activeTab} onTabChange={handleTabChange} />
       )}
 
-      {/* Close button for create/live modes */}
-      {(activeTab === "create" || activeTab === "live") && (
+      {/* Close button for create mode */}
+      {(activeTab === "create") && (
         <button
           onClick={() => setActiveTab("stream")}
           className="fixed top-4 right-4 z-50 p-2 rounded-full bg-background/80 backdrop-blur-sm"
