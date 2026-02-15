@@ -19,7 +19,7 @@ interface MediaState {
 
 const CreateTab = () => {
   const { toast } = useToast();
-  const { createPost, isUploading, uploadProgress } = useCreatePost();
+  const { createPost, isUploading, uploadProgress, resetUpload } = useCreatePost();
   const [step, setStep] = useState<CreateStep>("select");
   const [media, setMedia] = useState<MediaState | null>(null);
   const [editedMedia, setEditedMedia] = useState<EditedMediaOutput | null>(null);
@@ -71,9 +71,11 @@ const CreateTab = () => {
           title: "Posted successfully! 🎉",
           description: "Your content is now live and earning AC",
         });
+        resetUpload(); // Reset upload state after success message
         resetCreate();
       }, 2000);
     } else {
+      resetUpload(); // Reset upload state on failure
       toast({
         title: "Upload failed",
         description: result.error || "Please try again",

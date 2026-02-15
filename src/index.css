@@ -48,10 +48,14 @@
   }
 
   html, body, #root {
-    @apply h-[100dvh] w-full overflow-hidden m-0 p-0;
+    @apply h-[100dvh] w-full overflow-hidden m-0 p-0 fixed inset-0;
     overscroll-behavior: none;
     /* Prevent text size adjustment on orientation change */
     -webkit-text-size-adjust: 100%;
+    /* Standardized height for all mobile browsers */
+    height: 100dvh;
+    min-height: 100dvh;
+    max-height: 100dvh;
   }
 
   * {

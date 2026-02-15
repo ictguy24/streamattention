@@ -354,20 +354,28 @@ export const useCreatePost = () => {
 
       setUploadProgress(100);
 
+      // Return success but don't reset progress immediately to allow UI to show 100%
       return { success: true, postId: post.id };
     } catch (err) {
       console.error('Create post error:', err);
+      setIsUploading(false); // Reset on error
+      setUploadProgress(0);
       return { success: false, error: err instanceof Error ? err.message : 'Failed to create post' };
     } finally {
-      setIsUploading(false);
-      setUploadProgress(0);
+      // Don't setIsUploading(false) here, we'll let the component handle the transition
     }
+  };
+
+  const resetUpload = () => {
+    setIsUploading(false);
+    setUploadProgress(0);
   };
 
   return {
     createPost,
     isUploading,
     uploadProgress,
+    resetUpload,
   };
 };
 
