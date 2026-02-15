@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import { Edit3, LogIn, UserPlus, LogOut, Instagram, Twitter, Youtube, Link as LinkIcon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Avatar from "@/features/avatar/Avatar";
@@ -197,36 +198,36 @@ const ProfileTab = () => {
               </div>
             )}
             
-            {/* Quick stats row */}
+            {/* Quick stats row - More responsive grid */}
             {!isGuest && (
-              <div className="flex items-center gap-4 mt-2">
-                <button 
-                  className="text-center active:scale-95 transition-transform"
+              <div className="grid grid-cols-3 gap-1 mt-3">
+                <button
+                  className="flex flex-col items-center py-1 rounded-xl bg-muted/20 border border-white/5 active:scale-95 transition-transform"
                   onClick={() => {
                     setFollowersListTab("following");
                     setShowFollowersList(true);
                   }}
                 >
-                  <span className="block text-sm font-semibold text-foreground">{followingCount}</span>
-                  <span className="text-[10px] text-muted-foreground">Following</span>
+                  <span className="text-sm font-bold text-foreground">{followingCount}</span>
+                  <span className="text-[9px] text-muted-foreground uppercase font-bold tracking-tighter">Following</span>
                 </button>
-                <button 
-                  className="text-center active:scale-95 transition-transform"
+                <button
+                  className="flex flex-col items-center py-1 rounded-xl bg-muted/20 border border-white/5 active:scale-95 transition-transform"
                   onClick={() => {
                     setFollowersListTab("followers");
                     setShowFollowersList(true);
                   }}
                 >
-                  <span className="block text-sm font-semibold text-foreground">
+                  <span className="text-sm font-bold text-foreground">
                     {followerCount >= 1000 ? `${(followerCount / 1000).toFixed(1)}K` : followerCount}
                   </span>
-                  <span className="text-[10px] text-muted-foreground">Followers</span>
+                  <span className="text-[9px] text-muted-foreground uppercase font-bold tracking-tighter">Followers</span>
                 </button>
-                <div className="text-center">
-                  <span className="block text-sm font-semibold text-foreground">
+                <div className="flex flex-col items-center py-1 rounded-xl bg-muted/20 border border-white/5">
+                  <span className="text-sm font-bold text-foreground">
                     {totalViews >= 1000 ? `${(totalViews / 1000).toFixed(1)}K` : totalViews}
                   </span>
-                  <span className="text-[10px] text-muted-foreground">Views</span>
+                  <span className="text-[9px] text-muted-foreground uppercase font-bold tracking-tighter">Views</span>
                 </div>
               </div>
             )}
@@ -269,16 +270,27 @@ const ProfileTab = () => {
           </div>
         )}
 
-        {/* UPS + AC Display */}
+        {/* UPS + AC Display - Futuristic HUD */}
         {!isGuest && (
-          <div className="mt-4 p-3 rounded-xl bg-muted/30 border border-border/30">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-muted-foreground">UPS Score</span>
-              <span className="text-sm font-bold text-foreground">{ups.toFixed(2)}</span>
+          <div className="mt-4 p-4 rounded-2xl bg-background/40 backdrop-blur-xl border border-white/10 shadow-xl">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs text-muted-foreground uppercase tracking-widest font-bold">Attention Credits</span>
+              <span className="text-lg font-bold text-primary tabular-nums drop-shadow-[0_0_8px_rgba(185,100,50,0.5)]">
+                {acBalance.toLocaleString()}
+              </span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-xs text-muted-foreground">AC Balance</span>
-              <span className="text-sm font-bold text-foreground">{acBalance.toLocaleString()}</span>
+              <span className="text-xs text-muted-foreground uppercase tracking-widest font-bold">UPS Score</span>
+              <div className="flex items-center gap-2">
+                <div className="h-1.5 w-24 bg-muted/50 rounded-full overflow-hidden">
+                  <motion.div
+                    className="h-full bg-primary"
+                    initial={{ width: 0 }}
+                    animate={{ width: `${Math.min(100, ups * 10)}%` }}
+                  />
+                </div>
+                <span className="text-sm font-bold text-foreground">{ups.toFixed(2)}</span>
+              </div>
             </div>
           </div>
         )}

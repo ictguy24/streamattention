@@ -118,16 +118,28 @@ export const useSession = (): UseSessionReturn => {
     });
 
     // End session on page unload
-    const handleUnload = () => {
+    const handleUnload = async () => {
       if (sessionId) {
-        // Use sendBeacon for reliable delivery
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) return;
+
+        // Use fetch with keepalive for reliable delivery with headers
         const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/manage-session`;
-        navigator.sendBeacon(url, JSON.stringify({
-          action: 'end',
-          device_hash: deviceHashRef.current,
-          session_id: sessionId,
-          abnormal: false,
-        }));
+        fetch(url, {
+          method: 'POST',
+          keepalive: true,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+            'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+          },
+          body: JSON.stringify({
+            action: 'end',
+            device_hash: deviceHashRef.current,
+            session_id: sessionId,
+            abnormal: false,
+          }),
+        }).catch(err => console.error('Unload session end failed:', err));
       }
     };
 

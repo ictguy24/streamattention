@@ -118,18 +118,19 @@ const ProfileEditModal = ({ isOpen, onClose }: ProfileEditModalProps) => {
         avatarUrl = publicUrl;
       }
 
-      // Update profile
+      // Update profile using upsert to handle cases where profile might be missing
       const { error } = await supabase
         .from("profiles")
-        .update({
+        .upsert({
+          id: user.id,
           display_name: displayName || null,
           username: username || null,
           avatar_url: avatarUrl,
           bio: bio || null,
           website_url: websiteUrl || null,
           social_links: socialLinks as unknown as Json,
-        })
-        .eq("id", user.id);
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'id' });
 
       if (error) throw error;
 

@@ -47,8 +47,23 @@
     --glass-border: 0 0% 100% / 0.1;
   }
 
+  html, body {
+    @apply h-full w-full overflow-hidden m-0 p-0;
+    overscroll-behavior: none;
+    -webkit-text-size-adjust: 100%;
+    /* Standard for iOS/Android height issues */
+    height: -webkit-fill-available;
+  }
+
+  #root {
+    @apply h-full w-full overflow-hidden relative flex flex-col;
+    height: 100dvh;
+    min-height: -webkit-fill-available;
+  }
+
   * {
     @apply border-border;
+    -webkit-tap-highlight-color: transparent;
   }
 
   body {

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Bell, Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { cn } from "@/lib/utils";
 import ACCounter from "./ACCounter";
 import LiveIndicator from "./LiveIndicator";
 import StreamTab from "./tabs/StreamTab";
@@ -23,7 +24,7 @@ const AppLayout = () => {
   const navigate = useNavigate();
   const { balance } = useAttention();
   const { unreadCount } = useNotifications();
-  
+
   const [activeTab, setActiveTab] = useState<TabType>("stream");
   const [multiplier, setMultiplier] = useState(1);
   const [hasActiveLiveSessions, setHasActiveLiveSessions] = useState(true);
@@ -32,8 +33,20 @@ const AppLayout = () => {
   const [showSearch, setShowSearch] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [streamSubTab, setStreamSubTab] = useState<"companions" | "stream">("stream");
-  
+
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Fix for iOS height issues
+  useEffect(() => {
+    const setHeight = () => {
+      const vh = window.innerHeight * 0.01;
+      document.documentElement.style.setProperty('--vh', `${vh}px`);
+    };
+
+    setHeight();
+    window.addEventListener('resize', setHeight);
+    return () => window.removeEventListener('resize', setHeight);
+  }, []);
 
   // Gesture handling for pinch fullscreen
   const { gestureProps } = useGestures({
@@ -97,61 +110,63 @@ const AppLayout = () => {
   };
 
   return (
-    <div 
+    <div
       ref={containerRef}
-      className="min-h-screen bg-background overflow-hidden"
+      className="fixed inset-0 bg-background overflow-hidden flex flex-col h-[100dvh]"
+      style={{ height: 'calc(var(--vh, 1vh) * 100)' }}
       {...(activeTab === "stream" ? gestureProps : {})}
     >
-      {/* Top Header - Hidden in fullscreen */}
+      {/* Top Header - Glassmorphism HUD */}
       {!isFullscreen && activeTab !== "create" && activeTab !== "live" && (
-        <header className="fixed top-0 left-0 right-0 z-40 safe-area-top">
-          <div className="flex items-center justify-between px-3 py-2">
-            {/* Left: AC Counter */}
-            <div className="flex items-center gap-2">
-              <ACCounter 
-                balance={balance} 
-                multiplier={multiplier > 1 ? Math.round(multiplier * 10) / 10 : undefined} 
+        <header className="fixed top-0 left-0 right-0 z-40 safe-area-top pointer-events-none">
+          <div className="mx-auto mt-2 px-3 sm:px-4 py-2 w-[94%] max-w-lg rounded-2xl bg-background/40 backdrop-blur-xl border border-white/10 flex items-center justify-between shadow-2xl shadow-black/20 pointer-events-auto transition-all">
+            {/* Left: AC Counter with Neon Glow */}
+            <div className="flex items-center gap-2 shrink-0">
+              <ACCounter
+                balance={balance}
+                multiplier={multiplier > 1 ? Math.round(multiplier * 10) / 10 : undefined}
               />
             </div>
 
             {/* Center: Feed Toggle (Stream tab only) */}
-            {activeTab === "stream" && (
-              <FeedToggle activeTab={streamSubTab} onTabChange={setStreamSubTab} />
-            )}
+            <div className="flex-1 flex justify-center px-2">
+              {activeTab === "stream" && (
+                <FeedToggle activeTab={streamSubTab} onTabChange={setStreamSubTab} />
+              )}
+            </div>
 
-            {/* Right: Live icon + Search + Notification */}
-            <div className="flex items-center gap-1">
-              {/* Live icon - no background, just SVG */}
+            {/* Right: Actions */}
+            <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
               <motion.button
-                className="relative p-2"
+                className="relative p-1.5 sm:p-2 rounded-full hover:bg-white/5 active:scale-90"
                 whileTap={{ scale: 0.9 }}
                 onClick={handleLiveClick}
               >
-                <svg viewBox="0 0 24 24" className="w-4 h-4 text-foreground/70" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                <svg viewBox="0 0 24 24" className="w-4 h-4 sm:w-5 sm:h-5 text-foreground/70" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
                   <path d="M4.5 6.5a10 10 0 0 1 15 0" />
                   <path d="M7 9a6 6 0 0 1 10 0" />
                   <path d="M9.5 11.5a3 3 0 0 1 5 0" />
                   <circle cx="12" cy="14" r="1.5" fill="currentColor" stroke="none" />
                 </svg>
                 {hasActiveLiveSessions && (
-                  <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-destructive" />
+                  <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-destructive animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.5)]" />
                 )}
               </motion.button>
               <motion.button
-                className="relative p-2"
+                className="relative p-1.5 sm:p-2 rounded-full hover:bg-white/5 active:scale-90"
                 whileTap={{ scale: 0.9 }}
                 onClick={() => setShowSearch(true)}
               >
-                <Search className="w-4 h-4 text-foreground/70" />
+                <Search className="w-4 h-4 sm:w-5 sm:h-5 text-foreground/70" />
               </motion.button>
               <motion.button
-                className="relative p-2"
+                className="relative p-1.5 sm:p-2 rounded-full hover:bg-white/5 active:scale-90"
                 whileTap={{ scale: 0.9 }}
                 onClick={() => setShowNotifications(true)}
               >
-                <Bell className="w-4 h-4 text-foreground/70" />
+                <Bell className="w-4 h-4 sm:w-5 sm:h-5 text-foreground/70" />
                 {unreadCount > 0 && (
-                  <span className="absolute top-1 right-1 min-w-[14px] h-[14px] flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[9px] font-bold px-0.5">
+                  <span className="absolute top-1 right-1 min-w-[14px] h-[14px] flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[8px] font-bold px-0.5 shadow-[0_0_8px_rgba(239,68,68,0.5)]">
                     {unreadCount > 99 ? "99+" : unreadCount}
                   </span>
                 )}
@@ -162,13 +177,14 @@ const AppLayout = () => {
       )}
 
       {/* Main Content */}
-      <main className={
-        activeTab === "stream" 
-          ? "h-screen pb-20 pt-12" 
+      <main className={cn(
+        "relative w-full flex-1 overflow-hidden",
+        activeTab === "stream"
+          ? "pb-20 pt-14"
           : activeTab === "create" || activeTab === "live"
-          ? "h-screen"
-          : "pt-16 pb-24 min-h-screen"
-      }>
+          ? ""
+          : "pt-16 pb-24 overflow-y-auto no-scrollbar"
+      )}>
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}
@@ -183,13 +199,15 @@ const AppLayout = () => {
         </AnimatePresence>
       </main>
 
-      {/* Bottom Navigation - Hidden during create/live modes */}
-      {activeTab !== "create" && activeTab !== "live" && !isFullscreen && (
-        <BottomNav activeTab={activeTab} onTabChange={handleTabChange} />
+      {/* Bottom Navigation - Hidden during create/fullscreen modes */}
+      {activeTab !== "create" && !isFullscreen && (
+        <div className="absolute bottom-0 left-0 right-0 z-50 pointer-events-none pb-[max(1.5rem,calc(env(safe-area-inset-bottom,0px)+1.25rem))]">
+          <BottomNav activeTab={activeTab} onTabChange={handleTabChange} />
+        </div>
       )}
 
-      {/* Close button for create/live modes */}
-      {(activeTab === "create" || activeTab === "live") && (
+      {/* Close button for create mode */}
+      {(activeTab === "create") && (
         <button
           onClick={() => setActiveTab("stream")}
           className="fixed top-4 right-4 z-50 p-2 rounded-full bg-background/80 backdrop-blur-sm"

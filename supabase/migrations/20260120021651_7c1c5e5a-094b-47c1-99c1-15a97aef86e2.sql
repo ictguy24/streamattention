@@ -1,6 +1,8 @@
 -- Create a public view with only safe-to-share fields
-CREATE VIEW public.profiles_public
-WITH (security_invoker = on) AS
+-- We use SECURITY DEFINER (default) for the view so it can be read by everyone
+-- regardless of the underlying profiles table RLS, but only exposes safe columns.
+DROP VIEW IF EXISTS public.profiles_public;
+CREATE VIEW public.profiles_public AS
 SELECT 
   id,
   username,

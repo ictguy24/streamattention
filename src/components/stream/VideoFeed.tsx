@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Loader2 } from "lucide-react";
+import { Loader2, Radio } from "lucide-react";
 import { useAttention } from "@/contexts/AttentionContext";
 import { usePosts, Post } from "@/hooks/usePosts";
 import VideoCard from "./VideoCard";
@@ -82,11 +82,21 @@ export default function VideoFeed({ isFullscreen, onSwipeRight }: VideoFeedProps
   // Empty state
   if (posts.length === 0) {
     return (
-      <div className="h-full w-full flex items-center justify-center bg-background">
-        <div className="text-center px-6">
-          <p className="text-lg font-medium text-foreground mb-2">No content yet</p>
-          <p className="text-sm text-muted-foreground">Be the first to create something!</p>
+      <div className="h-full w-full flex flex-col items-center justify-center bg-background px-8 text-center">
+        <div className="relative mb-8">
+          <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center animate-pulse">
+            <Radio className="w-10 h-10 text-primary opacity-20" />
+          </div>
+          <div className="absolute inset-0 border-2 border-primary/20 rounded-full animate-ping" />
         </div>
+        <h2 className="text-xl font-black text-foreground uppercase tracking-tight mb-2">No content yet</h2>
+        <p className="text-sm text-muted-foreground mb-8 max-w-[240px]">Be the first to create something and start earning AC credits!</p>
+        <button
+          onClick={() => window.location.href = '/'}
+          className="px-8 py-3 rounded-2xl bg-primary text-primary-foreground font-black uppercase tracking-tighter shadow-lg shadow-primary/20 active:scale-95 transition-transform"
+        >
+          Discover Others
+        </button>
       </div>
     );
   }

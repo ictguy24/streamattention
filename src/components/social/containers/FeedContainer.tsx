@@ -112,6 +112,7 @@ const FeedContainer = ({
         description: newContent,
         contentType: newMedia?.type.startsWith("video/") ? "video" : "image",
         mediaFile: newMedia || undefined,
+        destinations: destination ? [destination] : ['threads'],
       });
       
       setNewContent("");

@@ -37,14 +37,43 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchProfile = async (userId: string) => {
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", userId)
-      .single();
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", userId)
+        .maybeSingle();
 
-    if (!error) {
-      setProfile(data as Profile);
+      if (error) {
+        console.error("Error fetching profile:", error);
+        return;
+      }
+
+      if (data) {
+        setProfile(data as Profile);
+      } else {
+        // Profile doesn't exist, try to create it (recovery for failed triggers)
+        console.log("Profile missing for user, attempting to create...");
+        const { data: newProfile, error: createError } = await supabase
+          .from("profiles")
+          .insert([
+            {
+              id: userId,
+              username: user?.email?.split('@')[0] + Math.floor(Math.random() * 1000),
+              display_name: user?.user_metadata?.display_name || user?.email?.split('@')[0]
+            }
+          ])
+          .select()
+          .single();
+
+        if (createError) {
+          console.error("Failed to create missing profile:", createError);
+        } else {
+          setProfile(newProfile as Profile);
+        }
+      }
+    } catch (err) {
+      console.error("Exception in fetchProfile:", err);
     }
   };
 
@@ -93,7 +122,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signUp = async (email: string, password: string, username?: string) => {
     const redirectUrl = `${window.location.origin}/`;
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email: email.trim(),
       password,
       options: {
@@ -104,6 +133,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         },
       },
     });
+
+    if (!error && data?.user) {
+      // Proactively create profile to avoid race conditions with trigger
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .upsert({
+          id: data.user.id,
+          username: username?.trim() || null,
+          display_name: username?.trim() || null,
+        }, { onConflict: 'id' });
+
+      if (profileError) {
+        console.warn("Manual profile creation failed (might already exist):", profileError);
+      }
+    }
 
     return { error: error as Error | null };
   };

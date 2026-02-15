@@ -56,6 +56,7 @@ const VideoCard = ({ video, isActive, isFullscreen = false, onSwipeRight }: Vide
   const [isDragging, setIsDragging] = useState(false);
   const [showDoubleTapHeart, setShowDoubleTapHeart] = useState(false);
   const [isMutualFollow, setIsMutualFollow] = useState(false);
+  const [glowColor, setGlowColor] = useState("rgba(185, 100, 50, 0.2)"); // Default cyan glow
   const watchStartRef = useRef<number>(0);
   const lastReportedTimeRef = useRef<number>(0);
 
@@ -188,7 +189,18 @@ const VideoCard = ({ video, isActive, isFullscreen = false, onSwipeRight }: Vide
   };
 
   return (
-    <div className="relative h-full w-full bg-background snap-start" {...gestureProps}>
+    <div className="relative h-full w-full bg-background snap-start overflow-hidden" {...gestureProps}>
+      {/* Dynamic Ambient Glow */}
+      <motion.div
+        className="absolute inset-0 opacity-40 blur-[100px] pointer-events-none"
+        animate={{
+          background: isActive
+            ? `radial-gradient(circle at 50% 50%, ${glowColor} 0%, transparent 70%)`
+            : "none"
+        }}
+        transition={{ duration: 1 }}
+      />
+
       <video
         ref={videoRef}
         src={video.url}
@@ -268,8 +280,8 @@ const VideoCard = ({ video, isActive, isFullscreen = false, onSwipeRight }: Vide
             </motion.div>
           </div>
 
-          {/* Right-side actions: Heart, Comment, Share, Repost, Save */}
-          <div className="absolute right-2 bottom-28 flex flex-col items-center gap-4 z-10">
+          {/* Right-side actions: Glassmorphism background for icons */}
+          <div className="absolute right-2 bottom-28 flex flex-col items-center gap-4 z-10 p-2 rounded-2xl bg-black/20 backdrop-blur-md border border-white/5">
             <div className="flex flex-col items-center gap-0.5">
               <AnimatedHeartIcon isActive={isLiked} onClick={handleLike} className="drop-shadow-lg" />
               <span className="text-[10px] text-foreground/80 font-medium">{(video.likes + (isLiked ? 1 : 0)).toLocaleString()}</span>

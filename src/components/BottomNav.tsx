@@ -20,10 +20,9 @@ const BottomNav = ({ activeTab, onTabChange }: BottomNavProps) => {
   const displayTab = activeTab === "live" ? "stream" : activeTab;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 safe-area-bottom">
-      <div className="absolute inset-0 bg-transparent" />
-      
-      <div className="relative flex items-center justify-around px-2 py-2">
+    <nav className="relative w-[94%] sm:w-[92%] max-w-md mx-auto pointer-events-none">
+      {/* Floating Glass Container */}
+      <div className="relative flex items-center justify-around px-2 sm:px-4 py-1.5 sm:py-2 rounded-[2rem] bg-background/70 backdrop-blur-2xl border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.5)] pointer-events-auto">
         {tabs.map((tab) => {
           const isActive = displayTab === tab.id;
 
@@ -33,28 +32,41 @@ const BottomNav = ({ activeTab, onTabChange }: BottomNavProps) => {
               onClick={() => onTabChange(tab.id)}
               whileTap={{ scale: 0.9 }}
               className={cn(
-                "relative flex flex-col items-center justify-center py-2 rounded-2xl transition-all",
-                tab.isCenter ? "px-3" : "px-5"
+                "relative flex flex-col items-center justify-center py-1 rounded-2xl transition-all",
+                tab.isCenter ? "px-2 sm:px-3" : "px-4 sm:px-5"
               )}
             >
               {/* Center Create Button */}
               {tab.isCenter ? (
                 <motion.div
                   className={cn(
-                    "relative p-3.5 rounded-full transition-all",
-                    isActive 
-                      ? "bg-primary shadow-lg shadow-primary/30" 
-                      : "bg-foreground/10"
+                    "relative p-4 sm:p-4.5 rounded-[25px] transition-all overflow-hidden",
+                    isActive
+                      ? "bg-gradient-neon shadow-[0_0_20px_rgba(0,229,255,0.5)]"
+                      : "bg-white/10 backdrop-blur-md border border-[#262626]"
                   )}
-                  whileHover={{ scale: 1.05 }}
+                  whileHover={{ scale: 1.1, rotate: 5 }}
+                  whileTap={{ scale: 0.9, rotate: -5 }}
                 >
-                  <tab.Icon 
+                  {/* Internal Glow Effect */}
+                  <div className="absolute inset-0 bg-gradient-to-tr from-white/20 to-transparent opacity-50" />
+
+                  <tab.Icon
                     className={cn(
-                      "w-5 h-5 transition-colors",
-                      isActive ? "text-primary-foreground" : "text-foreground"
-                    )} 
+                      "w-5 h-5 sm:w-6 sm:h-6 relative z-10 transition-colors",
+                      isActive ? "text-primary-foreground" : "text-white"
+                    )}
                     filled={isActive}
                   />
+
+                  {/* Animated border/shimmer */}
+                  {isActive && (
+                    <motion.div
+                      className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
+                      animate={{ x: ['-100%', '100%'] }}
+                      transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+                    />
+                  )}
                 </motion.div>
               ) : (
                 <>
@@ -63,9 +75,9 @@ const BottomNav = ({ activeTab, onTabChange }: BottomNavProps) => {
                     animate={isActive ? { scale: 1.1 } : { scale: 1 }}
                     transition={{ duration: 0.15 }}
                   >
-                    <tab.Icon 
+                    <tab.Icon
                       className={cn(
-                        "w-6 h-6 transition-colors",
+                        "w-5 h-5 sm:w-6 sm:h-6 transition-colors",
                         isActive ? "text-foreground" : "text-muted-foreground"
                       )}
                       filled={isActive}
@@ -73,18 +85,18 @@ const BottomNav = ({ activeTab, onTabChange }: BottomNavProps) => {
                   </motion.div>
                   <span
                     className={cn(
-                      "text-[10px] mt-1 transition-colors font-medium",
+                      "text-[9px] sm:text-[10px] mt-0.5 sm:mt-1 transition-colors font-bold uppercase tracking-tight",
                       isActive ? "text-foreground" : "text-muted-foreground"
                     )}
                   >
                     {tab.label}
                   </span>
-                  
+
                   {/* Active indicator dot */}
                   {isActive && (
                     <motion.div
-                      layoutId="activeTab"
-                      className="absolute -bottom-0.5 w-1 h-1 rounded-full bg-foreground"
+                      layoutId="activeTabDot"
+                      className="absolute -bottom-1 w-1 h-1 rounded-full bg-primary shadow-[0_0_8px_rgba(185,100,50,0.5)]"
                       transition={{ duration: 0.2 }}
                     />
                   )}
