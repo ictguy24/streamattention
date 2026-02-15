@@ -269,16 +269,27 @@ const ProfileTab = () => {
           </div>
         )}
 
-        {/* UPS + AC Display */}
+        {/* UPS + AC Display - Futuristic HUD */}
         {!isGuest && (
-          <div className="mt-4 p-3 rounded-xl bg-muted/30 border border-border/30">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-muted-foreground">UPS Score</span>
-              <span className="text-sm font-bold text-foreground">{ups.toFixed(2)}</span>
+          <div className="mt-4 p-4 rounded-2xl bg-background/40 backdrop-blur-xl border border-white/10 shadow-xl">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs text-muted-foreground uppercase tracking-widest font-bold">Attention Credits</span>
+              <span className="text-lg font-black text-primary tabular-nums drop-shadow-[0_0_8px_rgba(185,100,50,0.5)]">
+                {acBalance.toLocaleString()}
+              </span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-xs text-muted-foreground">AC Balance</span>
-              <span className="text-sm font-bold text-foreground">{acBalance.toLocaleString()}</span>
+              <span className="text-xs text-muted-foreground uppercase tracking-widest font-bold">UPS Score</span>
+              <div className="flex items-center gap-2">
+                <div className="h-1.5 w-24 bg-muted/50 rounded-full overflow-hidden">
+                  <motion.div
+                    className="h-full bg-primary"
+                    initial={{ width: 0 }}
+                    animate={{ width: `${Math.min(100, ups * 10)}%` }}
+                  />
+                </div>
+                <span className="text-sm font-bold text-foreground">{ups.toFixed(2)}</span>
+              </div>
             </div>
           </div>
         )}

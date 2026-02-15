@@ -1,6 +1,10 @@
-import { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, useMemo } from "react";
 import { routeAttentionEvent } from "@/core/ups/UPSRouter";
 import { getUPS } from "@/core/ups/UPSCore";
+import { useSession } from "@/hooks/useSession";
+import { useInteraction } from "@/hooks/useInteraction";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 
 type TrustState = "cold" | "warm" | "active" | "trusted";
 
@@ -29,21 +33,49 @@ function calculateTrustState(ups: number): TrustState {
 }
 
 export function AttentionProvider({ children }: { children: React.ReactNode }) {
-  const [ups, setUPS] = useState(getUPS());
-  const [balance, setBalance] = useState(0);
-  const [sessionId] = useState(() => crypto.randomUUID());
-  const [isBalanceLoading] = useState(false);
+  const { user, profile, refreshProfile } = useAuth();
+  const { sessionId: backendSessionId, isSessionActive } = useSession();
+  const { reportVideoWatch: reportVideoBackend, reportLike: reportLikeBackend, reportSave: reportSaveBackend, reportComment: reportCommentBackend } = useInteraction();
 
-  // Calculate trust state from UPS
+  const [ups, setUPS] = useState(getUPS());
+  const [localBalanceIncrement, setLocalBalanceIncrement] = useState(0);
+  const [isBalanceLoading, setIsBalanceLoading] = useState(false);
+
+  // Source of truth for balance is the profile
+  const acBalance = useMemo(() => {
+    return (profile?.ac_balance || 0) + localBalanceIncrement;
+  }, [profile?.ac_balance, localBalanceIncrement]);
+
   const trustState = calculateTrustState(ups);
 
-  // Periodic decay sync
+  // Sync profile balance periodically or when local increments get too high
   useEffect(() => {
-    const tick = setInterval(() => {
-      setUPS(getUPS());
-    }, 3000);
-    return () => clearInterval(tick);
-  }, []);
+    if (localBalanceIncrement > 0) {
+      const timer = setTimeout(() => {
+        refreshProfile?.();
+        setLocalBalanceIncrement(0);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [localBalanceIncrement, refreshProfile]);
+
+  // Listen for real-time wallet changes (if ac_balance moves to wallet)
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const channel = supabase
+      .channel('wallet-sync')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'profiles', filter: `id=eq.${user.id}` },
+        () => refreshProfile?.()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, refreshProfile]);
 
   const registerAttention = useCallback((
     type: "watch" | "like" | "comment" | "gift" | "boost",
@@ -53,49 +85,61 @@ export function AttentionProvider({ children }: { children: React.ReactNode }) {
     const newUPS = routeAttentionEvent(type, duration, true, risk);
     setUPS(newUPS);
 
-    // Reward logic (UPS-gated)
-    const reward = Math.max(1, Math.floor(newUPS * 10));
-    setBalance(b => b + reward);
+    // Immediate UI feedback for earning
+    const reward = Math.max(1, Math.floor(newUPS * 2));
+    setLocalBalanceIncrement(prev => prev + reward);
   }, []);
 
   const reportComment = useCallback((
     _sessionId: string,
-    _contentId: string,
-    _content: string
+    contentId: string,
+    content: string
   ) => {
     registerAttention("comment", 1, 0);
-  }, [registerAttention]);
+    if (backendSessionId) {
+      reportCommentBackend(backendSessionId, contentId, content);
+    }
+  }, [registerAttention, backendSessionId, reportCommentBackend]);
 
   const reportVideoWatch = useCallback((
     _sessionId: string,
-    _videoId: string,
+    videoId: string,
     durationMs: number
   ) => {
     const durationSeconds = Math.floor(durationMs / 1000);
     registerAttention("watch", durationSeconds, 0);
-  }, [registerAttention]);
+    if (backendSessionId) {
+      reportVideoBackend(backendSessionId, videoId, durationMs);
+    }
+  }, [registerAttention, backendSessionId, reportVideoBackend]);
 
   const reportLike = useCallback((
     _sessionId: string,
-    _contentId: string
+    contentId: string
   ) => {
     registerAttention("like", 1, 0);
-  }, [registerAttention]);
+    if (backendSessionId) {
+      reportLikeBackend(backendSessionId, contentId);
+    }
+  }, [registerAttention, backendSessionId, reportLikeBackend]);
 
   const reportSave = useCallback((
     _sessionId: string,
-    _contentId: string
+    contentId: string
   ) => {
-    registerAttention("like", 1, 0); // Treat save similar to like for UPS
-  }, [registerAttention]);
+    registerAttention("like", 1, 0);
+    if (backendSessionId) {
+      reportSaveBackend(backendSessionId, contentId);
+    }
+  }, [registerAttention, backendSessionId, reportSaveBackend]);
 
   return (
     <AttentionContext.Provider
       value={{
         ups,
-        balance,
-        acBalance: balance, // Alias for compatibility
-        sessionId,
+        balance: acBalance,
+        acBalance,
+        sessionId: backendSessionId || "no-session",
         trustState,
         isBalanceLoading,
         registerAttention,

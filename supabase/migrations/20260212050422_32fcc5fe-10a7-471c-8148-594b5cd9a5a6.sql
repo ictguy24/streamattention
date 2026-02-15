@@ -1,4 +1,3 @@
-
 -- 1. Fix feed algorithm: exclude own posts, filter by stream destination, add randomization
 CREATE OR REPLACE FUNCTION public.get_personalized_feed(p_user_id uuid, p_limit integer DEFAULT 20, p_offset integer DEFAULT 0)
  RETURNS TABLE(post_id uuid, user_id uuid, username text, display_name text, avatar_url text, content_type text, title text, description text, media_url text, thumbnail_url text, cover_image_url text, music_url text, music_volume double precision, original_volume double precision, music_title text, like_count integer, comment_count integer, view_count integer, created_at timestamp with time zone, relevance_score double precision, destinations text[])
@@ -186,3 +185,33 @@ CREATE TRIGGER on_unlike_decrement
   AFTER DELETE ON public.likes
   FOR EACH ROW
   EXECUTE FUNCTION public.handle_unlike_decrement();
+
+-- 4. Fix AC Balance Sync: Ensure minted AC is actually added to wallets and profiles
+CREATE OR REPLACE FUNCTION public.sync_minted_ac_to_wallet()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+BEGIN
+  -- Update profile balance
+  UPDATE profiles
+  SET ac_balance = ac_balance + FLOOR(NEW.verified_ac)
+  WHERE id = NEW.user_id;
+
+  -- Update wallet balance (exact amount)
+  UPDATE wallets
+  SET ac_balance = ac_balance + FLOOR(NEW.verified_ac),
+      lifetime_earned = lifetime_earned + FLOOR(NEW.verified_ac),
+      updated_at = now()
+  WHERE user_id = NEW.user_id;
+
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS on_ac_minted_sync ON public.attention_ledger;
+CREATE TRIGGER on_ac_minted_sync
+  AFTER INSERT ON public.attention_ledger
+  FOR EACH ROW
+  EXECUTE FUNCTION public.sync_minted_ac_to_wallet();

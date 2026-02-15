@@ -43,31 +43,43 @@ const ACCounter = ({ balance, multiplier = 1 }: ACCounterProps) => {
   }, [balance]);
 
   return (
-    <div 
-      className="relative flex flex-col"
-      style={{ 
+    <div
+      className="relative flex flex-col group cursor-pointer"
+      style={{
         contain: 'layout style',
         minWidth: '4.5rem',
       }}
     >
+      {/* HUD Capsule Background */}
+      <div className="absolute -inset-x-2 -inset-y-1 bg-primary/5 rounded-full blur-sm group-hover:bg-primary/10 transition-colors" />
+
       {/* Main Balance - Text Only */}
-      <div className="flex items-baseline gap-1">
+      <div className="relative flex items-baseline gap-1">
         <motion.span
-          className="text-base font-bold text-foreground tabular-nums"
+          className="text-base font-bold text-foreground tabular-nums drop-shadow-[0_0_8px_rgba(185,100,50,0.3)]"
           style={{ fontVariantNumeric: 'tabular-nums' }}
-          animate={isAnimating ? { 
-            color: ['hsl(var(--foreground))', 'hsl(var(--primary))', 'hsl(var(--foreground))']
+          animate={isAnimating ? {
+            color: ['hsl(var(--foreground))', 'hsl(var(--primary))', 'hsl(var(--foreground))'],
+            scale: [1, 1.05, 1],
           } : {}}
           transition={{ duration: 0.3 }}
         >
           {displayBalance.toLocaleString()}
         </motion.span>
-        <span className="text-[10px] text-primary font-semibold">
-          AC
+        <div className="flex flex-col">
+          <span className="text-[9px] text-primary font-black tracking-tighter leading-none">
+            AC
+          </span>
           {multiplier > 1 && (
-            <span className="text-accent ml-0.5">x{multiplier}</span>
+            <motion.span
+              initial={{ opacity: 0, x: -5 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="text-[8px] text-accent font-bold leading-none"
+            >
+              x{multiplier}
+            </motion.span>
           )}
-        </span>
+        </div>
       </div>
     </div>
   );

@@ -102,15 +102,15 @@ const AppLayout = () => {
       className="min-h-screen bg-background overflow-hidden"
       {...(activeTab === "stream" ? gestureProps : {})}
     >
-      {/* Top Header - Hidden in fullscreen */}
+      {/* Top Header - Glassmorphism HUD */}
       {!isFullscreen && activeTab !== "create" && activeTab !== "live" && (
         <header className="fixed top-0 left-0 right-0 z-40 safe-area-top">
-          <div className="flex items-center justify-between px-3 py-2">
-            {/* Left: AC Counter */}
+          <div className="mx-4 mt-2 px-4 py-2 rounded-2xl bg-background/40 backdrop-blur-xl border border-white/10 flex items-center justify-between shadow-2xl shadow-black/20">
+            {/* Left: AC Counter with Neon Glow */}
             <div className="flex items-center gap-2">
-              <ACCounter 
-                balance={balance} 
-                multiplier={multiplier > 1 ? Math.round(multiplier * 10) / 10 : undefined} 
+              <ACCounter
+                balance={balance}
+                multiplier={multiplier > 1 ? Math.round(multiplier * 10) / 10 : undefined}
               />
             </div>
 
@@ -119,11 +119,10 @@ const AppLayout = () => {
               <FeedToggle activeTab={streamSubTab} onTabChange={setStreamSubTab} />
             )}
 
-            {/* Right: Live icon + Search + Notification */}
+            {/* Right: Actions */}
             <div className="flex items-center gap-1">
-              {/* Live icon - no background, just SVG */}
               <motion.button
-                className="relative p-2"
+                className="relative p-2 rounded-full hover:bg-white/5"
                 whileTap={{ scale: 0.9 }}
                 onClick={handleLiveClick}
               >
