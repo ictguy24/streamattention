@@ -40,10 +40,10 @@ const BottomNav = ({ activeTab, onTabChange }: BottomNavProps) => {
               {tab.isCenter ? (
                 <motion.div
                   className={cn(
-                    "relative p-4 sm:p-4.5 rounded-[1.5rem] transition-all overflow-hidden",
+                    "relative p-4 sm:p-4.5 rounded-[25px] transition-all overflow-hidden",
                     isActive
                       ? "bg-gradient-neon shadow-[0_0_20px_rgba(0,229,255,0.5)]"
-                      : "bg-white/10 backdrop-blur-md border border-white/10"
+                      : "bg-white/10 backdrop-blur-md border border-[#262626]"
                   )}
                   whileHover={{ scale: 1.1, rotate: 5 }}
                   whileTap={{ scale: 0.9, rotate: -5 }}
