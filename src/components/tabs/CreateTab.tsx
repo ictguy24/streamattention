@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Video, Camera, CheckCircle } from "lucide-react";
 import MediaUploader from "../create/MediaUploader";
