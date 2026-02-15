@@ -63,12 +63,12 @@ const LiveTab = () => {
             <div className="px-4 py-6">
               <div className="flex items-center justify-between mb-6">
                 <div>
-                  <h1 className="text-2xl font-black text-foreground tracking-tight">LIVE HUB</h1>
+                  <h1 className="text-2xl font-bold text-foreground tracking-tight">LIVE HUB</h1>
                   <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold">Discover Attention Streams</p>
                 </div>
                 <div className="flex items-center gap-1 px-3 py-1 rounded-full bg-destructive/10 border border-destructive/20 animate-pulse">
                   <span className="w-1.5 h-1.5 rounded-full bg-destructive" />
-                  <span className="text-[10px] font-black text-destructive uppercase">1.2M LIVE</span>
+                  <span className="text-[10px] font-bold text-destructive uppercase">1.2M LIVE</span>
                 </div>
               </div>
 
@@ -114,7 +114,7 @@ const LiveTab = () => {
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20" />
                     
                     {/* Top Badges */}
-                    <div className="absolute top-3 left-3 flex items-center gap-1 px-2 py-0.5 rounded-lg bg-destructive text-white text-[9px] font-black uppercase tracking-tighter shadow-lg">
+                    <div className="absolute top-3 left-3 flex items-center gap-1 px-2 py-0.5 rounded-lg bg-destructive text-white text-[9px] font-bold uppercase tracking-tighter shadow-lg">
                       <Radio className="w-2.5 h-2.5" />
                       LIVE
                     </div>
@@ -126,7 +126,7 @@ const LiveTab = () => {
 
                     {/* Bottom Info */}
                     <div className="absolute bottom-3 left-3 right-3">
-                      <p className="text-white text-xs font-black line-clamp-2 leading-tight mb-1 drop-shadow-md">
+                      <p className="text-white text-xs font-bold line-clamp-2 leading-tight mb-1 drop-shadow-md">
                         {stream.title}
                       </p>
                       <div className="flex items-center gap-1.5">
@@ -154,7 +154,7 @@ const LiveTab = () => {
                   <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
                     <Radio className="w-6 h-6 text-primary" />
                   </div>
-                  <h3 className="text-sm font-black text-primary uppercase tracking-tight">GO LIVE</h3>
+                  <h3 className="text-sm font-bold text-primary uppercase tracking-tight">GO LIVE</h3>
                   <p className="text-[10px] text-primary/60 font-medium">Broadcast & Earn AC</p>
                 </motion.div>
               </div>
@@ -163,7 +163,7 @@ const LiveTab = () => {
             {/* Trending Sections */}
             <div className="mt-4 px-4">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-black uppercase tracking-tight">Categories</h2>
+                <h2 className="text-lg font-bold uppercase tracking-tight">Categories</h2>
                 <button className="text-xs text-primary font-bold">View All</button>
               </div>
               <div className="grid grid-cols-5 gap-2">
@@ -229,19 +229,19 @@ const LiveRoom = ({ room, onExit }: { room: typeof LIVE_STREAMS[0], onExit: () =
              <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${room.user}`} alt="" />
           </div>
           <div>
-            <p className="text-[10px] font-black text-white leading-none">@{room.user}</p>
+            <p className="text-[10px] font-bold text-white leading-none">@{room.user}</p>
             <div className="flex items-center gap-1">
               <Users className="w-2 h-2 text-white/60" />
               <span className="text-[9px] font-bold text-white/60 uppercase tracking-tighter">{room.viewers} VIEWERS</span>
             </div>
           </div>
-          <button className="ml-2 px-3 py-1 rounded-full bg-primary text-[10px] font-black text-primary-foreground">FOLLOW</button>
+          <div className="ml-2 px-3 py-1 rounded-full bg-primary text-[10px] font-bold text-primary-foreground">FOLLOW</div>
         </div>
 
         <div className="flex items-center gap-2">
           <div className="px-3 py-1.5 rounded-full bg-black/30 backdrop-blur-xl border border-white/10 flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-destructive animate-pulse" />
-            <span className="text-[10px] font-black text-white">LIVE</span>
+            <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
+            <span className="text-[10px] font-bold text-white">LIVE</span>
           </div>
           <button onClick={onExit} className="p-2 rounded-full bg-black/30 backdrop-blur-xl border border-white/10">
             <X className="w-4 h-4 text-white" />
@@ -279,7 +279,7 @@ const LiveRoom = ({ room, onExit }: { room: typeof LIVE_STREAMS[0], onExit: () =
               className="flex items-start gap-2 max-w-[80%]"
             >
               <div className="px-3 py-1.5 rounded-2xl bg-black/20 backdrop-blur-md border border-white/5">
-                <span className="text-[10px] font-black text-primary mr-1.5">@{m.user}</span>
+                <span className="text-[10px] font-bold text-primary mr-1.5">@{m.user}</span>
                 <span className="text-xs text-white/90 font-medium">{m.text}</span>
               </div>
             </motion.div>

@@ -20,9 +20,9 @@ const BottomNav = ({ activeTab, onTabChange }: BottomNavProps) => {
   const displayTab = activeTab === "live" ? "stream" : activeTab;
 
   return (
-    <nav className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 z-50 w-[94%] sm:w-[92%] max-w-md pointer-events-none">
+    <nav className="fixed bottom-[max(0.75rem,env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 z-50 w-[94%] sm:w-[92%] max-w-md pointer-events-none">
       {/* Floating Glass Container */}
-      <div className="relative flex items-center justify-around px-2 sm:px-4 py-1.5 sm:py-2 rounded-[2rem] bg-background/60 backdrop-blur-2xl border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] pointer-events-auto">
+      <div className="relative flex items-center justify-around px-2 sm:px-4 py-1.5 sm:py-2 rounded-[2rem] bg-background/70 backdrop-blur-2xl border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.5)] pointer-events-auto">
         {tabs.map((tab) => {
           const isActive = displayTab === tab.id;
 
@@ -72,7 +72,7 @@ const BottomNav = ({ activeTab, onTabChange }: BottomNavProps) => {
                   </motion.div>
                   <span
                     className={cn(
-                      "text-[9px] sm:text-[10px] mt-0.5 sm:mt-1 transition-colors font-black uppercase tracking-tighter",
+                      "text-[9px] sm:text-[10px] mt-0.5 sm:mt-1 transition-colors font-bold uppercase tracking-tight",
                       isActive ? "text-foreground" : "text-muted-foreground"
                     )}
                   >

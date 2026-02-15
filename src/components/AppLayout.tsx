@@ -24,7 +24,7 @@ const AppLayout = () => {
   const navigate = useNavigate();
   const { balance } = useAttention();
   const { unreadCount } = useNotifications();
-  
+
   const [activeTab, setActiveTab] = useState<TabType>("stream");
   const [multiplier, setMultiplier] = useState(1);
   const [hasActiveLiveSessions, setHasActiveLiveSessions] = useState(true);
@@ -33,8 +33,20 @@ const AppLayout = () => {
   const [showSearch, setShowSearch] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [streamSubTab, setStreamSubTab] = useState<"companions" | "stream">("stream");
-  
+
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Fix for iOS height issues
+  useEffect(() => {
+    const setHeight = () => {
+      const vh = window.innerHeight * 0.01;
+      document.documentElement.style.setProperty('--vh', `${vh}px`);
+    };
+
+    setHeight();
+    window.addEventListener('resize', setHeight);
+    return () => window.removeEventListener('resize', setHeight);
+  }, []);
 
   // Gesture handling for pinch fullscreen
   const { gestureProps } = useGestures({
@@ -100,7 +112,8 @@ const AppLayout = () => {
   return (
     <div
       ref={containerRef}
-      className="min-h-[100dvh] h-[100dvh] bg-background overflow-hidden relative"
+      className="min-h-[100dvh] h-[100dvh] bg-background overflow-hidden relative flex flex-col"
+      style={{ height: 'calc(var(--vh, 1vh) * 100)' }}
       {...(activeTab === "stream" ? gestureProps : {})}
     >
       {/* Top Header - Glassmorphism HUD */}
@@ -153,7 +166,7 @@ const AppLayout = () => {
               >
                 <Bell className="w-4 h-4 sm:w-5 sm:h-5 text-foreground/70" />
                 {unreadCount > 0 && (
-                  <span className="absolute top-1 right-1 min-w-[14px] h-[14px] flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[8px] font-black px-0.5 shadow-[0_0_8px_rgba(239,68,68,0.5)]">
+                  <span className="absolute top-1 right-1 min-w-[14px] h-[14px] flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[8px] font-bold px-0.5 shadow-[0_0_8px_rgba(239,68,68,0.5)]">
                     {unreadCount > 99 ? "99+" : unreadCount}
                   </span>
                 )}
@@ -165,7 +178,7 @@ const AppLayout = () => {
 
       {/* Main Content */}
       <main className={cn(
-        "relative w-full h-[100dvh] overflow-hidden",
+        "relative w-full flex-1 overflow-hidden",
         activeTab === "stream"
           ? "pb-20 pt-14"
           : activeTab === "create" || activeTab === "live"

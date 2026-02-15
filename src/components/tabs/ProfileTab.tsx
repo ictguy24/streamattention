@@ -208,7 +208,7 @@ const ProfileTab = () => {
                     setShowFollowersList(true);
                   }}
                 >
-                  <span className="text-sm font-black text-foreground">{followingCount}</span>
+                  <span className="text-sm font-bold text-foreground">{followingCount}</span>
                   <span className="text-[9px] text-muted-foreground uppercase font-bold tracking-tighter">Following</span>
                 </button>
                 <button
@@ -218,13 +218,13 @@ const ProfileTab = () => {
                     setShowFollowersList(true);
                   }}
                 >
-                  <span className="text-sm font-black text-foreground">
+                  <span className="text-sm font-bold text-foreground">
                     {followerCount >= 1000 ? `${(followerCount / 1000).toFixed(1)}K` : followerCount}
                   </span>
                   <span className="text-[9px] text-muted-foreground uppercase font-bold tracking-tighter">Followers</span>
                 </button>
                 <div className="flex flex-col items-center py-1 rounded-xl bg-muted/20 border border-white/5">
-                  <span className="text-sm font-black text-foreground">
+                  <span className="text-sm font-bold text-foreground">
                     {totalViews >= 1000 ? `${(totalViews / 1000).toFixed(1)}K` : totalViews}
                   </span>
                   <span className="text-[9px] text-muted-foreground uppercase font-bold tracking-tighter">Views</span>
@@ -275,7 +275,7 @@ const ProfileTab = () => {
           <div className="mt-4 p-4 rounded-2xl bg-background/40 backdrop-blur-xl border border-white/10 shadow-xl">
             <div className="flex items-center justify-between mb-3">
               <span className="text-xs text-muted-foreground uppercase tracking-widest font-bold">Attention Credits</span>
-              <span className="text-lg font-black text-primary tabular-nums drop-shadow-[0_0_8px_rgba(185,100,50,0.5)]">
+              <span className="text-lg font-bold text-primary tabular-nums drop-shadow-[0_0_8px_rgba(185,100,50,0.5)]">
                 {acBalance.toLocaleString()}
               </span>
             </div>

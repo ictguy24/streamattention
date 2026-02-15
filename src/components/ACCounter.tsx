@@ -56,7 +56,7 @@ const ACCounter = ({ balance, multiplier = 1 }: ACCounterProps) => {
       {/* Main Balance - Text Only */}
       <div className="relative flex items-baseline gap-1">
         <motion.span
-          className="text-base font-bold text-foreground tabular-nums drop-shadow-[0_0_8px_rgba(185,100,50,0.3)]"
+          className="text-sm font-bold text-foreground tabular-nums drop-shadow-[0_0_8px_rgba(185,100,50,0.3)]"
           style={{ fontVariantNumeric: 'tabular-nums' }}
           animate={isAnimating ? {
             color: ['hsl(var(--foreground))', 'hsl(var(--primary))', 'hsl(var(--foreground))'],
@@ -67,7 +67,7 @@ const ACCounter = ({ balance, multiplier = 1 }: ACCounterProps) => {
           {displayBalance.toLocaleString()}
         </motion.span>
         <div className="flex flex-col">
-          <span className="text-[9px] text-primary font-black tracking-tighter leading-none">
+          <span className="text-[9px] text-primary font-bold tracking-tight leading-none">
             AC
           </span>
           {multiplier > 1 && (
