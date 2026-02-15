@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Bell, Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { cn } from "@/lib/utils";
 import ACCounter from "./ACCounter";
 import LiveIndicator from "./LiveIndicator";
 import StreamTab from "./tabs/StreamTab";
@@ -97,9 +98,9 @@ const AppLayout = () => {
   };
 
   return (
-    <div 
+    <div
       ref={containerRef}
-      className="min-h-screen bg-background overflow-hidden"
+      className="min-h-[100dvh] h-[100dvh] bg-background overflow-hidden relative"
       {...(activeTab === "stream" ? gestureProps : {})}
     >
       {/* Top Header - Glassmorphism HUD */}
@@ -163,13 +164,14 @@ const AppLayout = () => {
       )}
 
       {/* Main Content */}
-      <main className={
-        activeTab === "stream" 
-          ? "h-screen pb-20 pt-12" 
+      <main className={cn(
+        "relative w-full h-[100dvh] overflow-hidden",
+        activeTab === "stream"
+          ? "pb-20 pt-14"
           : activeTab === "create" || activeTab === "live"
-          ? "h-screen"
-          : "pt-16 pb-24 min-h-screen"
-      }>
+          ? ""
+          : "pt-16 pb-24 overflow-y-auto no-scrollbar"
+      )}>
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}

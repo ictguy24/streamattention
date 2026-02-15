@@ -20,7 +20,7 @@ const BottomNav = ({ activeTab, onTabChange }: BottomNavProps) => {
   const displayTab = activeTab === "live" ? "stream" : activeTab;
 
   return (
-    <nav className="fixed bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 z-50 w-[94%] sm:w-[92%] max-w-md safe-area-bottom pointer-events-none">
+    <nav className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 z-50 w-[94%] sm:w-[92%] max-w-md pointer-events-none">
       {/* Floating Glass Container */}
       <div className="relative flex items-center justify-around px-2 sm:px-4 py-1.5 sm:py-2 rounded-[2rem] bg-background/60 backdrop-blur-2xl border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] pointer-events-auto">
         {tabs.map((tab) => {

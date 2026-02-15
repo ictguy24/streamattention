@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import { Edit3, LogIn, UserPlus, LogOut, Instagram, Twitter, Youtube, Link as LinkIcon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Avatar from "@/features/avatar/Avatar";
