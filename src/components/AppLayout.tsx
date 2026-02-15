@@ -112,7 +112,7 @@ const AppLayout = () => {
   return (
     <div
       ref={containerRef}
-      className="relative w-full h-full bg-background overflow-hidden flex flex-col"
+      className="fixed inset-0 bg-background overflow-hidden flex flex-col h-[100dvh]"
       style={{ height: 'calc(var(--vh, 1vh) * 100)' }}
       {...(activeTab === "stream" ? gestureProps : {})}
     >
@@ -201,7 +201,7 @@ const AppLayout = () => {
 
       {/* Bottom Navigation - Hidden during create/fullscreen modes */}
       {activeTab !== "create" && !isFullscreen && (
-        <div className="absolute bottom-0 left-0 right-0 z-50 pointer-events-none pb-[max(1.25rem,env(safe-area-inset-bottom,1.25rem))]">
+        <div className="absolute bottom-0 left-0 right-0 z-50 pointer-events-none pb-[max(1.5rem,calc(env(safe-area-inset-bottom,0px)+1.25rem))]">
           <BottomNav activeTab={activeTab} onTabChange={handleTabChange} />
         </div>
       )}
