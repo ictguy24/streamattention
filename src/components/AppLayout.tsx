@@ -191,7 +191,7 @@ const AppLayout = () => {
       {(activeTab === "create" || activeTab === "live") && (
         <button
           onClick={() => setActiveTab("stream")}
-          className="fixed top-4 right-4 z-50 p-2 rounded-full bg-background/80 backdrop-blur-sm"
+          className="fixed top-4 right-4 z-40 p-2 rounded-full bg-background/80 backdrop-blur-sm"
         >
           <span className="text-foreground text-sm">✕</span>
         </button>

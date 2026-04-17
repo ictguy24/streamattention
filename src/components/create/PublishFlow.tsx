@@ -72,7 +72,7 @@ const PublishFlow = ({ media, onPublish, onClose, isUploading = false, uploadPro
   const currentVisibility = VISIBILITY_OPTIONS.find((v) => v.id === visibility);
 
   return (
-    <motion.div className="fixed inset-0 z-50 bg-background flex flex-col" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}>
+    <motion.div className="fixed inset-0 z-[70] bg-background flex flex-col" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}>
       <div className="flex items-center justify-between px-4 py-3 border-b border-border">
         <motion.button className="p-2 rounded-full hover:bg-muted" whileTap={{ scale: 0.9 }} onClick={onClose}>
           <X className="w-6 h-6 text-foreground" />
