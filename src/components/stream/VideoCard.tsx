@@ -77,14 +77,61 @@ const VideoCard = ({ video, isActive, isFullscreen = false, onSwipeRight }: Vide
       .then(({ data }) => setIsMutualFollow(!!data));
   }, [user?.id, video.userId]);
 
+  // Initialize persisted interaction state
+  useEffect(() => {
+    if (!user?.id) {
+      setIsLiked(false);
+      setIsSaved(false);
+      return;
+    }
+
+    void (async () => {
+      const [{ data: likeData }, { data: saveData }] = await Promise.all([
+        supabase
+          .from("likes")
+          .select("id")
+          .eq("user_id", user.id)
+          .eq("post_id", video.id)
+          .maybeSingle(),
+        supabase
+          .from("saves")
+          .select("id")
+          .eq("user_id", user.id)
+          .eq("post_id", video.id)
+          .maybeSingle(),
+      ]);
+
+      setIsLiked(!!likeData);
+      setIsSaved(!!saveData);
+    })();
+  }, [user?.id, video.id]);
+
   const handleDoubleTap = useCallback(() => {
     if (!isLiked) {
       setIsLiked(true);
       reportLike(sessionId, video.id);
+      if (user?.id) {
+        void (async () => {
+          await supabase.from("likes").upsert(
+            { user_id: user.id, post_id: video.id },
+            { onConflict: "user_id,post_id", ignoreDuplicates: true }
+          );
+
+          if (video.userId !== user.id) {
+            await supabase.from("notifications").insert({
+              user_id: video.userId,
+              type: "like",
+              actor_id: user.id,
+              content_id: video.id,
+              message: "liked your post",
+            });
+          }
+        })();
+      }
     }
     setShowDoubleTapHeart(true);
     setTimeout(() => setShowDoubleTapHeart(false), 600);
-  }, [isLiked, sessionId, reportLike, video.id]);
+  }, [isLiked, reportLike, sessionId, user?.id, video.id, video.userId]);
 
   const handleVideoTap = useCallback(() => {
     tapCountRef.current += 1;
@@ -172,13 +219,65 @@ const VideoCard = ({ video, isActive, isFullscreen = false, onSwipeRight }: Vide
   };
 
   const handleLike = () => {
-    if (!isLiked) reportLike(sessionId, video.id);
-    setIsLiked(!isLiked);
+    const nextLiked = !isLiked;
+    setIsLiked(nextLiked);
+
+    if (nextLiked) {
+      reportLike(sessionId, video.id);
+    }
+
+    if (!user?.id) return;
+
+    void (async () => {
+      if (nextLiked) {
+        await supabase.from("likes").upsert(
+          { user_id: user.id, post_id: video.id },
+          { onConflict: "user_id,post_id", ignoreDuplicates: true }
+        );
+
+        if (video.userId !== user.id) {
+          await supabase.from("notifications").insert({
+            user_id: video.userId,
+            type: "like",
+            actor_id: user.id,
+            content_id: video.id,
+            message: "liked your post",
+          });
+        }
+      } else {
+        await supabase
+          .from("likes")
+          .delete()
+          .eq("user_id", user.id)
+          .eq("post_id", video.id);
+      }
+    })();
   };
 
   const handleSave = () => {
-    if (!isSaved) reportSave(sessionId, video.id);
-    setIsSaved(!isSaved);
+    const nextSaved = !isSaved;
+    setIsSaved(nextSaved);
+
+    if (nextSaved) {
+      reportSave(sessionId, video.id);
+    }
+
+    if (!user?.id) return;
+
+    void (async () => {
+      if (nextSaved) {
+        await supabase.from("saves").upsert(
+          { user_id: user.id, post_id: video.id },
+          { onConflict: "user_id,post_id", ignoreDuplicates: true }
+        );
+      } else {
+        await supabase
+          .from("saves")
+          .delete()
+          .eq("user_id", user.id)
+          .eq("post_id", video.id);
+      }
+    })();
   };
 
   const handleShare = () => {};
@@ -223,7 +322,7 @@ const VideoCard = ({ video, isActive, isFullscreen = false, onSwipeRight }: Vide
 
           <AnimatePresence>
             {!isPlaying && (
-              <motion.div className="absolute inset-0 flex items-center justify-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <motion.div className="absolute inset-0 flex items-center justify-center pointer-events-none" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                 <motion.div className="p-3 rounded-full bg-background/20 backdrop-blur-sm" initial={{ scale: 0.8 }} animate={{ scale: 1 }} whileTap={{ scale: 0.9 }}>
                   <Play className="w-8 h-8 text-foreground" fill="currentColor" />
                 </motion.div>

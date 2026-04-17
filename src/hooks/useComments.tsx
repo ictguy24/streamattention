@@ -73,6 +73,24 @@ export const useComments = (postId: string | null) => {
         .single();
 
       if (error) throw error;
+
+      // Notification fallback for post owner
+      const { data: post } = await supabase
+        .from("posts")
+        .select("user_id")
+        .eq("id", postId)
+        .maybeSingle();
+
+      if (post?.user_id && post.user_id !== user.id) {
+        await supabase.from("notifications").insert({
+          user_id: post.user_id,
+          type: "comment",
+          actor_id: user.id,
+          content_id: postId,
+          message: "commented on your post",
+        });
+      }
+
       return data;
     },
     onSuccess: () => {
