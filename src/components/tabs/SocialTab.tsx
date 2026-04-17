@@ -39,12 +39,13 @@ const SocialTab = () => {
     <div className="flex flex-col min-h-[calc(100vh-8rem)]">
       {/* Mode Switcher */}
       <div className="px-4 mb-4">
-        <div className="relative flex items-center justify-between">
+        <div className="rounded-2xl border border-border/40 bg-card/50 p-1.5 backdrop-blur-md">
+          <div className="relative flex items-center justify-between">
           {modes.map((mode) => (
             <button
               key={mode.id}
               className={cn(
-                "relative flex-1 flex items-center justify-center gap-2 py-3 transition-colors duration-150",
+                "relative z-10 flex-1 flex items-center justify-center gap-2 py-3 transition-colors duration-150 rounded-xl",
                 activeMode === mode.id
                   ? "text-foreground"
                   : "text-muted-foreground"
@@ -63,12 +64,13 @@ const SocialTab = () => {
           
           {/* Underline indicator */}
           <div 
-            className="absolute bottom-0 h-0.5 bg-foreground transition-all duration-200 ease-out"
+            className="absolute inset-y-1.5 h-auto bg-foreground/10 transition-all duration-200 ease-out rounded-xl"
             style={{
               width: `${100 / modes.length}%`,
               left: `${(activeIndex * 100) / modes.length}%`
             }}
           />
+        </div>
         </div>
       </div>
 

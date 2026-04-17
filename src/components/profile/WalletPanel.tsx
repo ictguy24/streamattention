@@ -46,7 +46,7 @@ const WalletPanel = () => {
 
   // Trust state display
   const trustConfig = TRUST_STATE_CONFIG[trustState as keyof typeof TRUST_STATE_CONFIG] || TRUST_STATE_CONFIG.cold;
-  const upsPercent = Math.round(ups * 100);
+  const upsPercent = ups <= 1 ? Math.round(ups * 100) : Math.round(ups);
 
   // Calculate progress to next milestone
   const milestones = [100, 500, 1000, 5000, 10000];

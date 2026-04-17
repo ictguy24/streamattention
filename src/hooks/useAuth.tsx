@@ -1,4 +1,4 @@
-import { useState, useEffect, createContext, useContext, ReactNode } from "react";
+import { useState, useEffect, useCallback, createContext, useContext, ReactNode } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -36,7 +36,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const fetchProfile = async (userId: string) => {
+  const fetchProfile = useCallback(async (userId: string) => {
     const { data, error } = await supabase
       .from("profiles")
       .select("*")
@@ -46,7 +46,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (!error) {
       setProfile(data as Profile);
     }
-  };
+  }, []);
 
   // 1️⃣ Listen for auth changes (NO DB CALLS HERE)
   useEffect(() => {
@@ -58,11 +58,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setIsLoading(false);
     });
 
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      setUser(data.session?.user ?? null);
-      setIsLoading(false);
-    });
+    const initAuth = async () => {
+      let timeoutId: number | undefined;
+      try {
+        // Defensive timeout: avoid permanent loading state when auth endpoint is unreachable.
+        const timeoutPromise = new Promise<never>((_, reject) => {
+          timeoutId = window.setTimeout(() => reject(new Error("Auth initialization timeout")), 6000);
+        });
+
+        const sessionPromise = supabase.auth.getSession();
+        const { data } = await Promise.race([sessionPromise, timeoutPromise]);
+        setSession(data.session);
+        setUser(data.session?.user ?? null);
+      } catch (error) {
+        console.warn("Auth initialization fallback:", error);
+        setSession(null);
+        setUser(null);
+      } finally {
+        if (timeoutId) {
+          window.clearTimeout(timeoutId);
+        }
+        setIsLoading(false);
+      }
+    };
+
+    void initAuth();
 
     return () => subscription.unsubscribe();
   }, []);
@@ -74,7 +94,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } else {
       setProfile(null);
     }
-  }, [session?.access_token, user?.id]);
+  }, [fetchProfile, session?.access_token, user?.id]);
 
   const refreshProfile = async () => {
     if (user?.id && session?.access_token) {

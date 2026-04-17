@@ -2,11 +2,14 @@ import { motion } from "framer-motion";
 import { Zap } from "lucide-react";
 import { activateBooster } from "./BoosterEngine";
 import { toast } from "sonner";
+import { useAttention } from "@/contexts/AttentionContext";
 
 export default function BoosterStore() {
+  const { registerAttention } = useAttention();
+
   const handleActivate = () => {
-    activateBooster();
-    toast.success("Booster activated! +1.2 UPS");
+    activateBooster(registerAttention);
+    toast.success("Booster activated and submitted for verification.");
   };
 
   return (

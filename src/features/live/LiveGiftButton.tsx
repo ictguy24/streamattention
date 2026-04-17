@@ -2,11 +2,14 @@ import { motion } from "framer-motion";
 import { Gift } from "lucide-react";
 import { sendGift } from "./LiveGiftEngine";
 import { toast } from "sonner";
+import { useAttention } from "@/contexts/AttentionContext";
 
 export default function LiveGiftButton() {
+  const { registerAttention } = useAttention();
+
   const handleGift = () => {
-    sendGift();
-    toast.success("Gift sent! +0.6 UPS");
+    sendGift(registerAttention);
+    toast.success("Gift submitted for verification.");
   };
 
   return (

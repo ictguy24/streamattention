@@ -1,17 +1,19 @@
-import { createContext, useContext, useState, useEffect, useCallback } from "react";
-import { routeAttentionEvent } from "@/core/ups/UPSRouter";
-import { getUPS } from "@/core/ups/UPSCore";
+import { createContext, useContext, useMemo, useCallback } from "react";
+import { mapAttentionEventToInteraction, type AttentionEventType } from "@/core/attention/eventMapper";
+import { useInteraction } from "@/hooks/useInteraction";
+import { useSession } from "@/hooks/useSession";
+import { useVerifiedBalance } from "@/hooks/useVerifiedBalance";
 
 type TrustState = "cold" | "warm" | "active" | "trusted";
 
 interface AttentionContextType {
   ups: number;
   balance: number;
-  acBalance: number; // Alias for compatibility
+  acBalance: number;
   sessionId: string;
   trustState: TrustState;
   isBalanceLoading: boolean;
-  registerAttention: (type: "watch" | "like" | "comment" | "gift" | "boost", duration?: number, risk?: number) => void;
+  registerAttention: (type: AttentionEventType, duration?: number, risk?: number) => void;
   reportComment: (sessionId: string, contentId: string, content: string) => void;
   reportVideoWatch: (sessionId: string, videoId: string, durationMs: number) => void;
   reportLike: (sessionId: string, contentId: string) => void;
@@ -20,94 +22,95 @@ interface AttentionContextType {
 
 const AttentionContext = createContext<AttentionContextType | null>(null);
 
-// Calculate trust state from UPS
-function calculateTrustState(ups: number): TrustState {
-  if (ups >= 80) return "trusted";
-  if (ups >= 50) return "active";
-  if (ups >= 20) return "warm";
-  return "cold";
-}
-
 export function AttentionProvider({ children }: { children: React.ReactNode }) {
-  const [ups, setUPS] = useState(getUPS());
-  const [balance, setBalance] = useState(0);
-  const [sessionId] = useState(() => crypto.randomUUID());
-  const [isBalanceLoading] = useState(false);
+  const { reportInteraction, reportComment: reportCommentInteraction, reportLike: reportLikeInteraction, reportSave: reportSaveInteraction, reportVideoWatch: reportVideoWatchInteraction } = useInteraction();
+  const { sessionId, startSession, isSessionActive } = useSession();
+  const { balance, trustState, ups, isLoading } = useVerifiedBalance();
 
-  // Calculate trust state from UPS
-  const trustState = calculateTrustState(ups);
+  const ensureSessionId = useCallback(async (): Promise<string | null> => {
+    if (sessionId && isSessionActive) {
+      return sessionId;
+    }
 
-  // Periodic decay sync
-  useEffect(() => {
-    const tick = setInterval(() => {
-      setUPS(getUPS());
-    }, 3000);
-    return () => clearInterval(tick);
-  }, []);
+    return startSession();
+  }, [isSessionActive, sessionId, startSession]);
 
-  const registerAttention = useCallback((
-    type: "watch" | "like" | "comment" | "gift" | "boost",
-    duration = 1,
-    risk = 0
-  ) => {
-    const newUPS = routeAttentionEvent(type, duration, true, risk);
-    setUPS(newUPS);
+  const registerAttention = useCallback((type: AttentionEventType, duration = 1, risk = 0) => {
+    void (async () => {
+      const currentSessionId = await ensureSessionId();
+      if (!currentSessionId) return;
 
-    // Reward logic (UPS-gated)
-    const reward = Math.max(1, Math.floor(newUPS * 10));
-    setBalance(b => b + reward);
-  }, []);
+      const mapped = mapAttentionEventToInteraction({ type, duration });
+      await reportInteraction({
+        sessionId: currentSessionId,
+        interactionType: mapped.interactionType,
+        durationMs: mapped.durationMs,
+        metadata: {
+          ...mapped.metadata,
+          risk,
+        },
+      });
+    })();
+  }, [ensureSessionId, reportInteraction]);
 
-  const reportComment = useCallback((
-    _sessionId: string,
-    _contentId: string,
-    _content: string
-  ) => {
-    registerAttention("comment", 1, 0);
-  }, [registerAttention]);
+  const reportComment = useCallback((incomingSessionId: string, contentId: string, content: string) => {
+    void (async () => {
+      const resolvedSessionId = incomingSessionId || await ensureSessionId();
+      if (!resolvedSessionId) return;
+      await reportCommentInteraction(resolvedSessionId, contentId, content);
+    })();
+  }, [ensureSessionId, reportCommentInteraction]);
 
-  const reportVideoWatch = useCallback((
-    _sessionId: string,
-    _videoId: string,
-    durationMs: number
-  ) => {
-    const durationSeconds = Math.floor(durationMs / 1000);
-    registerAttention("watch", durationSeconds, 0);
-  }, [registerAttention]);
+  const reportVideoWatch = useCallback((incomingSessionId: string, videoId: string, durationMs: number) => {
+    void (async () => {
+      const resolvedSessionId = incomingSessionId || await ensureSessionId();
+      if (!resolvedSessionId) return;
+      await reportVideoWatchInteraction(resolvedSessionId, videoId, durationMs);
+    })();
+  }, [ensureSessionId, reportVideoWatchInteraction]);
 
-  const reportLike = useCallback((
-    _sessionId: string,
-    _contentId: string
-  ) => {
-    registerAttention("like", 1, 0);
-  }, [registerAttention]);
+  const reportLike = useCallback((incomingSessionId: string, contentId: string) => {
+    void (async () => {
+      const resolvedSessionId = incomingSessionId || await ensureSessionId();
+      if (!resolvedSessionId) return;
+      await reportLikeInteraction(resolvedSessionId, contentId);
+    })();
+  }, [ensureSessionId, reportLikeInteraction]);
 
-  const reportSave = useCallback((
-    _sessionId: string,
-    _contentId: string
-  ) => {
-    registerAttention("like", 1, 0); // Treat save similar to like for UPS
-  }, [registerAttention]);
+  const reportSave = useCallback((incomingSessionId: string, contentId: string) => {
+    void (async () => {
+      const resolvedSessionId = incomingSessionId || await ensureSessionId();
+      if (!resolvedSessionId) return;
+      await reportSaveInteraction(resolvedSessionId, contentId);
+    })();
+  }, [ensureSessionId, reportSaveInteraction]);
 
-  return (
-    <AttentionContext.Provider
-      value={{
-        ups,
-        balance,
-        acBalance: balance, // Alias for compatibility
-        sessionId,
-        trustState,
-        isBalanceLoading,
-        registerAttention,
-        reportComment,
-        reportVideoWatch,
-        reportLike,
-        reportSave,
-      }}
-    >
-      {children}
-    </AttentionContext.Provider>
-  );
+  const value = useMemo(() => ({
+    ups,
+    balance,
+    acBalance: balance,
+    sessionId: sessionId ?? "",
+    trustState,
+    isBalanceLoading: isLoading,
+    registerAttention,
+    reportComment,
+    reportVideoWatch,
+    reportLike,
+    reportSave,
+  }), [
+    balance,
+    isLoading,
+    registerAttention,
+    reportComment,
+    reportLike,
+    reportSave,
+    reportVideoWatch,
+    sessionId,
+    trustState,
+    ups,
+  ]);
+
+  return <AttentionContext.Provider value={value}>{children}</AttentionContext.Provider>;
 }
 
 export const useAttention = () => {

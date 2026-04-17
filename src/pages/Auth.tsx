@@ -25,6 +25,7 @@ const Auth = () => {
   );
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [showAuthFallback, setShowAuthFallback] = useState(false);
 
   // Form state
   const [email, setEmail] = useState("");
@@ -41,6 +42,17 @@ const Auth = () => {
       navigate("/");
     }
   }, [user, authLoading, navigate]);
+
+  // Fallback for auth init edge-cases so the page never stays blocked forever.
+  useEffect(() => {
+    if (!authLoading) {
+      setShowAuthFallback(false);
+      return;
+    }
+
+    const timer = window.setTimeout(() => setShowAuthFallback(true), 4000);
+    return () => window.clearTimeout(timer);
+  }, [authLoading]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -157,7 +169,7 @@ const Auth = () => {
     setMode("login");
   };
 
-  if (authLoading) {
+  if (authLoading && !showAuthFallback) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="animate-pulse text-muted-foreground">Loading...</div>
@@ -179,6 +191,12 @@ const Auth = () => {
           {mode === "login" ? "Sign In" : mode === "register" ? "Create Account" : "Reset Password"}
         </h1>
       </header>
+
+      {authLoading && showAuthFallback && (
+        <div className="mx-6 mb-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-500">
+          Still connecting to auth service… you can continue and submit your form.
+        </div>
+      )}
 
       {/* Content */}
       <div className="flex-1 flex flex-col justify-center px-6 pb-12">

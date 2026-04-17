@@ -318,10 +318,11 @@ const ConversationView = ({
 }: ConversationViewProps) => {
   const { user } = useAuth();
   const { sessionId, reportComment } = useAttention();
-  const { messages, isLoading, sendMessage, isSending } = useMessages(conversationId);
+  const { messages, isLoading, sendMessage, isSending, markAsRead } = useMessages(conversationId);
   const [newMessage, setNewMessage] = useState("");
   const [isRecordingAudio, setIsRecordingAudio] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
+  const [isUploadingFile, setIsUploadingFile] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -357,6 +358,10 @@ const ConversationView = ({
   }, [messages]);
 
   useEffect(() => {
+    void markAsRead();
+  }, [markAsRead, messages.length]);
+
+  useEffect(() => {
     if (isRecordingAudio) {
       recordingIntervalRef.current = setInterval(() => {
         setRecordingDuration(prev => prev + 1);
@@ -382,9 +387,7 @@ const ConversationView = ({
     try {
       await sendMessage({ content: newMessage });
       
-      if (sessionId) {
-        reportComment(sessionId, conversationId, newMessage);
-      }
+      reportComment(sessionId, conversationId, newMessage);
       
       setNewMessage("");
       onACEarned?.(3);
@@ -398,6 +401,42 @@ const ConversationView = ({
     // In a real app, we'd upload the audio file here
     await sendMessage({ content: `🎙️ Voice message (${formatDuration(recordingDuration)})` });
     onACEarned?.(5);
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user?.id) return;
+
+    try {
+      setIsUploadingFile(true);
+      const ext = file.name.split(".").pop() || "bin";
+      const path = `${user.id}/messages/${conversationId}/${Date.now()}.${ext}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("posts")
+        .upload(path, file, { upsert: false });
+
+      if (uploadError) throw uploadError;
+
+      const { data: publicUrl } = supabase.storage.from("posts").getPublicUrl(path);
+
+      let mediaType = "file";
+      if (file.type.startsWith("image/")) mediaType = "image";
+      if (file.type.startsWith("video/")) mediaType = "video";
+      if (file.type.startsWith("audio/")) mediaType = "audio";
+
+      await sendMessage(
+        mediaType === "file"
+          ? { content: `📎 ${file.name}`, mediaUrl: publicUrl.publicUrl, mediaType }
+          : { mediaUrl: publicUrl.publicUrl, mediaType }
+      );
+      onACEarned?.(4);
+    } catch (error) {
+      console.error("Failed to upload attachment:", error);
+    } finally {
+      setIsUploadingFile(false);
+      e.target.value = "";
+    }
   };
 
   return (
@@ -506,6 +545,23 @@ const ConversationView = ({
                     {message.content}
                   </p>
                 )}
+
+                {message.media_type === "image" && message.media_url && (
+                  <img
+                    src={message.media_url}
+                    alt="attachment"
+                    className="mt-2 rounded-lg max-w-48 max-h-56 object-cover"
+                  />
+                )}
+
+                {message.media_type === "video" && message.media_url && (
+                  <video
+                    src={message.media_url}
+                    className="mt-2 rounded-lg max-w-48 max-h-56"
+                    controls
+                    playsInline
+                  />
+                )}
                 
                 {message.media_type === "audio" && (
                   <div className="flex items-center gap-2 py-2">
@@ -536,6 +592,7 @@ const ConversationView = ({
           type="file"
           accept="image/*,video/*,audio/*,.pdf,.doc,.docx"
           className="hidden"
+          onChange={handleFileSelect}
         />
         
         <div className="flex items-center gap-2">
@@ -546,7 +603,10 @@ const ConversationView = ({
             <Paperclip className="w-5 h-5 text-muted-foreground" strokeWidth={1.5} />
           </button>
           
-          <button className="p-2 rounded-lg hover:bg-muted/20 active:scale-95 transition-transform">
+          <button
+            className="p-2 rounded-lg hover:bg-muted/20 active:scale-95 transition-transform"
+            onClick={() => fileInputRef.current?.click()}
+          >
             <Image className="w-5 h-5 text-muted-foreground" strokeWidth={1.5} />
           </button>
 
@@ -565,9 +625,9 @@ const ConversationView = ({
             <button
               className="p-2.5 rounded-lg bg-foreground text-background active:scale-95 transition-transform"
               onClick={handleSend}
-              disabled={isSending}
+              disabled={isSending || isUploadingFile}
             >
-              {isSending ? (
+              {isSending || isUploadingFile ? (
                 <Loader2 className="w-5 h-5 animate-spin" />
               ) : (
                 <Send className="w-5 h-5" strokeWidth={1.5} />

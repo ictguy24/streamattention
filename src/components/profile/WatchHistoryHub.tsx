@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Play, Heart, Bookmark, MessageCircle, Clock, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -6,11 +6,23 @@ import { useMediaSession } from "@/hooks/useMediaSession";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import CommentsPanel from "../social/CommentsPanel";
 
-const WatchHistoryHub = () => {
+interface WatchHistoryHubProps {
+  focusFolder?: string | null;
+}
+
+const WatchHistoryHub = ({ focusFolder }: WatchHistoryHubProps) => {
   const [expandedFolder, setExpandedFolder] = useState<string | null>("resume");
+  const [openCommentPostId, setOpenCommentPostId] = useState<string | null>(null);
   const { user } = useAuth();
-  const { history, isLoadingHistory } = useMediaSession();
+  const { history } = useMediaSession();
+
+  useEffect(() => {
+    if (focusFolder) {
+      setExpandedFolder(focusFolder);
+    }
+  }, [focusFolder]);
 
   // Fetch user's liked posts
   const { data: userLikedPosts = [] } = useQuery({
@@ -55,7 +67,7 @@ const WatchHistoryHub = () => {
       if (!user?.id) return [];
       const { data, error } = await supabase
         .from("comments")
-        .select("post_id, created_at, posts(id, title, description, thumbnail_url)")
+        .select("post_id, content, created_at, posts(id, title, description, thumbnail_url)")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
         .limit(20);
@@ -120,6 +132,7 @@ const WatchHistoryHub = () => {
     title: c.posts?.title || c.posts?.description?.slice(0, 30) || "Post",
     timeAgo: formatTimeAgo(c.created_at),
     thumbnail: c.posts?.thumbnail_url,
+    preview: c.content || "",
   }));
 
   const folders = [
@@ -185,12 +198,18 @@ const WatchHistoryHub = () => {
                     </div>
                   ) : (
                     folder.items.map((item, itemIndex) => (
-                      <motion.div
+                      <motion.button
                         key={item.id}
-                        className="flex items-center gap-3 p-3 hover:bg-muted/30 cursor-pointer"
+                        className="w-full flex items-center gap-3 p-3 hover:bg-muted/30 cursor-pointer text-left"
                         initial={{ opacity: 0, x: -10 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: itemIndex * 0.05 }}
+                        whileTap={{ scale: 0.99 }}
+                        onClick={() => {
+                          if (folder.id === "commented") {
+                            setOpenCommentPostId(item.id);
+                          }
+                        }}
                       >
                         {/* Thumbnail */}
                         <div className="w-16 h-10 rounded-lg bg-muted/50 flex items-center justify-center shrink-0 overflow-hidden">
@@ -204,6 +223,11 @@ const WatchHistoryHub = () => {
                         <div className="flex-1 min-w-0">
                           <p className="text-sm text-foreground truncate">{item.title}</p>
                           {item.timeAgo && <p className="text-xs text-muted-foreground">{item.timeAgo}</p>}
+                          {(item as any).preview && (
+                            <p className="text-xs text-muted-foreground/80 truncate mt-0.5">
+                              Your comment: {(item as any).preview}
+                            </p>
+                          )}
                           {(item as any).progress !== undefined && (item as any).progress < 100 && (
                             <div className="mt-1 h-1 rounded-full bg-muted/50 overflow-hidden">
                               <div 
@@ -213,7 +237,7 @@ const WatchHistoryHub = () => {
                             </div>
                           )}
                         </div>
-                      </motion.div>
+                      </motion.button>
                     ))
                   )}
                 </motion.div>
@@ -222,6 +246,12 @@ const WatchHistoryHub = () => {
           </motion.div>
         ))}
       </div>
+
+      <CommentsPanel
+        isOpen={!!openCommentPostId}
+        onClose={() => setOpenCommentPostId(null)}
+        contentId={openCommentPostId || ""}
+      />
     </motion.div>
   );
 };
