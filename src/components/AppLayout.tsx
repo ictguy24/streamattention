@@ -27,7 +27,6 @@ const AppLayout = () => {
   const [activeTab, setActiveTab] = useState<TabType>("stream");
   const [multiplier, setMultiplier] = useState(1);
   const [hasActiveLiveSessions, setHasActiveLiveSessions] = useState(true);
-  const [isUserLive, setIsUserLive] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);

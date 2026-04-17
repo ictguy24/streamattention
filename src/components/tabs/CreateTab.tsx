@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Video, Camera, CheckCircle } from "lucide-react";
+import { Camera, CheckCircle, Sparkles, Wand2, Clock3, Rocket } from "lucide-react";
 import MediaUploader from "../create/MediaUploader";
 import VideoRecorder from "../create/VideoRecorder";
 import MediaEditor, { EditedMediaOutput } from "../create/MediaEditor";
@@ -105,44 +105,68 @@ const CreateTab = () => {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
           >
-            <div className="text-center mb-8">
-              <motion.div
-                className="w-20 h-20 rounded-full bg-gradient-neon mx-auto mb-4 flex items-center justify-center neon-glow"
-                animate={{ boxShadow: ["0 0 20px hsl(185 100% 50% / 0.5)", "0 0 40px hsl(185 100% 50% / 0.8)", "0 0 20px hsl(185 100% 50% / 0.5)"] }}
-                transition={{ duration: 2, repeat: Infinity }}
+            <div className="mb-6 rounded-2xl border border-border/40 bg-card/60 p-5 backdrop-blur-md">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-primary/80 mb-2">Creator Studio</p>
+                  <h2 className="text-2xl font-bold text-foreground mb-1">Make something worth replaying</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Upload, edit, and publish in minutes. Built for short-form consistency.
+                  </p>
+                </div>
+                <motion.div
+                  className="h-11 w-11 rounded-xl bg-primary/15 border border-primary/30 flex items-center justify-center"
+                  animate={{ y: [0, -4, 0] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                >
+                  <Sparkles className="w-5 h-5 text-primary" />
+                </motion.div>
+              </div>
+
+              <div className="mt-4 grid grid-cols-3 gap-2">
+                <div className="rounded-xl bg-muted/20 px-2 py-2 text-center">
+                  <Clock3 className="w-4 h-4 text-muted-foreground mx-auto mb-1" />
+                  <p className="text-[10px] text-muted-foreground">Fast flow</p>
+                </div>
+                <div className="rounded-xl bg-muted/20 px-2 py-2 text-center">
+                  <Wand2 className="w-4 h-4 text-muted-foreground mx-auto mb-1" />
+                  <p className="text-[10px] text-muted-foreground">Auto polish</p>
+                </div>
+                <div className="rounded-xl bg-muted/20 px-2 py-2 text-center">
+                  <Rocket className="w-4 h-4 text-muted-foreground mx-auto mb-1" />
+                  <p className="text-[10px] text-muted-foreground">Publish ready</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <MediaUploader onMediaSelect={handleMediaSelect} />
+
+              <motion.button
+                className="w-full py-4 rounded-2xl bg-secondary/10 border border-secondary/30 flex items-center justify-center gap-3"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => setStep("record")}
               >
-                <Video className="w-10 h-10 text-primary-foreground" />
-              </motion.div>
-              <h2 className="text-2xl font-bold text-foreground mb-2">Create Content</h2>
-              <p className="text-muted-foreground">Share your moments and earn AC</p>
+                <Camera className="w-6 h-6 text-secondary" />
+                <span className="font-semibold text-secondary">Record with Camera</span>
+              </motion.button>
             </div>
 
-            <MediaUploader onMediaSelect={handleMediaSelect} />
-
-            <div className="flex items-center gap-4 my-6">
-              <div className="flex-1 h-px bg-border" />
-              <span className="text-sm text-muted-foreground">or</span>
-              <div className="flex-1 h-px bg-border" />
-            </div>
-
-            <motion.button
-              className="w-full py-4 rounded-2xl bg-secondary/10 border border-secondary/30 flex items-center justify-center gap-3"
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => setStep("record")}
-            >
-              <Camera className="w-6 h-6 text-secondary" />
-              <span className="font-semibold text-secondary">Record Video</span>
-            </motion.button>
-
-            <div className="mt-auto pt-6">
+            <div className="mt-auto pt-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="rounded-xl p-4 border border-border/40 bg-card/40">
+                <p className="text-sm font-semibold text-foreground mb-1">Earning insight</p>
+                <p className="text-xs text-muted-foreground">
+                  Posts with clear hooks in first 3 seconds tend to convert better.
+                </p>
+              </div>
               <div className="glass-card rounded-xl p-4 flex items-start gap-3">
                 <div className="w-8 h-8 rounded-full bg-gradient-neon flex items-center justify-center shrink-0">
                   <span className="text-xs font-bold text-primary-foreground">AC</span>
                 </div>
                 <div>
                   <p className="font-medium text-foreground">Earn while you create</p>
-                  <p className="text-sm text-muted-foreground">Get Attention Credits when others watch and engage with your content</p>
+                  <p className="text-sm text-muted-foreground">Verified engagement updates your balance automatically.</p>
                 </div>
               </div>
             </div>

@@ -10,9 +10,9 @@ interface BalanceData {
 
 interface UseVerifiedBalanceReturn {
   balance: number;
-  trustState: string;
+  trustState: BalanceData['trustState'];
   ups: number;
-  accountType: string;
+  accountType: BalanceData['accountType'];
   isLoading: boolean;
   error: string | null;
   refetch: () => Promise<void>;
