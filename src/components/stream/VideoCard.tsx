@@ -80,7 +80,7 @@ const VideoCard = ({ video, isActive, isFullscreen = false, onSwipeRight }: Vide
   const handleDoubleTap = useCallback(() => {
     if (!isLiked) {
       setIsLiked(true);
-      if (sessionId) reportLike(sessionId, video.id);
+      reportLike(sessionId, video.id);
     }
     setShowDoubleTapHeart(true);
     setTimeout(() => setShowDoubleTapHeart(false), 600);
@@ -103,7 +103,7 @@ const VideoCard = ({ video, isActive, isFullscreen = false, onSwipeRight }: Vide
   const { gestureProps } = useGestures({ onSwipeRight });
 
   const reportWatchProgress = useCallback(() => {
-    if (!videoRef.current || !sessionId) return;
+    if (!videoRef.current) return;
     const currentTime = videoRef.current.currentTime * 1000;
     const watchedDuration = currentTime - lastReportedTimeRef.current;
     if (watchedDuration >= 5000) {
@@ -172,12 +172,12 @@ const VideoCard = ({ video, isActive, isFullscreen = false, onSwipeRight }: Vide
   };
 
   const handleLike = () => {
-    if (!isLiked && sessionId) reportLike(sessionId, video.id);
+    if (!isLiked) reportLike(sessionId, video.id);
     setIsLiked(!isLiked);
   };
 
   const handleSave = () => {
-    if (!isSaved && sessionId) reportSave(sessionId, video.id);
+    if (!isSaved) reportSave(sessionId, video.id);
     setIsSaved(!isSaved);
   };
 
@@ -236,8 +236,8 @@ const VideoCard = ({ video, isActive, isFullscreen = false, onSwipeRight }: Vide
             <motion.div className="h-full bg-foreground/60" style={{ width: `${progress}%` }} />
           </div>
 
-          {/* Bottom-left: user info */}
-          <div className="absolute bottom-12 left-3 right-16 z-10">
+          {/* Bottom-left: user info + media metadata */}
+          <div className="absolute bottom-[4.75rem] left-3 right-16 z-10">
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
               <div className="flex items-center gap-2 mb-1">
                 {video.avatarUrl && (
@@ -269,7 +269,7 @@ const VideoCard = ({ video, isActive, isFullscreen = false, onSwipeRight }: Vide
           </div>
 
           {/* Right-side actions: Heart, Comment, Share, Repost, Save */}
-          <div className="absolute right-2 bottom-28 flex flex-col items-center gap-4 z-10">
+          <div className="absolute right-2 bottom-[5.5rem] flex flex-col items-center gap-4 z-10">
             <div className="flex flex-col items-center gap-0.5">
               <AnimatedHeartIcon isActive={isLiked} onClick={handleLike} className="drop-shadow-lg" />
               <span className="text-[10px] text-foreground/80 font-medium">{(video.likes + (isLiked ? 1 : 0)).toLocaleString()}</span>

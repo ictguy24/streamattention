@@ -40,6 +40,7 @@ const ProfileTab = () => {
   const [followerCount, setFollowerCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [historyFocus, setHistoryFocus] = useState<string | null>(null);
 
   const isGuest = !user;
 
@@ -92,6 +93,11 @@ const ProfileTab = () => {
 
   const displayName = profile?.display_name || profile?.username || user?.email?.split("@")[0] || "Your Name";
   const displayUsername = profile?.username || user?.email?.split("@")[0] || "your_username";
+
+  const handleActivitySectionClick = (section: string) => {
+    setHistoryFocus(section);
+    setActiveSection("history");
+  };
 
   return (
     <div className="flex flex-col pb-8">
@@ -327,8 +333,8 @@ const ProfileTab = () => {
 
       {/* Section Content */}
       <div className="mt-2">
-        {activeSection === "overview" && <ActivitySnapshot />}
-        {activeSection === "history" && <WatchHistoryHub />}
+        {activeSection === "overview" && <ActivitySnapshot onSectionClick={handleActivitySectionClick} />}
+        {activeSection === "history" && <WatchHistoryHub focusFolder={historyFocus} />}
         {activeSection === "content" && <MediaGrid />}
         {activeSection === "social" && <SocialControl />}
         {activeSection === "settings" && <SettingsPanel />}
